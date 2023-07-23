@@ -1,95 +1,42 @@
-# 在 Node.js 不同进程间共享内存
+# ffi-rs
 
-`share-memory` 是一个由 `Rust + Napi` 开发，可以在 `Node.js` 不同进程中共享 `String|Object|Function` 内存的模块。
+<div>
+<a href="https://github.com/zhangyuang/node-ffi-rs/blob/master/README.md">English</a> | <a href="https://github.com/zhangyuang/node-ffi-rs/blob/master/README_Zh.md">简体中文</a>
+</div>
 
-## 支持的功能
-
-🚀 表示已经实现的功能
-
-| 里程碑                                                                                                                                                                                                                                          | 状态 |
-| -------------------------------------------------------------------------------------------------------------------------------------- | ---- |
-|  支持回收内存    | 🚀    |
-|  支持跨进程共享字符串    | 🚀    |
-|  支持跨进程共享 JsObject    | 开发中    |
+A module written in Rust and N-APi provides interface (FFI) features for Node.js
 
 
+## Description
 
-## 如何使用
+ffi-rs is a module written in Rust and N-API that provides FFI (Foreign Function Interface) features for Node.js. It allows developers to call functions written in other languages such as C++, C, and Rust directly from JavaScript without writing any C++ code.
 
-```js
-// parent.js
-const { fork } = require('child_process')
+This module aims to provide similar functionality to the node-ffi module, but with a completely rewritten underlying codebase. The node-ffi module has been unmaintained for several years and is no longer usable, which is why ffi-rs was developed.
 
-const sharedMemory = require('share-memory')
+## Usage
 
-const stringLink = "string.link" // 设置一个内存id memoryId
+Currently, ffi-rs only supports two types of parameters and return values: strings and numbers. However, support for more types will be added in the future based on actual usage scenarios.
 
-sharedMemory.setString(stringLink, "shared String") // 使用该内存 id 存储需要共享的字符串
-console.log('Read shared string in parent process', sharedMemory.getString(stringLink))
-const child = fork('./child')
-
-child.send('ready')
-child.on('message', msg => {
-  if (msg === 'finish') {
-    sharedMemory.clear(stringLink) // 当不需要使用后记得在主进程销毁该内存块
-  }
-})
-
-// child.js
-
-const sharedMemory = require('share-memory')
-process.on("message", msg => {
-  if (msg === "ready") {
-    console.log('Read shared string in child process', sharedMemory.getString("string.link"))
-    process.send("finish")
-    process.exit()
-  }
-})
-
-```
-# shared memory for Node.js Process by Rust Napi
-
-`share-memory` is a module developed using Rust + Napi that allows sharing String|Object|Function memory between different processes in Node.js.
-
-## Features Implemented
-
-🚀 represent features which has been implemented
-
-| 里程碑                                                                                                                                                                                                                                          | 状态 |
-| -------------------------------------------------------------------------------------------------------------------------------------- | ---- |
-|  Support memory recycling	    | 🚀    |
-|  Support sharing strings across processes	    | 🚀    |
-|  Support sharing JsObjects across processes (under development)    | In progress    |
-
-
-# How to use
+Here is an example of how to use ffi-rs:
 
 ```js
-// parent.js
-const { fork } = require('child_process')
+export const enum RetType {
+  String = 0,
+  I32 = 1
+}
+export const enum ParamsType {
+  String = 0,
+  I32 = 1
+}
 
-const sharedMemory = require('share-memory')
-
-const stringLink = "string.link" // Set a memory id memoryId
-sharedMemory.setString(stringLink, "shared String") // Store the string to be shared using the memory id
-console.log('Read shared string in parent process', sharedMemory.getString(stringLink))
-const child = fork('./child')
-
-child.send('ready')
-child.on('message', msg => {
-  if (msg === 'finish') {
-    sharedMemory.clear(stringLink) // Remember to destroy the memory block in the main process when it is no longer needed
-  }
+const p = require('ffi-rs')
+const r = p.load({
+  library: "/usr/libsum.so", // path to the dynamic library file
+  funcName: 'sum', // the name of the function to call
+  retType: 1, // the return value type
+  paramsType: [1, 1], // the parameter types
+  paramsValue: [-99, 2] // the actual parameter values
 })
 
-// child.js
-
-const sharedMemory = require('share-memory')
-process.on("message", msg => {
-  if (msg === "ready") {
-    console.log('Read shared string in child process', sharedMemory.getString("string.link"))
-    process.send("finish")
-    process.exit()
-  }
-})
+console.log('result', r)
 ```
