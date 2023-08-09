@@ -19,24 +19,54 @@ Currently, ffi-rs only supports two types of parameters and return values: strin
 
 Here is an example of how to use ffi-rs:
 
-```js
-export const enum RetType {
-  String = 0,
-  I32 = 1
-}
-export const enum ParamsType {
-  String = 0,
-  I32 = 1
+For below c++ code, we compile this file into a dynamic library
+
+```cpp
+extern "C" int sum(int a, int b) { return a + b; }
+
+extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
+  std::string result = std::string(str1) + std::string(str2);
+  char *cstr = new char[result.length() + 1];
+  strcpy(cstr, result.c_str());
+  return cstr;
 }
 
-const p = require('ffi-rs')
-const r = p.load({
-  library: "/usr/libsum.so", // path to the dynamic library file
+```
+
+```bash
+$ g++ -dynamiclib -o libsum.so cpp/sum.cpp # macos
+$ g++ -shared -o libsum.so cpp/sum.cpp # linux
+$ g++ -shared -o sum.dll cpp/sum.cpp # win
+```
+
+Then can use `ffi-rs` invoke the dynamic library file contains functions.
+
+```js
+const { equal } = require('assert')
+const { load, RetType, ParamsType } = require('ffi-rs')
+const a = 1
+const b = 100
+
+const r = load({
+  library: "./libsum.so", // path to the dynamic library file
   funcName: 'sum', // the name of the function to call
-  retType: 1, // the return value type
-  paramsType: [1, 1], // the parameter types
-  paramsValue: [-99, 2] // the actual parameter values
+  retType: RetType.I32, // the return value type
+  paramsType: [ParamsType.I32, ParamsType.I32], // the parameter types
+  paramsValue: [a, b] // the actual parameter values
 })
 
-console.log('result', r)
+equal(r, a + b)
+
+const c = "foo"
+const d = "bar"
+
+equal(c + d, load({
+  library: "./libsum.so",
+  funcName: 'concatenateStrings',
+  retType: ParamsType.String,
+  paramsType: [ParamsType.String, ParamsType.String],
+  paramsValue: [c, d]
+}))
+
+
 ```

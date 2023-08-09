@@ -3,7 +3,7 @@
   "version": "1.0.3",
   "main": "index.js",
   "types": "index.d.ts",
-  "description": "A module written in Rust and N-APi provides interface (FFI) features for Node.js",
+  "description": "A module written in Rust and N-API provides interface (FFI) features for Node.js",
   "napi": {
     "name": "ffi-rs",
     "triples": {
@@ -33,21 +33,22 @@
   ],
   "license": "MIT",
   "devDependencies": {
-    "@napi-rs/cli": "^2.15.2"
-  },
-  "ava": {
-    "timeout": "3m"
+    "@napi-rs/cli": "^2.15.2",
+    "koa": "^2.14.2",
+    "shelljs": "^0.8.5"
   },
   "engines": {
-    "node": ">= 10"
+    "node": ">= 12"
   },
   "scripts": {
     "artifacts": "napi artifacts",
-    "build": "napi build --platform --release",
+    "build:c": "node scripts/cpp.js",
+    "build": "yarn build:c && napi build --platform --release",
     "build:debug": "napi build --platform",
     "prepublishOnly": "napi prepublish -t npm",
     "test": "node ./test.js",
     "universal": "napi universal",
     "version": "napi version"
-  }
+  },
+  "dependencies": {}
 }

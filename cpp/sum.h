@@ -6,7 +6,8 @@ extern "C" {
 #endif
 
 int sum(int a, int b);
-const char* concatenateStrings(const char* str1, const char* str2);
+const char *concatenateStrings(const char *str1, const char *str2);
+void noRet();
 
 #ifdef __cplusplus
 }
