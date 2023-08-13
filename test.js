@@ -34,3 +34,12 @@ equal(undefined, load({
   paramsType: [],
   paramsValue: []
 }))
+
+
+equal(1.1 + 2.2, load({
+  library: dynamicLib,
+  funcName: 'doubleSum',
+  retType: RetType.Double,
+  paramsType: [ParamsType.Double, ParamsType.Double],
+  paramsValue: [1.1, 2.2]
+}))
