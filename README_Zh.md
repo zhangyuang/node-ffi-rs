@@ -15,7 +15,7 @@ A module written in Rust and N-APi provides interface (FFI) features for Node.js
 
 ## 使用示例
 
-暂时只支持 `string/number` 两种类型的出参入参类型。根据实际使用场景后续会支持更多的类型。
+暂时支持 `string/number/void` 类型的出参入参类型。根据实际使用场景后续会支持更多的类型。
 
 下面是使用 `ffi-rs` 的一个基本示例。
 
@@ -62,11 +62,19 @@ const c = "foo"
 const d = "bar"
 
 equal(c + d, load({
-  library: "./libsum.so",
+  library: dynamicLib,
   funcName: 'concatenateStrings',
-  retType: ParamsType.String,
+  retType: RetType.String,
   paramsType: [ParamsType.String, ParamsType.String],
   paramsValue: [c, d]
+}))
+
+equal(undefined, load({
+  library: dynamicLib,
+  funcName: 'noRet',
+  retType: RetType.Void,
+  paramsType: [],
+  paramsValue: []
 }))
 
 
