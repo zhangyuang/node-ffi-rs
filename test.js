@@ -27,6 +27,10 @@ equal(c + d, load({
   paramsValue: [c, d]
 }))
 
-
-
-
+// console.log(load({
+//   library: dynamicLib,
+//   funcName: 'noRet',
+//   retType: ParamsType.Void,
+//   paramsType: [],
+//   paramsValue: []
+// }))
