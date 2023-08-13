@@ -13,9 +13,18 @@ A module written in Rust and N-APi provides interface (FFI) features for Node.js
 
 开发者无需编写 `C++` 代码便可以直接在 `js` 中调用其他语言的能力。此模块在功能上尽量对标[node-ffi](https://github.com/node-ffi/node-ffi)模块，但底层代码已彻底重写。因 `node-ffi` 模块已经多年无人维护处于一个不可用的状态因此开发了`ffi-rs`模块。
 
-## 使用示例
+## 目前支持的数据类型
 
-暂时支持 `string/number/void/double` 类型的出参入参类型。根据实际使用场景后续会支持更多的类型。
+目前支持下裂类型作为出参入参类型。根据实际使用场景后续会支持更多的类型。
+
+- string
+- number(i32)
+- void
+- double
+- i32Array
+
+
+## 使用示例
 
 下面是使用 `ffi-rs` 的一个基本示例。
 
@@ -26,7 +35,6 @@ A module written in Rust and N-APi provides interface (FFI) features for Node.js
 #include <cstring>
 #include <iostream>
 #include <string>
-#include <vector>
 
 extern "C" int sum(int a, int b) { return a + b; }
 
@@ -41,9 +49,12 @@ extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
 
 extern "C" void noRet() { printf("%s", "hello world"); }
 
-extern "C" std::vector<int> appendElement(const int *arr, int size) {
-  std::vector<int> vec(arr, arr + size);
-  vec.push_back(1);
+extern "C" int *createArrayi32(const int *arr, int size) {
+  int *vec = (int *)malloc((size) * sizeof(int));
+
+  for (int i = 0; i < size; i++) {
+    vec[i] = arr[i];
+  }
   return vec;
 }
 
@@ -62,6 +73,7 @@ const { equal } = require('assert')
 const { load, RetType, ParamsType } = require('ffi-rs')
 const a = 1
 const b = 100
+const dynamicLib = platform === 'win32' ? './sum.dll' : "./libsum.so"
 
 const p = require('ffi-rs')
 const r = p.load({
