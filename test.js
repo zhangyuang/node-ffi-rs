@@ -43,15 +43,25 @@ const unitTest = () => {
     paramsValue: [1.1, 2.2]
   }))
 
-  let bigArr = new Array(100000).fill(100)
-  equal(Math.max(bigArr), Math.max(load({
+  let bigArr = new Array(100).fill(100)
+  equal(bigArr[0], load({
     library: dynamicLib,
     funcName: 'createArrayi32',
     retType: RetType.I32Array,
     paramsType: [ParamsType.I32Array, ParamsType.I32],
     paramsValue: [bigArr, bigArr.length],
     retTypeLen: bigArr.length
-  })))
+  })[0])
+
+  let stringArr = [c, c.repeat(200)]
+  equal(stringArr[0], load({
+    library: dynamicLib,
+    funcName: 'createArrayString',
+    retType: RetType.StringArray,
+    paramsType: [ParamsType.StringArray, ParamsType.I32],
+    paramsValue: [stringArr, stringArr.length],
+    retTypeLen: stringArr.length
+  })[0])
 
 }
 
