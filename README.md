@@ -24,12 +24,14 @@ $ npm i ffi-rs
 Currently, ffi-rs only supports there types of parameters and return values. However, support for more types will be added in the future based on actual usage scenarios.
 
 - string
-- number(i32)
-- void
+- i32(number)
+- void(undefined)
 - double
+- boolean
 - i32Array
 - stringArray
 - doubleArray
+- object(developing)
 
 ## Usage
 
@@ -72,6 +74,9 @@ extern "C" double *createArrayDouble(const double *arr, int size) {
   }
   return vec;
 }
+
+extern "C" bool return_opposite(bool input) { return !input; }
+
 extern "C" char **createArrayString(char **arr, int size) {
   char **vec = (char **)malloc((size) * sizeof(char *));
   for (int i = 0; i < size; i++) {
@@ -154,6 +159,14 @@ equal(bigDoubleArr[0], load({
   retTypeLen: bigDoubleArr.length
 })[0])
 
+const boolVal = false
+equal(!boolVal, load({
+  library: dynamicLib,
+  funcName: 'return_opposite',
+  retType: RetType.Boolean,
+  paramsType: [ParamsType.Boolean],
+  paramsValue: [bool_val],
+}))
 
 let stringArr = [c, c.repeat(200)]
 equal(stringArr[0], load({

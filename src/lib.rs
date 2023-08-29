@@ -1,19 +1,21 @@
 #[macro_use]
 extern crate napi_derive;
-
+mod define;
+use define::NapiIndexMap;
 use napi::bindgen_prelude::*;
 
-use napi::{JsNumber, JsObject, JsString, JsUnknown};
-
+use indexmap::IndexMap;
 use libc::malloc;
 use libc::{c_char, c_double, c_int};
 use libffi_sys::{
   ffi_abi_FFI_DEFAULT_ABI, ffi_call, ffi_cif, ffi_prep_cif, ffi_type, ffi_type_double,
-  ffi_type_pointer, ffi_type_sint32, ffi_type_void,
+  ffi_type_pointer, ffi_type_sint32, ffi_type_uint8, ffi_type_void,
 };
 use libloading::{Library, Symbol};
+use napi::{Env, JsNumber, JsObject, JsString, JsUnknown};
+use std::alloc::{alloc, Layout};
 use std::ffi::c_void;
-use std::ffi::{CStr, CString};
+use std::ffi::CString;
 
 #[napi]
 pub enum RetType {
@@ -24,7 +26,10 @@ pub enum RetType {
   I32Array,
   StringArray,
   DoubleArray,
+  Object,
+  Boolean,
 }
+#[derive(Debug)]
 pub enum RsArgsValue {
   String(String),
   I32(i32),
@@ -32,6 +37,8 @@ pub enum RsArgsValue {
   I32Array(Vec<i32>),
   StringArray(Vec<String>),
   DoubleArray(Vec<f64>),
+  Object(IndexMap<String, RsArgsValue>),
+  Boolean(bool),
 }
 
 #[napi]
@@ -42,6 +49,8 @@ pub enum ParamsType {
   I32Array,
   StringArray,
   DoubleArray,
+  Object,
+  Boolean,
 }
 
 #[napi(object)]
@@ -52,10 +61,14 @@ struct FFIParams {
   pub ret_type_len: Option<u32>,
   pub params_type: Vec<ParamsType>,
   pub params_value: Vec<JsUnknown>,
+  pub ret_fields: Option<NapiIndexMap<String, ParamsType>>,
 }
 
 #[napi]
-fn load(params: FFIParams) -> Either7<String, i32, (), f64, Vec<i32>, Vec<String>, Vec<f64>> {
+fn load(
+  env: Env,
+  params: FFIParams,
+) -> Either9<String, i32, (), f64, Vec<i32>, Vec<String>, Vec<f64>, bool, JsObject> {
   let FFIParams {
     library,
     func_name,
@@ -63,11 +76,11 @@ fn load(params: FFIParams) -> Either7<String, i32, (), f64, Vec<i32>, Vec<String
     params_type,
     params_value,
     ret_type_len,
+    ret_fields,
   } = params;
   unsafe {
     let lib = Library::new(library).unwrap();
     let func: Symbol<unsafe extern "C" fn()> = lib.get(func_name.as_str().as_bytes()).unwrap();
-
     let (mut arg_types, arg_values): (Vec<*mut ffi_type>, Vec<RsArgsValue>) = params_type
       .iter()
       .zip(params_value.into_iter())
@@ -134,9 +147,61 @@ fn load(params: FFIParams) -> Either7<String, i32, (), f64, Vec<i32>, Vec<String
             .collect::<Vec<String>>();
           (arg_type, RsArgsValue::StringArray(arg_val))
         }
+        ParamsType::Boolean => {
+          let arg_type = &mut ffi_type_uint8 as *mut ffi_type;
+          let arg_val: bool = value.coerce_to_bool().unwrap().try_into().unwrap();
+          (arg_type, RsArgsValue::Boolean(arg_val))
+        }
+        ParamsType::Object => {
+          let arg_type = &mut ffi_type_pointer as *mut ffi_type;
+          let js_object = value.coerce_to_object().unwrap();
+          fn jsobject_to_rs_struct(js_object: JsObject) -> IndexMap<String, RsArgsValue> {
+            let mut index_map = IndexMap::new();
+            JsObject::keys(&js_object)
+              .unwrap()
+              .into_iter()
+              .filter(|field| !field.ends_with("Type"))
+              .for_each(|field| {
+                let field_type = field.clone() + "Type";
+                let val_type: ParamsType = (&js_object).get_named_property(&field_type).unwrap();
+                let val = match val_type {
+                  ParamsType::String => {
+                    let val: JsString = js_object.get_named_property(&field).unwrap();
+                    let val: String = val.into_utf8().unwrap().try_into().unwrap();
+                    RsArgsValue::String(val)
+                  }
+                  ParamsType::I32 => {
+                    let val: JsNumber = js_object.get_named_property(&field).unwrap();
+                    let val: i32 = val.try_into().unwrap();
+                    RsArgsValue::I32(val)
+                  }
+                  ParamsType::Double => {
+                    let val: JsNumber = js_object.get_named_property(&field).unwrap();
+                    let val: f64 = val.try_into().unwrap();
+                    RsArgsValue::Double(val)
+                  }
+                  ParamsType::Object => {
+                    let val: JsObject = js_object.get_named_property(&field).unwrap();
+                    let index_map = jsobject_to_rs_struct(val);
+                    RsArgsValue::Object(index_map)
+                  }
+
+                  _ => panic!(
+                    "Other types except string and i32 are not supported
+                  "
+                  ),
+                };
+                index_map.insert(field, val);
+              });
+            index_map
+          }
+          let index_map = jsobject_to_rs_struct(js_object);
+          (arg_type, RsArgsValue::Object(index_map))
+        }
       })
       .unzip();
-    let mut arg_values: Vec<*mut c_void> = arg_values
+
+    let mut arg_values_cvoid: Vec<*mut c_void> = arg_values
       .into_iter()
       .map(|val| match val {
         RsArgsValue::I32(val) => {
@@ -180,6 +245,68 @@ fn load(params: FFIParams) -> Either7<String, i32, (), f64, Vec<i32>, Vec<String
           std::mem::forget(c_char_vec);
           Box::into_raw(Box::new(ptr)) as *mut c_void
         }
+        RsArgsValue::Boolean(val) => {
+          let c_bool = Box::new(val);
+          Box::into_raw(c_bool) as *mut c_void
+        }
+        RsArgsValue::Object(val) => {
+          fn calculate_layout(map: &IndexMap<String, RsArgsValue>) -> (usize, usize) {
+            let (size, align) =
+              map
+                .iter()
+                .fold((0, 0), |(size, align), (_, field_val)| match field_val {
+                  RsArgsValue::I32(_) => {
+                    let align = align.max(std::mem::align_of::<c_int>());
+                    let size = size + std::mem::size_of::<c_int>();
+                    (size, align)
+                  }
+                  RsArgsValue::String(_) => {
+                    let align = align.max(std::mem::align_of::<*const c_char>());
+                    let size = size + std::mem::size_of::<*const c_char>();
+                    (size, align)
+                  }
+                  RsArgsValue::Object(val) => {
+                    let (obj_size, obj_align) = calculate_layout(val);
+                    let align = align.max(obj_align);
+                    let size = size + obj_size;
+                    (size, align)
+                  }
+                  _ => panic!("calculate_layout"),
+                });
+
+            (size, align)
+          }
+          let (size, align) = calculate_layout(&val);
+          let layout = Layout::from_size_align(size, align).unwrap();
+          let ptr = alloc(layout) as *mut c_void;
+          let field_ptr = ptr;
+          unsafe fn write_data(map: IndexMap<String, RsArgsValue>, mut field_ptr: *mut c_void) {
+            for (_, field_val) in map {
+              match field_val {
+                RsArgsValue::I32(number) => {
+                  (field_ptr as *mut c_int).write(number);
+                  field_ptr =
+                    field_ptr.offset(std::mem::size_of::<c_int>() as isize) as *mut c_void;
+                }
+                RsArgsValue::String(str) => {
+                  let c_string = CString::new(str).unwrap();
+                  (field_ptr as *mut *const c_char).write(c_string.as_ptr());
+                  std::mem::forget(c_string);
+                  field_ptr =
+                    field_ptr.offset(std::mem::size_of::<*const c_char>() as isize) as *mut c_void;
+                }
+                RsArgsValue::Object(val) => {
+                  let (size, _) = calculate_layout(&val);
+                  write_data(val, field_ptr);
+                  field_ptr = field_ptr.offset(size as isize) as *mut c_void; // Add this line
+                }
+                _ => panic!("write_data"),
+              }
+            }
+          }
+          write_data(val, field_ptr);
+          return Box::into_raw(Box::new(ptr)) as *mut c_void;
+        }
       })
       .collect();
 
@@ -191,6 +318,8 @@ fn load(params: FFIParams) -> Either7<String, i32, (), f64, Vec<i32>, Vec<String
       RetType::I32Array => &mut ffi_type_pointer as *mut ffi_type,
       RetType::StringArray => &mut ffi_type_pointer as *mut ffi_type,
       RetType::DoubleArray => &mut ffi_type_pointer as *mut ffi_type,
+      RetType::Object => &mut ffi_type_pointer as *mut ffi_type,
+      RetType::Boolean => &mut ffi_type_uint8 as *mut ffi_type,
     };
 
     let mut cif = ffi_cif {
@@ -219,14 +348,14 @@ fn load(params: FFIParams) -> Either7<String, i32, (), f64, Vec<i32>, Vec<String
           &mut cif,
           Some(*func),
           &mut result as *mut *mut c_char as *mut c_void,
-          arg_values.as_mut_ptr(),
+          arg_values_cvoid.as_mut_ptr(),
         );
 
         let result_str = CString::from_raw(result)
           .into_string()
           .expect(format!("{} retType is not string", func_name).as_str());
 
-        Either7::A(result_str)
+        Either9::A(result_str)
       }
       RetType::I32 => {
         let mut result: i32 = 0;
@@ -234,9 +363,9 @@ fn load(params: FFIParams) -> Either7<String, i32, (), f64, Vec<i32>, Vec<String
           &mut cif,
           Some(*func),
           &mut result as *mut i32 as *mut c_void,
-          arg_values.as_mut_ptr(),
+          arg_values_cvoid.as_mut_ptr(),
         );
-        Either7::B(result)
+        Either9::B(result)
       }
       RetType::Void => {
         let mut result = ();
@@ -244,9 +373,9 @@ fn load(params: FFIParams) -> Either7<String, i32, (), f64, Vec<i32>, Vec<String
           &mut cif,
           Some(*func),
           &mut result as *mut () as *mut c_void,
-          arg_values.as_mut_ptr(),
+          arg_values_cvoid.as_mut_ptr(),
         );
-        Either7::C(())
+        Either9::C(())
       }
       RetType::Double => {
         let mut result: f64 = 0.0;
@@ -254,18 +383,17 @@ fn load(params: FFIParams) -> Either7<String, i32, (), f64, Vec<i32>, Vec<String
           &mut cif,
           Some(*func),
           &mut result as *mut f64 as *mut c_void,
-          arg_values.as_mut_ptr(),
+          arg_values_cvoid.as_mut_ptr(),
         );
-        Either7::D(result)
+        Either9::D(result)
       }
       RetType::I32Array => {
         let mut result: *mut c_int = malloc(std::mem::size_of::<*mut c_int>()) as *mut c_int;
-        let arg_values = arg_values.as_mut_ptr();
         ffi_call(
           &mut cif,
           Some(*func),
           &mut result as *mut _ as *mut c_void,
-          arg_values,
+          arg_values_cvoid.as_mut_ptr(),
         );
 
         let result_slice = std::slice::from_raw_parts(result, ret_type_len.unwrap() as usize);
@@ -273,42 +401,40 @@ fn load(params: FFIParams) -> Either7<String, i32, (), f64, Vec<i32>, Vec<String
         if !result.is_null() {
           libc::free(result as *mut c_void);
         }
-        Either7::E(result_vec)
+        Either9::E(result_vec)
       }
       RetType::StringArray => {
         let mut result: *mut *mut c_char =
           malloc(std::mem::size_of::<*mut *mut c_char>()) as *mut *mut c_char;
-        let ptr = arg_values.as_mut_ptr();
 
         ffi_call(
           &mut cif,
           Some(*func),
           &mut result as *mut _ as *mut c_void,
-          ptr,
+          arg_values_cvoid.as_mut_ptr(),
         );
         let output_vec = vec![0; ret_type_len.unwrap() as usize]
           .iter()
           .enumerate()
           .map(|(index, _)| {
-            let c_str = CStr::from_ptr(*result.offset(index as isize));
-            let str_slice = c_str.to_str().unwrap();
-            str_slice.to_string()
+            CString::from_raw(*result.offset(index as isize))
+              .into_string()
+              .unwrap()
           })
           .collect();
         if !result.is_null() {
           libc::free(result as *mut c_void);
         }
-        Either7::F(output_vec)
+        Either9::F(output_vec)
       }
       RetType::DoubleArray => {
         let mut result: *mut c_double =
           malloc(std::mem::size_of::<*mut c_double>()) as *mut c_double;
-        let arg_values = arg_values.as_mut_ptr();
         ffi_call(
           &mut cif,
           Some(*func),
           &mut result as *mut _ as *mut c_void,
-          arg_values,
+          arg_values_cvoid.as_mut_ptr(),
         );
 
         let result_slice = std::slice::from_raw_parts(result, ret_type_len.unwrap() as usize);
@@ -316,7 +442,103 @@ fn load(params: FFIParams) -> Either7<String, i32, (), f64, Vec<i32>, Vec<String
         if !result.is_null() {
           libc::free(result as *mut c_void);
         }
-        Either7::G(result_vec)
+        Either9::G(result_vec)
+      }
+      RetType::Boolean => {
+        let mut result: u8 = 255;
+        ffi_call(
+          &mut cif,
+          Some(*func),
+          &mut result as *mut u8 as *mut c_void,
+          arg_values_cvoid.as_mut_ptr(),
+        );
+        if result != 0 && result != 1 {
+          panic!("The returned type is not a boolean")
+        }
+        Either9::H(if result == 0 { false } else { true })
+      }
+      RetType::Object => {
+        let ret_fields = ret_fields.unwrap();
+        // fn calculate_layout(map: &NapiIndexMap<String, RsArgsValue>) -> (usize, usize) {
+        //   let (size, align) =
+        //     map
+        //       .iter()
+        //       .fold((0, 0), |(size, align), (_, field_val)| match field_val {
+        //         RsArgsValue::I32(_) => {
+        //           let align = align.max(std::mem::align_of::<c_int>());
+        //           let size = size + std::mem::size_of::<c_int>();
+        //           (size, align)
+        //         }
+        //         RsArgsValue::String(_) => {
+        //           let align = align.max(std::mem::align_of::<*const c_char>());
+        //           let size = size + std::mem::size_of::<*const c_char>();
+        //           (size, align)
+        //         }
+        //         RsArgsValue::Object(val) => {
+        //           let (obj_size, obj_align) = calculate_layout(val);
+        //           let align = align.max(obj_align);
+        //           let size = size + obj_size;
+        //           (size, align)
+        //         }
+        //         _ => panic!("calculate_layout"),
+        //       });
+
+        //   (size, align)
+        // }
+        let (ret_fields_size, field_vec) =
+          ret_fields
+            .get_inner_map()
+            .iter()
+            .fold((0, vec![]), |pre, current| {
+              let (field, field_type) = current;
+              let field_size = match field_type {
+                ParamsType::I32 => std::mem::size_of::<c_int>(),
+                ParamsType::String => std::mem::size_of::<*const c_char>(),
+                _ => {
+                  panic!("")
+                }
+              };
+              let (size, mut field_vec) = pre;
+              field_vec.push(field);
+              (size + field_size, field_vec)
+            });
+        let mut result: *mut c_void = malloc(ret_fields_size);
+        ffi_call(
+          &mut cif,
+          Some(*func),
+          &mut result as *mut _ as *mut c_void,
+          arg_values_cvoid.as_mut_ptr(),
+        );
+        let mut js_object = env.create_object().unwrap();
+        let mut offset = 0;
+        field_vec.into_iter().for_each(|field| {
+          let field_type = ret_fields.get_inner_map().get(field).unwrap();
+          match field_type {
+            ParamsType::I32 => {
+              let field_ptr = result.offset(offset as isize) as *mut i32;
+              js_object
+                .set_property(
+                  env.create_string(field).unwrap(),
+                  env.create_int32(*field_ptr).unwrap(),
+                )
+                .unwrap();
+              offset += std::mem::size_of::<c_int>();
+            }
+            ParamsType::String => {
+              let field_ptr = result.offset(offset as isize) as *mut *mut c_char;
+              let js_string = CString::from_raw(*field_ptr).into_string().unwrap();
+              js_object
+                .set_property(
+                  env.create_string(field).unwrap(),
+                  env.create_string(&js_string).unwrap(),
+                )
+                .unwrap();
+              offset += std::mem::size_of::<*const c_char>();
+            }
+            _ => {}
+          }
+        });
+        Either9::I(js_object)
       }
     }
   }
