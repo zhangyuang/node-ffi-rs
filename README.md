@@ -31,7 +31,7 @@ Currently, ffi-rs only supports there types of parameters and return values. How
 - i32Array
 - stringArray
 - doubleArray
-- object(developing)
+- object
 
 ## Usage
 
@@ -83,6 +83,18 @@ extern "C" char **createArrayString(char **arr, int size) {
     vec[i] = arr[i];
   }
   return vec;
+}
+
+
+typedef struct Person {
+  const char *name;
+  int age;
+} Person;
+
+extern "C" const Person *getStruct(const Person *person) {
+  printf("Name: %s\n", person->name);
+  printf("Age: %d\n", person->age);
+  return person;
 }
 
 ```
@@ -177,4 +189,25 @@ equal(stringArr[0], load({
   paramsValue: [stringArr, stringArr.length],
   retTypeLen: stringArr.length
 })[0])
+
+const person = {
+  name: 'tom',
+  age: 23,
+}
+const personObj = load({
+  library: dynamicLib,
+  funcName: 'getStruct',
+  retType: RetType.Object,
+  paramsType: [{
+    name: ParamsType.String,
+    age: ParamsType.I32,
+  }],
+  paramsValue: [person],
+  retFields: {
+    name: ParamsType.String,
+    age: ParamsType.I32,
+  }
+})
+equal(person.name, personObj.name)
+equal(person.age, personObj.age)
 ```
