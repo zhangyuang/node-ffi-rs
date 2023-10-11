@@ -392,7 +392,7 @@ fn load(
       None
     };
     if r_type.is_none() {
-      panic!("current DataType  is not currently supported")
+      panic!("current DataType is not currently supported")
     }
     let r_type = r_type.unwrap();
     let mut cif = ffi_cif {
