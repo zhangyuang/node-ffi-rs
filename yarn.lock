@@ -487,6 +487,11 @@ koa@^2.14.2:
     type-is "^1.6.16"
     vary "^1.1.2"
 
+koffi@^2.6.1:
+  version "2.6.1"
+  resolved "https://registry.npmjs.org/koffi/-/koffi-2.6.1.tgz#215781263018604520bea54bb60585cfb9141f48"
+  integrity sha512-f+g1yGJHHAUq6ogPzvsiLn+ZO1GYTNHH3JKyt49T4JhpaFAIovlDCpu5RscywGC3VsntvfzrqArQQJVb4YS4UQ==
+
 lodash.get@^4.4.2:
   version "4.4.2"
   resolved "https://registry.npmjs.org/lodash.get/-/lodash.get-4.4.2.tgz#2d177f652fa31e939b4438d5341499dfa3825e99"
