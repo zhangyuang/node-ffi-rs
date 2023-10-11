@@ -73,6 +73,11 @@ fn bindgen_test_layout_Parent() {
     )
   );
 }
+pub type FunctionPointer =
+  ::std::option::Option<unsafe extern "C" fn(arg1: *const ::std::os::raw::c_char)>;
+extern "C" {
+  pub fn callFunction(func: FunctionPointer);
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Person {

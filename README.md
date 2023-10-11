@@ -9,7 +9,7 @@ A module written in Rust and N-APi provides interface (FFI) features for Node.js
 
 ## Description
 
-[ffi-rs](https://github.com/zhangyuang/node-ffi-rs) is a module written in Rust and N-API that provides FFI (Foreign Function Interface) features for Node.js. It allows developers to call functions written in other languages such as C++, C, and Rust directly from JavaScript without writing any C++ code.
+[ffi-rs](https://github.com/zhangyuang/node-ffi-rs) is a high performance module written in Rust and N-API that provides FFI (Foreign Function Interface) features for Node.js. It allows developers to call functions written in other languages such as C++, C, and Rust directly from JavaScript without writing any C++ code.
 
 This module aims to provide similar functionality to the node-ffi module, but with a completely rewritten underlying codebase. The node-ffi module has been unmaintained for several years and is no longer usable, which is why ffi-rs was developed.
 
@@ -23,13 +23,10 @@ Progress: 100%
   ffi-napi:
     2 028 ops/s, ±4.87%     | slowest, 99.24% slower
 
-  koffi:
-    78 846 ops/s, ±13.74%    | 70.63% slower
-
   ffi-rs:
-    268 468 ops/s, ±0.27%   | fastest
+    287 523 ops/s, ±0.17%   | fastest
 
-Finished 3 cases!
+Finished 2 cases!
   Fastest: ffi-rs
   Slowest: ffi-napi
 
@@ -54,6 +51,7 @@ Currently, ffi-rs only supports there types of parameters and return values. How
 - stringArray
 - doubleArray
 - object
+- function(developmenting)
 
 ## Support Platform
 
@@ -140,7 +138,7 @@ Then can use `ffi-rs` invoke the dynamic library file contains functions.
 
 ```js
 const { equal } = require('assert')
-const { load, RetType, ParamsType, open, close } = require('ffi-rs')
+const { load, DataType, open, close } = require('ffi-rs')
 const a = 1
 const b = 100
 const dynamicLib = platform === 'win32' ? './sum.dll' : "./libsum.so"
