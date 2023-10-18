@@ -34,6 +34,7 @@
   "license": "MIT",
   "dependencies": {
     "@napi-rs/cli": "^2.15.2",
+    "esno": "^0.17.0",
     "shelljs": "^0.8.5"
   },
   "devDependencies": {
@@ -52,7 +53,7 @@
     "build": "node scripts/build.js",
     "build:debug": "napi build --platform",
     "publish:npm": "node scripts/publish.js && napi prepublish -t npm",
-    "test": "node ./test.js",
+    "test": "esno ./test.ts",
     "universal": "napi universal",
     "version": "napi version"
   },

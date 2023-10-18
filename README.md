@@ -50,7 +50,7 @@ Currently, ffi-rs only supports there types of parameters and return values. How
 - i32Array
 - stringArray
 - doubleArray
-- object
+- object(Nested object is not supported at this time)
 - function(developing)
 
 ## Support Platform
