@@ -228,6 +228,7 @@ equal(!bool_val, load({
 const person = {
   name: 'tom',
   age: 23,
+  doubleProps: 1.1,
 }
 const personObj = load({
   library: 'libsum',
@@ -235,14 +236,17 @@ const personObj = load({
   retType: {
     name: DataType.String,
     age: DataType.I32,
+    doubleProps: DataType.Double,
   },
   paramsType: [{
     name: DataType.String,
     age: DataType.I32,
+    doubleProps: DataType.Double,
   }],
   paramsValue: [person]
 })
 equal(person.name, personObj.name)
 equal(person.age, personObj.age)
+equal(person.doubleProps, personObj.doubleProps)
 
 ```
