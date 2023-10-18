@@ -396,7 +396,6 @@ fn load(
           DataType::StringArray => &mut ffi_type_pointer as *mut ffi_type,
           DataType::DoubleArray => &mut ffi_type_pointer as *mut ffi_type,
           DataType::Boolean => &mut ffi_type_uint8 as *mut ffi_type,
-          DataType::Function => &mut ffi_type_void as *mut ffi_type,
         }
       }
       FFIJsValue::JsObject(_) => &mut ffi_type_pointer as *mut ffi_type,
