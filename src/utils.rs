@@ -1,7 +1,7 @@
 use crate::define::{number_to_data_type, DataType, RsArgsValue};
 use indexmap::IndexMap;
 use napi::bindgen_prelude::*;
-use napi::{JsObject, JsString, JsUnknown};
+use napi::{JsNumber, JsObject, JsString, JsUnknown};
 use std::ffi::c_void;
 use std::ffi::{c_char, c_double, c_int, CString};
 
@@ -118,4 +118,82 @@ pub fn get_data_type_size_align(data_type: DataType) -> (usize, usize) {
       panic!("{:?} Not available as a field type at this time", data_type)
     }
   };
+}
+
+pub enum ArrayPointerType {
+  I32(*mut i32),
+  Double(*mut c_double),
+  String(*mut *mut c_char),
+}
+pub enum ArrayType {
+  I32(Vec<i32>),
+  Double(Vec<f64>),
+  String(Vec<String>),
+}
+pub fn create_array_from_pointer(pointer: ArrayPointerType, len: usize) -> ArrayType {
+  unsafe {
+    match pointer {
+      ArrayPointerType::I32(mut ptr) => {
+        let result_vec: Vec<i32> = (0..len)
+          .map(|_| {
+            let value = *ptr;
+            ptr = ptr.offset(1);
+            value
+          })
+          .collect();
+        ArrayType::I32(result_vec)
+      }
+      ArrayPointerType::Double(mut ptr) => {
+        let result_vec: Vec<f64> = (0..len)
+          .map(|_| {
+            let value = *ptr;
+            ptr = ptr.offset(1);
+            value
+          })
+          .collect();
+        ArrayType::Double(result_vec)
+      }
+      ArrayPointerType::String(ptr) => {
+        let result_vec = vec![0; len]
+          .iter()
+          .enumerate()
+          .map(|(index, _)| {
+            CString::from_raw(*ptr.offset(index as isize))
+              .into_string()
+              .unwrap()
+          })
+          .collect();
+        ArrayType::String(result_vec)
+      }
+    }
+  }
+}
+
+pub fn js_string_to_string(js_string: JsString) -> String {
+  js_string.into_utf8().unwrap().try_into().unwrap()
+}
+
+pub fn js_nunmber_to_i32(js_number: JsNumber) -> i32 {
+  js_number.try_into().unwrap()
+}
+
+pub fn js_unknown_to_data_type(val: JsUnknown) -> DataType {
+  match val.get_type().unwrap() {
+    ValueType::Number => {
+      let val = val.coerce_to_number().unwrap();
+      number_to_data_type(val.try_into().unwrap())
+    }
+    ValueType::Object => {
+      let val = val.coerce_to_object().unwrap();
+      let ffi_tag = val.has_named_property("ffiTypeTag").unwrap();
+      if ffi_tag {
+        number_to_data_type(js_nunmber_to_i32(
+          val.get_named_property::<JsNumber>("type").unwrap(),
+        ))
+      } else {
+        panic!("some error")
+      }
+    }
+    _ => panic!("some error"),
+  }
 }
