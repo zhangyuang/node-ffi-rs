@@ -144,11 +144,7 @@ pub fn get_data_type_size_align(data_type: DataType) -> (usize, usize) {
     }
   };
 }
-pub enum ArrayPointerType {
-  I32(*mut i32),
-  Double(*mut c_double),
-  String(*mut *mut c_char),
-}
+
 pub enum ArrayType {
   I32(Vec<i32>),
   Double(Vec<f64>),
@@ -177,7 +173,7 @@ impl_array_pointer!(*mut f64, f64);
 impl ArrayPointer for *mut *mut c_char {
   type Output = String;
   unsafe fn get_and_advance(&mut self) -> Self::Output {
-    let value = (**self).clone();
+    let value = **self;
     *self = self.offset(1);
     CString::from_raw(value).into_string().unwrap()
   }
