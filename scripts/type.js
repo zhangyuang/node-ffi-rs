@@ -32,35 +32,39 @@ const { resolve } = require('path');
       retType: DataType.Void
     }): undefined
 
-    type DataTypeToType<T> = {
-      [K in keyof T]: T[K] extends DataType.String ? string :
-      T[K] extends DataType.I32 ? number :
-      T[K] extends DataType.Double ? number :
-      T[K] extends DataType.I32Array ? number[] :
-      T[K] extends DataType.StringArray ? string[] :
-      T[K] extends DataType.DoubleArray ? number[] :
-      T[K] extends DataType.Boolean ? boolean :
-      T[K] extends DataType.Void ? undefined :
-      never;
-    };
-    export function load<T extends Record<string, DataType>>(params: FfiParams & { retType: T }): DataTypeToType<T>
+    type DataTypeToType<T extends DataType> =
+      T extends DataType.String ? string :
+      T extends DataType.I32 ? number :
+      T extends DataType.Double ? number :
+      T extends DataType.I32Array ? number[] :
+      T extends DataType.StringArray ? string[] :
+      T extends DataType.DoubleArray ? number[] :
+      T extends DataType.Boolean ? boolean :
+      T extends DataType.Void ? undefined :
+      never
+
+
     export type ArrayConstructorOptions = {
       type: DataType
       length: number
+      ffiTypeTag?: string
     }
-    export function arrayConstructor<T extends ffiTypeTag>(options: ArrayConstructorOptions): ArrayConstructorOptions & {
-      ffiTypeTag: T
-    }
-    type ffiTypeTag = 'double' | 'string' | 'i32';
+    export function arrayConstructor(options: ArrayConstructorOptions): ArrayConstructorOptions
 
-    type FfiReturnType<T extends ffiTypeTag> = T extends 'double' ? number :
-     T extends 'i32' ? number :
-    string;
+    export function load<T extends DataType>(params: FfiParams & {
+      retType: ArrayConstructorOptions
+    }): DataTypeToType<T>
 
-    export function load<T extends ffiTypeTag>(params: FfiParams & { retType: { ffiTypeTag: T } }): Array<FfiReturnType<T>>
-    export type DataFieldType = DataType | Record<string, DataType>| ArrayConstructorOptions & {
-      ffiTypeTag: ffiTypeTag
-    }
+    export type DataFieldType = DataType | Record<string, DataType> | ArrayConstructorOptions
+
+    export function load<T extends Record<string, DataType>>(params: FfiParams & {
+      retType: {
+        type: T
+        length: number
+        ffiTypeTag?: string
+      }
+    }): DataTypeToType<T>
+    export type DataFieldType = DataType | Record<string, DataType> | ArrayConstructorOptions
       ${typeContent}
       `)
 })()
