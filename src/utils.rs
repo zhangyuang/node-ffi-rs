@@ -57,7 +57,11 @@ pub fn js_array_to_string_array(js_array: JsObject) -> Vec<String> {
     .collect::<Vec<String>>()
 }
 
-pub fn js_array_to_double_array(js_array: JsObject) -> Vec<f64> {
+pub fn js_array_to_number_array<T>(js_array: JsObject) -> Vec<T>
+where
+  T: TryFrom<JsNumber>,
+  <T as TryFrom<JsNumber>>::Error: std::fmt::Debug,
+{
   vec![0; js_array.get_array_length().unwrap() as usize]
     .iter()
     .enumerate()
@@ -65,7 +69,7 @@ pub fn js_array_to_double_array(js_array: JsObject) -> Vec<f64> {
       let js_element: JsNumber = js_array.get_element(index as u32).unwrap();
       return js_element.try_into().unwrap();
     })
-    .collect::<Vec<f64>>()
+    .collect::<Vec<T>>()
 }
 
 pub fn align_ptr(ptr: *mut c_void, align: usize) -> *mut c_void {
@@ -110,6 +114,11 @@ pub fn calculate_layout(map: &IndexMap<String, RsArgsValue>) -> (usize, usize) {
         let size = size + std::mem::size_of::<*const c_double>();
         (size, align)
       }
+      RsArgsValue::I32Array(_) => {
+        let align = align.max(std::mem::align_of::<*const c_int>());
+        let size = size + std::mem::size_of::<*const c_int>();
+        (size, align)
+      }
       _ => panic!("calculate_layout"),
     });
   (size, align)
@@ -133,6 +142,10 @@ pub fn get_data_type_size_align(data_type: DataType) -> (usize, usize) {
     DataType::DoubleArray => (
       std::mem::size_of::<*const c_double>(),
       std::mem::align_of::<*const c_double>(),
+    ),
+    DataType::I32Array => (
+      std::mem::size_of::<*const c_int>(),
+      std::mem::align_of::<*const c_int>(),
     ),
     _ => {
       panic!("{:?} Not available as a field type at this time", data_type)
@@ -234,6 +247,15 @@ pub fn rs_array_to_js_array(env: Env, val: ArrayType) -> JsObject {
       arr.into_iter().enumerate().for_each(|(index, item)| {
         js_array
           .set_element(index as u32, env.create_double(item).unwrap())
+          .unwrap();
+      });
+      js_array
+    }
+    ArrayType::I32(arr) => {
+      let mut js_array = env.create_array_with_length(arr.len()).unwrap();
+      arr.into_iter().enumerate().for_each(|(index, item)| {
+        js_array
+          .set_element(index as u32, env.create_int32(item).unwrap())
           .unwrap();
       });
       js_array
