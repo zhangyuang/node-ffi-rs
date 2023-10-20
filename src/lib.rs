@@ -7,8 +7,7 @@ use napi::bindgen_prelude::*;
 use utils::{
   align_ptr, calculate_layout, create_array_from_pointer, get_data_type_size_align,
   get_js_function_call_value, js_array_to_number_array, js_array_to_string_array,
-  js_nunmber_to_i32, js_string_to_string, js_unknown_to_data_type, rs_array_to_js_array,
-  ArrayPointerType, ArrayType,
+  js_nunmber_to_i32, js_string_to_string, js_unknown_to_data_type, rs_array_to_js_array, ArrayType,
 };
 
 use indexmap::IndexMap;
@@ -531,14 +530,11 @@ fn load(
                     &mut result as *mut _ as *mut c_void,
                     arg_values_c_void.as_mut_ptr(),
                   );
-                  let arr = create_array_from_pointer(ArrayPointerType::I32(result), array_len);
+                  let arr = create_array_from_pointer(result, array_len);
                   if !result.is_null() {
                     libc::free(result as *mut c_void);
                   }
-                  match arr {
-                    ArrayType::I32(arr) => Either9::E(arr),
-                    _ => panic!("some error"),
-                  }
+                  Either9::E(arr)
                 }
                 DataType::DoubleArray => {
                   let mut result: *mut c_double =
@@ -549,14 +545,11 @@ fn load(
                     &mut result as *mut _ as *mut c_void,
                     arg_values_c_void.as_mut_ptr(),
                   );
-                  let arr = create_array_from_pointer(ArrayPointerType::Double(result), array_len);
+                  let arr = create_array_from_pointer(result, array_len);
                   if !result.is_null() {
                     libc::free(result as *mut c_void);
                   }
-                  match arr {
-                    ArrayType::Double(arr) => Either9::G(arr),
-                    _ => panic!("some error"),
-                  }
+                  Either9::G(arr)
                 }
                 DataType::StringArray => {
                   let mut result: *mut *mut c_char =
@@ -568,14 +561,11 @@ fn load(
                     &mut result as *mut _ as *mut c_void,
                     arg_values_c_void.as_mut_ptr(),
                   );
-                  let arr = create_array_from_pointer(ArrayPointerType::String(result), array_len);
+                  let arr = create_array_from_pointer(result, array_len);
                   if !result.is_null() {
                     libc::free(result as *mut c_void);
                   }
-                  match arr {
-                    ArrayType::String(arr) => Either9::F(arr),
-                    _ => panic!("some error"),
-                  }
+                  Either9::F(arr)
                 }
                 _ => panic!("some error"),
               }
@@ -660,51 +650,33 @@ fn load(
                 }
                 DataType::StringArray => {
                   let type_field_ptr = field_ptr as *mut *mut *mut c_char;
-                  let arr =
-                    create_array_from_pointer(ArrayPointerType::String(*type_field_ptr), array_len);
-                  match arr {
-                    ArrayType::String(arr) => {
-                      let js_array = rs_array_to_js_array(env, ArrayType::String(arr));
-                      js_object
-                        .set_property(env.create_string(&field).unwrap(), js_array)
-                        .unwrap();
-                    }
-                    _ => panic!("some error"),
-                  }
+                  let arr = create_array_from_pointer(*type_field_ptr, array_len);
+                  let js_array = rs_array_to_js_array(env, ArrayType::String(arr));
+                  js_object
+                    .set_property(env.create_string(&field).unwrap(), js_array)
+                    .unwrap();
                   field_ptr = field_ptr.offset(std::mem::size_of::<*const *const c_char>() as isize)
                     as *mut c_void;
                   field_ptr = align_ptr(field_ptr, align);
                 }
                 DataType::DoubleArray => {
                   let type_field_ptr = field_ptr as *mut *mut c_double;
-                  let arr =
-                    create_array_from_pointer(ArrayPointerType::Double(*type_field_ptr), array_len);
-                  match arr {
-                    ArrayType::Double(arr) => {
-                      let js_array = rs_array_to_js_array(env, ArrayType::Double(arr));
-                      js_object
-                        .set_property(env.create_string(&field).unwrap(), js_array)
-                        .unwrap();
-                    }
-                    _ => panic!("some error"),
-                  }
+                  let arr = create_array_from_pointer(*type_field_ptr, array_len);
+                  let js_array = rs_array_to_js_array(env, ArrayType::Double(arr));
+                  js_object
+                    .set_property(env.create_string(&field).unwrap(), js_array)
+                    .unwrap();
                   field_ptr = field_ptr.offset(std::mem::size_of::<*const c_double>() as isize)
                     as *mut c_void;
                   field_ptr = align_ptr(field_ptr, align);
                 }
                 DataType::I32Array => {
                   let type_field_ptr = field_ptr as *mut *mut c_int;
-                  let arr =
-                    create_array_from_pointer(ArrayPointerType::I32(*type_field_ptr), array_len);
-                  match arr {
-                    ArrayType::I32(arr) => {
-                      let js_array = rs_array_to_js_array(env, ArrayType::I32(arr));
-                      js_object
-                        .set_property(env.create_string(&field).unwrap(), js_array)
-                        .unwrap();
-                    }
-                    _ => panic!("some error"),
-                  }
+                  let arr = create_array_from_pointer(*type_field_ptr, array_len);
+                  let js_array = rs_array_to_js_array(env, ArrayType::I32(arr));
+                  js_object
+                    .set_property(env.create_string(&field).unwrap(), js_array)
+                    .unwrap();
                   field_ptr =
                     field_ptr.offset(std::mem::size_of::<*const c_int>() as isize) as *mut c_void;
                   field_ptr = align_ptr(field_ptr, align);
