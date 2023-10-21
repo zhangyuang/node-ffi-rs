@@ -120,6 +120,7 @@ const unitTest = () => {
     }],
     paramsValue: [person]
   })
+  console.log('person', personObj)
   deepStrictEqual(person, personObj)
   // deepStrictEqual(person.stringArrProps, personObj.stringArrProps)
   // const func = () => {
