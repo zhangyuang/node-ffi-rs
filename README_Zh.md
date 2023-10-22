@@ -55,6 +55,8 @@ $ npm i ffi-rs
 
 ## 支持的系统架构
 
+注意：你需要保证动态链接库的编译环境，与调用 `ffi-rs` 的安装环境和运行环境一致
+
 - darwin-x64
 - darwin-arm64
 - linux-x64-gnu
@@ -63,11 +65,9 @@ $ npm i ffi-rs
 - linux-arm64-musl
 
 
-## 使用示例
+### 编写 c/cpp 代码
 
-下面是使用 `ffi-rs` 的一个基本示例。
-
-针对下面的 `c++` 代码，我们将其编译为动态链接库文件
+注意：返回的数据类型必须是属于 c 类型的而不是 c++ 类型
 
 ```cpp
 #include <cstdio>
@@ -87,7 +87,96 @@ extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
 }
 
 extern "C" void noRet() { printf("%s", "hello world"); }
+extern "C" bool return_opposite(bool input) { return !input; }
 
+
+```
+
+### 将 c/cpp 代码编译为动态链接库
+
+```bash
+$ g++ -dynamiclib -o libsum.so cpp/sum.cpp # macos
+$ g++ -shared -o libsum.so cpp/sum.cpp # linux
+$ g++ -shared -o sum.dll cpp/sum.cpp # win
+```
+
+### 使用 ffi-rs 来调用动态链接库
+
+Then can use `ffi-rs` invoke the dynamic library file contains functions.
+
+### 初始化
+
+```js
+const { equal } = require('assert')
+const { load, DataType, open, close, arrayConstructor } = require('ffi-rs')
+const a = 1
+const b = 100
+const dynamicLib = platform === 'win32' ? './sum.dll' : "./libsum.so"
+// 首先你需要调用 open 来打开一个动态链接库并指定一个key来作为标志符在后续操作里调用
+open({
+  library: 'libsum', // key
+  path: dynamicLib // path
+})
+const r = load({
+  library: "libsum", // path to the dynamic library file
+  funcName: 'sum', // the name of the function to call
+  retType: DataType.I32, // the return value type
+  paramsType: [DataType.I32, DataType.I32], // the parameter types
+  paramsValue: [a, b] // the actual parameter values
+})
+equal(r, a + b)
+// 当你不需要再用到这个动态链接库时，使用close来释放它
+close('libsum')
+
+```
+
+### 基本类型
+
+`number|string|boolean|double|void` 属于基本类型
+
+```js
+const c = "foo"
+const d = c.repeat(200)
+
+equal(c + d, load({
+  library: 'libsum',
+  funcName: 'concatenateStrings',
+  retType: DataType.String,
+  paramsType: [DataType.String, DataType.String],
+  paramsValue: [c, d]
+}))
+
+equal(undefined, load({
+  library: 'libsum',
+  funcName: 'noRet',
+  retType: DataType.Void,
+  paramsType: [],
+  paramsValue: []
+}))
+
+
+equal(1.1 + 2.2, load({
+  library: 'libsum',
+  funcName: 'doubleSum',
+  retType: DataType.Double,
+  paramsType: [DataType.Double, DataType.Double],
+  paramsValue: [1.1, 2.2]
+}))
+const bool_val = true
+equal(!bool_val, load({
+  library: 'libsum',
+  funcName: 'return_opposite',
+  retType: DataType.Boolean,
+  paramsType: [DataType.Boolean],
+  paramsValue: [bool_val],
+}))
+```
+
+### Array
+
+使用 `arrayConstructor` 来创建数组的类型描述。指定返回值中数组的长度是非常重要的，如果输入了不争取的长度可能会引发程序异常退出。
+
+```cpp
 extern "C" int *createArrayi32(const int *arr, int size) {
   int *vec = (int *)malloc((size) * sizeof(int));
 
@@ -96,7 +185,6 @@ extern "C" int *createArrayi32(const int *arr, int size) {
   }
   return vec;
 }
-
 extern "C" double *createArrayDouble(const double *arr, int size) {
   double *vec = (double *)malloc((size) * sizeof(double));
   for (int i = 0; i < size; i++) {
@@ -104,7 +192,6 @@ extern "C" double *createArrayDouble(const double *arr, int size) {
   }
   return vec;
 }
-extern "C" bool return_opposite(bool input) { return !input; }
 
 extern "C" char **createArrayString(char **arr, int size) {
   char **vec = (char **)malloc((size) * sizeof(char *));
@@ -113,6 +200,44 @@ extern "C" char **createArrayString(char **arr, int size) {
   }
   return vec;
 }
+
+```
+
+```js
+let bigArr = new Array(100).fill(100)
+deepStrictEqual(bigArr, load({
+  library: 'libsum',
+  funcName: 'createArrayi32',
+  retType: arrayConstructor({ type: DataType.I32Array, length: bigArr.length }),
+  paramsType: [DataType.I32Array, DataType.I32],
+  paramsValue: [bigArr, bigArr.length],
+}))
+
+let bigDoubleArr = new Array(5).fill(1.1)
+deepStrictEqual(bigDoubleArr, load({
+  library: 'libsum',
+  funcName: 'createArrayDouble',
+  retType: arrayConstructor({ type: DataType.DoubleArray, length: bigDoubleArr.length }),
+  paramsType: [DataType.DoubleArray, DataType.I32],
+  paramsValue: [bigDoubleArr, bigDoubleArr.length],
+}))
+let stringArr = [c, c.repeat(20)]
+
+deepStrictEqual(stringArr, load({
+  library: 'libsum',
+  funcName: 'createArrayString',
+  retType: arrayConstructor({ type: DataType.StringArray, length: stringArr.length }),
+  paramsType: [DataType.StringArray, DataType.I32],
+  paramsValue: [stringArr, stringArr.length],
+}))
+
+```
+
+### Struct
+
+创建一个 c 的结构体或者将 c 结构体类型作为返回值，你需要严格按照 c 结构体中声明的字段顺序来定义 js 侧参数的顺序。
+
+```cpp
 typedef struct Person {
   const char *name;
   int age;
@@ -123,17 +248,8 @@ typedef struct Person {
 } Person;
 
 extern "C" const Person *getStruct(const Person *person) {
-  printf("Name: %s\n", person->name);
-  printf("Age: %d\n", person->age);
-  printf("doubleProps: %f \n", person->doubleProps);
-  printf("stringArray: %s\n", person->stringArray[0]);
-  printf("stringArray: %s\n", person->stringArray[1]);
-  printf("doubleArray: %f\n", person->doubleArray[0]);
-  printf("doubleArray: %f\n", person->doubleArray[1]);
-  printf("i32Array: %d\n", person->i32Array[0]);
   return person;
 }
-
 extern "C" Person *createPerson() {
   Person *person = (Person *)malloc(sizeof(Person));
 
@@ -166,101 +282,9 @@ extern "C" Person *createPerson() {
 }
 ```
 
-```bash
-$ g++ -dynamiclib -o libsum.so cpp/sum.cpp # macos
-$ g++ -shared -o libsum.so cpp/sum.cpp # linux
-$ g++ -shared -o sum.dll cpp/sum.cpp # win
-```
-
-使用 `ffi-rs` 来调用该动态链接库文件中包含的函数
-
 ```js
-const { equal } = require('assert')
-const { load, DataType, open, close, arrayConstructor } = require('ffi-rs')
-const a = 1
-const b = 100
-const dynamicLib = platform === 'win32' ? './sum.dll' : "./libsum.so"
-// first open dynamic library with key for close
-// It only needs to be opened once.
-open({
-  library: 'libsum', // key
-  path: dynamicLib // path
-})
-const r = load({
-  library: "libsum", // path to the dynamic library file
-  funcName: 'sum', // the name of the function to call
-  retType: DataType.I32, // the return value type
-  paramsType: [DataType.I32, DataType.I32], // the parameter types
-  paramsValue: [a, b] // the actual parameter values
-})
-equal(r, a + b)
-// release library memory when you're not using it.
-close('libsum')
-
-const c = "foo"
-const d = c.repeat(200)
-
-equal(c + d, load({
-  library: 'libsum',
-  funcName: 'concatenateStrings',
-  retType: DataType.String,
-  paramsType: [DataType.String, DataType.String],
-  paramsValue: [c, d]
-}))
-
-equal(undefined, load({
-  library: 'libsum',
-  funcName: 'noRet',
-  retType: DataType.Void,
-  paramsType: [],
-  paramsValue: []
-}))
-
-
-equal(1.1 + 2.2, load({
-  library: 'libsum',
-  funcName: 'doubleSum',
-  retType: DataType.Double,
-  paramsType: [DataType.Double, DataType.Double],
-  paramsValue: [1.1, 2.2]
-}))
-let bigArr = new Array(100).fill(100)
-deepStrictEqual(bigArr, load({
-  library: 'libsum',
-  funcName: 'createArrayi32',
-  retType: arrayConstructor({ type: DataType.I32Array, length: bigArr.length }),
-  paramsType: [DataType.I32Array, DataType.I32],
-  paramsValue: [bigArr, bigArr.length],
-}))
-
-let bigDoubleArr = new Array(5).fill(1.1)
-deepStrictEqual(bigDoubleArr, load({
-  library: 'libsum',
-  funcName: 'createArrayDouble',
-  retType: arrayConstructor({ type: DataType.DoubleArray, length: bigDoubleArr.length }),
-  paramsType: [DataType.DoubleArray, DataType.I32],
-  paramsValue: [bigDoubleArr, bigDoubleArr.length],
-}))
-let stringArr = [c, c.repeat(20)]
-
-deepStrictEqual(stringArr, load({
-  library: 'libsum',
-  funcName: 'createArrayString',
-  retType: arrayConstructor({ type: DataType.StringArray, length: stringArr.length }),
-  paramsType: [DataType.StringArray, DataType.I32],
-  paramsValue: [stringArr, stringArr.length],
-}))
-const bool_val = true
-equal(!bool_val, load({
-  library: 'libsum',
-  funcName: 'return_opposite',
-  retType: DataType.Boolean,
-  paramsType: [DataType.Boolean],
-  paramsValue: [bool_val],
-}))
 const person = {
   doubleArray: [1.1, 2.2, 3.3],
-
   age: 23,
   doubleProps: 1.1,
   name: 'tom',
