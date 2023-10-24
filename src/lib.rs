@@ -1,16 +1,9 @@
 #[macro_use]
 extern crate napi_derive;
 mod define;
+mod pointer;
 mod utils;
-use define::{number_to_data_type, DataType, FFIParams, OpenParams, RsArgsValue};
-use napi::bindgen_prelude::*;
-use utils::{
-  calculate_layout, create_array_from_pointer, get_data_type_size_align,
-  get_js_function_call_value, get_rs_value_size_align, js_array_to_number_array,
-  js_array_to_string_array, js_nunmber_to_i32, js_string_to_string, js_unknown_to_data_type,
-  rs_array_to_js_array, ArrayType,
-};
-
+use define::*;
 use indexmap::IndexMap;
 use libc::malloc;
 use libc::{c_char, c_double, c_int};
@@ -19,11 +12,14 @@ use libffi_sys::{
   ffi_type_pointer, ffi_type_sint32, ffi_type_uint8, ffi_type_void,
 };
 use libloading::{Library, Symbol};
+use napi::bindgen_prelude::*;
 use napi::{Env, JsBoolean, JsFunction, JsNumber, JsObject, JsString, JsUnknown};
+use pointer::*;
 use std::alloc::{alloc, Layout};
 use std::collections::HashMap;
 use std::ffi::c_void;
 use std::ffi::CString;
+use utils::*;
 
 enum FFIJsValue {
   I32(i32),
@@ -157,66 +153,6 @@ fn load(
             let params_type_object: JsObject = param.coerce_to_object().unwrap();
             let arg_type = &mut ffi_type_pointer as *mut ffi_type;
             let params_value_object = value.coerce_to_object().unwrap();
-            fn jsobject_to_rs_struct(
-              params_type_object: JsObject,
-              params_value_object: JsObject,
-            ) -> IndexMap<String, RsArgsValue> {
-              let mut index_map = IndexMap::new();
-              JsObject::keys(&params_value_object)
-                .unwrap()
-                .into_iter()
-                .for_each(|field| {
-                  let field_type: DataType = params_type_object.get_named_property(&field).unwrap();
-                  let val = match field_type {
-                    DataType::String => {
-                      let val: JsString = params_value_object.get_named_property(&field).unwrap();
-                      let val: String = val.into_utf8().unwrap().try_into().unwrap();
-                      RsArgsValue::String(val)
-                    }
-                    DataType::I32 => {
-                      let val: JsNumber = params_value_object.get_named_property(&field).unwrap();
-                      let val: i32 = val.try_into().unwrap();
-                      RsArgsValue::I32(val)
-                    }
-                    DataType::Boolean => {
-                      let val: JsBoolean = params_value_object.get_named_property(&field).unwrap();
-                      let val: bool = val.get_value().unwrap();
-                      RsArgsValue::Boolean(val)
-                    }
-                    DataType::Double => {
-                      let val: JsNumber = params_value_object.get_named_property(&field).unwrap();
-                      let val: f64 = val.try_into().unwrap();
-                      RsArgsValue::Double(val)
-                    }
-                    DataType::StringArray => {
-                      let js_array: JsObject =
-                        params_value_object.get_named_property(&field).unwrap();
-                      let arg_val = js_array_to_string_array(js_array);
-                      RsArgsValue::StringArray(arg_val)
-                    }
-                    DataType::DoubleArray => {
-                      let js_array: JsObject =
-                        params_value_object.get_named_property(&field).unwrap();
-                      let arg_val = js_array_to_number_array(js_array);
-                      RsArgsValue::DoubleArray(arg_val)
-                    }
-                    DataType::I32Array => {
-                      let js_array: JsObject =
-                        params_value_object.get_named_property(&field).unwrap();
-                      let arg_val = js_array_to_number_array(js_array);
-                      RsArgsValue::I32Array(arg_val)
-                    }
-                    // DataType::Object => {
-                    //   let val: JsObject = js_object.get_named_property(&field).unwrap();
-                    //   let index_map = jsobject_to_rs_struct(val);
-                    //   RsArgsValue::Object(index_map)
-                    // }
-                    _ => panic!("jsobject_to_rs_struct"),
-                  };
-                  index_map.insert(field, val);
-                });
-              index_map
-            }
             let index_map = jsobject_to_rs_struct(params_type_object, params_value_object);
             (arg_type, RsArgsValue::Object(index_map))
           }
@@ -289,6 +225,7 @@ fn load(
             .unwrap()
             .coerce_to_object()
             .unwrap();
+
           let func_args: JsObject = func_desc_obj.get_named_property("paramsType").unwrap();
           match func_args.get_array_length().unwrap() {
             0 => {
@@ -300,10 +237,11 @@ fn load(
               return std::mem::transmute((*closure).code_ptr());
             }
             1 => {
-              use libffi::high::Closure1;
+              use libffi::high::{CType, Closure1};
               let lambda = |a: *mut c_void| {
-                let value = func_args.get_element::<JsUnknown>(0).unwrap();
-                let foo = get_js_function_call_value(env, value, a);
+                // let value = func_args.get_element::<JsUnknown>(0).unwrap();
+                // let param1 = get_js_function_call_value(env, value, a);
+                // js_function.call(None, &[param1]).unwrap();
               };
               let closure = Box::into_raw(Box::new(Closure1::new(&lambda)));
               return std::mem::transmute((*closure).code_ptr());
@@ -313,7 +251,6 @@ fn load(
         }
         RsArgsValue::Object(val) => {
           let (size, _) = calculate_layout(&val);
-
           let layout = if size > 0 {
             let (_, first_field) = val.get_index(0).unwrap();
             let (_, align) = get_rs_value_size_align(first_field);
@@ -611,123 +548,7 @@ fn load(
             &mut result as *mut _ as *mut c_void,
             arg_values_c_void.as_mut_ptr(),
           );
-          let mut js_object = env.create_object().unwrap();
-          let mut field_ptr = result;
-          let mut offset = 0;
-          JsObject::keys(&ret_object)
-            .unwrap()
-            .into_iter()
-            .for_each(|field| {
-              let val: JsUnknown = ret_object.get_named_property(&field).unwrap();
-              let data_type = js_unknown_to_data_type(val);
-              let array_constructor: JsObject = ret_object.get_named_property(&field).unwrap();
-              let array_len: usize = if array_constructor.has_named_property("length").unwrap() {
-                js_nunmber_to_i32(
-                  array_constructor
-                    .get_named_property::<JsNumber>("length")
-                    .unwrap(),
-                ) as usize
-              } else {
-                0
-              };
-              match data_type {
-                DataType::I32 => {
-                  let align = std::mem::align_of::<c_int>();
-                  let padding = (align - (offset % align)) % align;
-                  field_ptr = field_ptr.offset(padding as isize);
-                  let type_field_ptr = field_ptr as *mut c_int;
-                  js_object
-                    .set_property(
-                      env.create_string(&field).unwrap(),
-                      env.create_int32(*type_field_ptr).unwrap(),
-                    )
-                    .unwrap();
-                  offset = std::mem::size_of::<c_int>();
-                }
-                DataType::Double => {
-                  let align = std::mem::align_of::<c_double>();
-                  let padding = (align - (offset % align)) % align;
-                  field_ptr = field_ptr.offset(padding as isize);
-                  let type_field_ptr = field_ptr as *mut c_double;
-                  js_object
-                    .set_property(
-                      env.create_string(&field).unwrap(),
-                      env.create_double(*type_field_ptr).unwrap(),
-                    )
-                    .unwrap();
-                  offset = std::mem::size_of::<c_double>();
-                }
-                DataType::Boolean => {
-                  let align = std::mem::align_of::<bool>();
-                  let padding = (align - (offset % align)) % align;
-                  field_ptr = field_ptr.offset(padding as isize);
-                  let type_field_ptr = field_ptr as *mut bool;
-                  js_object
-                    .set_property(
-                      env.create_string(&field).unwrap(),
-                      env.get_boolean(*type_field_ptr).unwrap(),
-                    )
-                    .unwrap();
-                  offset = std::mem::size_of::<bool>();
-                }
-                DataType::String => {
-                  let align = std::mem::align_of::<*const c_char>();
-                  let padding = (align - (offset % align)) % align;
-                  field_ptr = field_ptr.offset(padding as isize);
-                  let type_field_ptr = field_ptr as *mut *mut c_char;
-                  let js_string = CString::from_raw(*type_field_ptr).into_string().unwrap();
-                  js_object
-                    .set_property(
-                      env.create_string(&field).unwrap(),
-                      env.create_string(&js_string).unwrap(),
-                    )
-                    .unwrap();
-                  offset = std::mem::size_of::<*const c_char>();
-                }
-                DataType::StringArray => {
-                  let align = std::mem::align_of::<*const *const c_char>();
-                  let padding = (align - (offset % align)) % align;
-                  field_ptr = field_ptr.offset(padding as isize);
-                  let type_field_ptr = field_ptr as *mut *mut *mut c_char;
-                  let arr = create_array_from_pointer(*type_field_ptr, array_len);
-                  let js_array = rs_array_to_js_array(env, ArrayType::String(arr));
-                  js_object
-                    .set_property(env.create_string(&field).unwrap(), js_array)
-                    .unwrap();
-                  offset = std::mem::size_of::<*const *const c_char>();
-                }
-                DataType::DoubleArray => {
-                  let align = std::mem::align_of::<*const c_double>();
-                  let padding = (align - (offset % align)) % align;
-                  field_ptr = field_ptr.offset(padding as isize);
-                  let type_field_ptr = field_ptr as *mut *mut c_double;
-                  let arr = create_array_from_pointer(*type_field_ptr, array_len);
-                  let js_array = rs_array_to_js_array(env, ArrayType::Double(arr));
-                  js_object
-                    .set_property(env.create_string(&field).unwrap(), js_array)
-                    .unwrap();
-                  offset = std::mem::size_of::<*const c_double>();
-                }
-                DataType::I32Array => {
-                  let align = std::mem::align_of::<*const c_int>();
-                  let padding = (align - (offset % align)) % align;
-                  field_ptr = field_ptr.offset(padding as isize);
-                  let type_field_ptr = field_ptr as *mut *mut c_int;
-                  let arr = create_array_from_pointer(*type_field_ptr, array_len);
-                  let js_array = rs_array_to_js_array(env, ArrayType::I32(arr));
-                  js_object
-                    .set_property(env.create_string(&field).unwrap(), js_array)
-                    .unwrap();
-                  offset = std::mem::size_of::<*const c_int>();
-                }
-
-                _ => panic!(
-                  "{:?} is not available as a field type at this time",
-                  data_type
-                ),
-              }
-              field_ptr = field_ptr.offset(offset as isize) as *mut c_void;
-            });
+          let js_object = create_object_from_pointer(env, result, ret_object);
           Either9::I(js_object)
         }
       }
