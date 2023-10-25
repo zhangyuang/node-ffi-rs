@@ -33,6 +33,7 @@ export type ArrayConstructorOptions<T extends DataType> = {
 
 export type FuncConstructorOptions<T extends DataType> = {
   paramsType: Array<DataFieldType<T>>
+  retType: DataFieldType<T>
 }
 
 export function arrayConstructor<T extends DataType>(options: ArrayConstructorOptions<T>): ArrayConstructorOptions<T>
