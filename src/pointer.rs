@@ -41,7 +41,7 @@ where
 }
 
 pub unsafe fn create_object_from_pointer(
-  env: Env,
+  env: &Env,
   ptr: *mut c_void,
   ret_object: JsObject,
 ) -> JsObject {
