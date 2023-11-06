@@ -50,7 +50,7 @@ $ npm i ffi-rs
 - stringArray
 - doubleArray
 - object(暂时不支持嵌套对象)
-- function(开发中)
+- function
 
 
 ## 支持的系统架构
@@ -353,3 +353,56 @@ deepStrictEqual(p, {
 })
 
 ```
+
+## Function
+
+`ffi-rs` 支持传递 js 函数给 c 语言侧，就像这样
+
+```cpp
+typedef void (*FunctionPointer)(int a, bool b, char *c, char **d, int *e);
+
+extern "C" void callFunction(FunctionPointer func) {
+  printf("callFunction\n");
+  int a = 100;
+  bool b = false;
+  char *c = (char *)malloc(14 * sizeof(char));
+  strcpy(c, "Hello, World!");
+  char **stringArray = (char **)malloc(sizeof(char *) * 2);
+  stringArray[0] = strdup("Hello");
+  stringArray[1] = strdup("world");
+  int *i32Array = (int *)malloc(sizeof(int) * 3);
+  i32Array[0] = 101;
+  i32Array[1] = 202;
+  i32Array[2] = 303;
+  func(a, b, c, stringArray, i32Array);
+}
+```
+
+与上面的代码相对应，你可以这样使用 `ffi-rs` 来传递
+
+```js
+const func = (a, b, c, d, e) => {
+  console.log('func params', a, b, c, d, e)
+  equal(a, 100)
+  equal(b, false)
+  equal(c, 'Hello, World!')
+  deepStrictEqual(d, ['Hello', 'world'])
+  deepStrictEqual(e, [101, 202, 303])
+}
+
+load({
+  library: 'libsum',
+  funcName: 'callFunction',
+  retType: DataType.Void,
+  paramsType: [funcConstructor({
+    paramsType: [DataType.I32, DataType.Boolean, DataType.String,
+    arrayConstructor({ type: DataType.StringArray, length: 2 }),
+    arrayConstructor({ type: DataType.I32Array, length: 3 }),
+    ],
+    retType: DataType.Void
+  })],
+  paramsValue: [func],
+})
+```
+
+目前函数支持的参数类型都在上面的例子里，我们将会在未来支持更多的参数类型
