@@ -93,7 +93,8 @@ extern "C" Person *createPerson() {
 
   return person;
 }
-typedef void (*FunctionPointer)(int a, bool b, char *c, char **d, int *e);
+typedef void (*FunctionPointer)(int a, bool b, char *c, char **d, int *e,
+                                Person *p);
 
 extern "C" void callFunction(FunctionPointer func) {
   printf("callFunction\n");
@@ -109,7 +110,8 @@ extern "C" void callFunction(FunctionPointer func) {
   i32Array[0] = 101;
   i32Array[1] = 202;
   i32Array[2] = 303;
-  func(a, b, c, stringArray, i32Array);
+  Person *p = createPerson();
+  func(a, b, c, stringArray, i32Array, p);
 }
 
 extern "C" void bufferToFill(double bufferToFill[3]) {
