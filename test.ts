@@ -186,6 +186,16 @@ const unitTest = () => {
     })],
     paramsValue: [func],
   })
+  // load({
+  //   library: 'libsum',
+  //   funcName: 'call_callback_async',
+  //   retType: DataType.Void,
+  //   paramsType: [],
+  //   paramsValue: [],
+  // })
+  // setInterval(() => {
+  //   console.log('running')
+  // }, 1000)
   console.log('test succeed')
 }
 
