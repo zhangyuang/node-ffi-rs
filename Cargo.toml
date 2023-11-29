@@ -18,6 +18,7 @@ libffi-sys = { version = "^2.3.0" }
 libc="0.2"
 indexmap="2.0"
 tokio = { version = "1", features = ["full"] }
+rusty_v8 = "0.26.0"
 
 
 [build-dependencies]

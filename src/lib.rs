@@ -31,8 +31,7 @@ enum FFIJsValue {
 }
 
 static mut LibraryMap: Option<HashMap<String, Library>> = None;
-use libffi::high::ClosureOnce4;
-static mut CC: Option<ClosureOnce4<*mut c_void, *mut c_void, *mut c_void, *mut c_void, ()>> = None;
+
 #[napi]
 fn open(params: OpenParams) {
   let OpenParams { library, path } = params;
@@ -231,24 +230,70 @@ unsafe fn load(
           let func_args_type: JsObject = func_desc_obj
             .get_property(env.create_string("paramsType").unwrap())
             .unwrap();
+          use std::pin::Pin;
+          use std::sync::{Arc, Mutex};
           let args_len = func_args_type.get_array_length().unwrap();
-          let func_args_type_ptr = Box::into_raw(Box::new(func_args_type));
-          let js_function_ptr = Box::into_raw(Box::new(js_function));
+          let func_args_type_ptr = Arc::into_raw(Arc::new(func_args_type));
+          let js_function_ptr = Arc::into_raw(Arc::new(js_function));
+
+          // let func_args_type_ptr = Arc::new(Mutex::new(func_args_type));
+          // let js_function_ptr = Arc::new(Mutex::new(js_function));
           if args_len > 10 {
             panic!("The number of function parameters needs to be less than or equal to 10")
           }
-          match_args_len!(args_len, func_args_type_ptr, js_function_ptr, &env,
-              1 => ClosureOnce1, a
-              ,2 => ClosureOnce2, a,b
-              ,3 => ClosureOnce3, a,b,c
-              ,4 => ClosureOnce4, a,b,c,d
-              ,5 => ClosureOnce5, a,b,c,d,e
-              ,6 => ClosureOnce6, a,b,c,d,e,f
-              ,7 => ClosureOnce7, a,b,c,d,e,f,g
-              ,8 => ClosureOnce8, a,b,c,d,e,f,g,h
-              ,9 => ClosureOnce9, a,b,c,d,e,f,g,h,i
-              ,10 => ClosureOnce10, a,b,c,d,e,f,g,h,i,j
-          )
+          use napi::threadsafe_function::{
+            ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode,
+          };
+          use rusty_v8 as v8;
+          // struct MyBox(*const JsObject);
+          // unsafe impl Sync for MyBox {};
+          // unsafe impl Send for MyBox {};
+          // let foo = MyBox(func_args_type_ptr);
+          let res = match args_len {
+            4 => {
+              let lambda = move |a: *mut c_void, b: *mut c_void, c: *mut c_void, d: *mut c_void| {
+                let func_args_type_ptr = &*func_args_type_ptr;
+                let js_function_ptr = &*js_function_ptr;
+                let arg_arr = [a, b, c, d];
+
+                let tsfn: ThreadsafeFunction<u32, ErrorStrategy::CalleeHandled> = js_function_ptr
+                  .create_threadsafe_function(0, |ctx| {
+                    // let bar = **(&foo.0);
+                    let arg_type = func_args_type_ptr;
+                    Ok(vec![ctx.value + 1])
+                  })
+                  .unwrap();
+                // env.han
+                let value: Vec<JsUnknown> = (0..4)
+                  .map(|index| {
+                    let c_param = arg_arr[index as usize];
+                    let arg_type = func_args_type_ptr.get_element::<JsUnknown>(index).unwrap();
+                    let param = get_js_function_call_value(&env, arg_type, c_param);
+                    param
+                  })
+                  .collect();
+                println!("js_function_ptr");
+                js_function_ptr.call(None, &value).unwrap();
+              };
+              let closure = Box::into_raw(Box::new(ClosureOnce4::new(lambda)));
+              return std::mem::transmute((*closure).code_ptr());
+            }
+
+            _ => std::ptr::null_mut() as *mut c_void,
+          };
+          return res;
+          // match_args_len!(args_len, func_args_type_ptr, js_function_ptr, &env,
+          //     1 => ClosureOnce1, a
+          //     ,2 => ClosureOnce2, a,b
+          //     ,3 => ClosureOnce3, a,b,c
+          //     ,4 => ClosureOnce4, a,b,c,d
+          //     ,5 => ClosureOnce5, a,b,c,d,e
+          //     ,6 => ClosureOnce6, a,b,c,d,e,f
+          //     ,7 => ClosureOnce7, a,b,c,d,e,f,g
+          //     ,8 => ClosureOnce8, a,b,c,d,e,f,g,h
+          //     ,9 => ClosureOnce9, a,b,c,d,e,f,g,h,i
+          //     ,10 => ClosureOnce10, a,b,c,d,e,f,g,h,i,j
+          // )
         }
         RsArgsValue::Object(val) => {
           let (size, _) = calculate_layout(&val);
@@ -391,9 +436,7 @@ unsafe fn load(
     r_type,
     arg_types.as_mut_ptr(),
   );
-  // extern "C" {
-  //   fn CFRunLoopRun();
-  // }
+
   match ret_value {
     FFIJsValue::I32(number) => {
       let ret_data_type = number_to_data_type(number);
@@ -430,21 +473,6 @@ unsafe fn load(
             arg_values_c_void.as_mut_ptr(),
           );
           Either9::C(())
-          // // let mut result = ();
-          // struct SafeFfiCif(ffi_cif);
-          // unsafe impl Send for SafeFfiCif {}
-          // let mut bar = SafeFfiCif(cif);
-          // let handle = std::thread::spawn(move || {
-          //   let cif = &mut bar;
-          //   let mut cif = cif.0;
-          //   let mut result = ();
-          //   let ptr = &mut result as *mut () as *mut c_void;
-          //   ffi_call(&mut cif, Some(*func), ptr, vec![].as_mut_ptr());
-          // });
-          // CFRunLoopRun();
-          // println!("xx");
-          // handle.join().unwrap();
-          // Either9::C(())
         }
         DataType::Double => {
           let mut result: f64 = 0.0;
