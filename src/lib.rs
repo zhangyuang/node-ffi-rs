@@ -236,44 +236,67 @@ unsafe fn load(
           let func_args_type_ptr = Arc::into_raw(Arc::new(func_args_type));
           let js_function_ptr = Arc::into_raw(Arc::new(js_function));
 
-          // let func_args_type_ptr = Arc::new(Mutex::new(func_args_type));
-          // let js_function_ptr = Arc::new(Mutex::new(js_function));
           if args_len > 10 {
             panic!("The number of function parameters needs to be less than or equal to 10")
           }
           use napi::threadsafe_function::{
             ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode,
           };
-          use rusty_v8 as v8;
-          // struct MyBox(*const JsObject);
-          // unsafe impl Sync for MyBox {};
-          // unsafe impl Send for MyBox {};
-          // let foo = MyBox(func_args_type_ptr);
+
           let res = match args_len {
             4 => {
-              let lambda = move |a: *mut c_void, b: *mut c_void, c: *mut c_void, d: *mut c_void| {
-                let func_args_type_ptr = &*func_args_type_ptr;
-                let js_function_ptr = &*js_function_ptr;
-                let arg_arr = [a, b, c, d];
-
-                let tsfn: ThreadsafeFunction<u32, ErrorStrategy::CalleeHandled> = js_function_ptr
+              let tsfn: ThreadsafeFunction<Vec<JsUnknown>, ErrorStrategy::CalleeHandled> =
+                (&*js_function_ptr)
                   .create_threadsafe_function(0, |ctx| {
-                    // let bar = **(&foo.0);
-                    let arg_type = func_args_type_ptr;
-                    Ok(vec![ctx.value + 1])
+                    // let val: Vec<*mut c_void> = ctx.value;
+
+                    // let js_function_ptr = val[4] as *mut JsFunction;
+                    // println!(
+                    //   "xx{:?}",
+                    //   CStr::from_ptr((val)[1] as *mut c_char).to_string_lossy()
+                    // );
+
+                    // let a = vec![ctx.env.create_int32(1).unwrap().into_unknown()] as Vec<JsUnknown>;
+                    // (&*js_function_ptr).call(None, &a);
+                    Ok(
+                      vec![0u32, 1u32, 2u32], //     vec![
+                                              //   // ctx.env.create_int32(1).unwrap().into_unknown(),
+                                              //   // ctx.env.create_string("foo").unwrap().into_unknown(),
+                                              // ] as Vec<JsUnknown>
+                    )
                   })
                   .unwrap();
-                // env.han
-                let value: Vec<JsUnknown> = (0..4)
-                  .map(|index| {
-                    let c_param = arg_arr[index as usize];
-                    let arg_type = func_args_type_ptr.get_element::<JsUnknown>(index).unwrap();
-                    let param = get_js_function_call_value(&env, arg_type, c_param);
-                    param
-                  })
-                  .collect();
-                println!("js_function_ptr");
-                js_function_ptr.call(None, &value).unwrap();
+
+              let tsfn = env
+                .create_threadsafe_function(&*js_function_ptr, 0, |ctx| {
+                  Ok(
+                    vec![0u32, 1u32, 2u32], //     vec![
+                                            //   // ctx.env.create_int32(1).unwrap().into_unknown(),
+                                            //   // ctx.env.create_string("foo").unwrap().into_unknown(),
+                                            // ] as Vec<JsUnknown>
+                  )
+                })
+                .unwrap();
+              let v = vec![
+                env.create_int32(1).unwrap().into_unknown(),
+                env.create_string("foo").unwrap().into_unknown(),
+              ];
+              tsfn.call(Ok(()), ThreadsafeFunctionCallMode::Blocking);
+              let lambda = move |a: *mut c_void, b: *mut c_void, c: *mut c_void, d: *mut c_void| {
+                let arg_arr = vec![a, b, c, d];
+
+                // let func_args_type_ptr = &*func_args_type_ptr;
+                // let js_function_ptr = &*js_function_ptr;
+                // tsfn.call(Ok(true), ThreadsafeFunctionCallMode::Blocking);
+                // let value: Vec<JsUnknown> = (0..4)
+                //   .map(|index| {
+                //     let c_param = arg_arr[index as usize];
+                //     let arg_type = func_args_type_ptr.get_element::<JsUnknown>(index).unwrap();
+                //     let param = get_js_function_call_value(&env, arg_type, c_param);
+                //     param
+                //   })
+                //   .collect();
+                // js_function_ptr.call(None, &value).unwrap();
               };
               let closure = Box::into_raw(Box::new(ClosureOnce4::new(lambda)));
               return std::mem::transmute((*closure).code_ptr());
