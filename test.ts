@@ -167,7 +167,7 @@ const unitTest = () => {
     funcName: 'callFunction',
     retType: DataType.Void,
     paramsType: [funcConstructor({
-      paramsType: [DataType.I32, DataType.Boolean, DataType.String,
+      paramsType: [DataType.I32, DataType.Boolean, DataType.String, DataType.String,
       arrayConstructor({ type: DataType.StringArray, length: 2 }),
       arrayConstructor({ type: DataType.I32Array, length: 3 }),
       {
