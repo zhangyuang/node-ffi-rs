@@ -15,7 +15,7 @@ macro_rules! match_args_len {
                                 param
                             })
                             .collect();
-                        js_function_ptr.call(None, &value).unwrap();
+                        js_function_ptr.call(None, &value);
                     };
                     let closure = Box::into_raw(Box::new($closure::new(lambda)));
                     return std::mem::transmute((*closure).code_ptr());
