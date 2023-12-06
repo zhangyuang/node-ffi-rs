@@ -84,7 +84,22 @@ pub enum RsArgsValue {
   Void(()),
   Function(JsFunction, JsFunction),
 }
-
+impl std::fmt::Debug for RsArgsValue {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      RsArgsValue::String(s) => write!(f, "String({})", s),
+      RsArgsValue::I32(i) => write!(f, "I32({})", i),
+      RsArgsValue::Double(d) => write!(f, "Double({})", d),
+      RsArgsValue::I32Array(arr) => write!(f, "I32Array({:?})", arr),
+      RsArgsValue::StringArray(arr) => write!(f, "StringArray({:?})", arr),
+      RsArgsValue::DoubleArray(arr) => write!(f, "DoubleArray({:?})", arr),
+      RsArgsValue::Object(obj) => write!(f, "Object({:?})", obj),
+      RsArgsValue::Boolean(b) => write!(f, "Boolean({})", b),
+      RsArgsValue::Void(_) => write!(f, "Void"),
+      RsArgsValue::Function(_, _) => write!(f, "Function(<JsFunction>, <JsFunction>)"),
+    }
+  }
+}
 #[napi(object)]
 pub struct FFIParams {
   pub library: String,
@@ -98,3 +113,6 @@ pub struct OpenParams {
   pub library: String,
   pub path: String,
 }
+
+pub const ARRAY_LENGTH_TAG: &str = "length";
+pub const ARRAY_TYPE_TAG: &str = "type";
