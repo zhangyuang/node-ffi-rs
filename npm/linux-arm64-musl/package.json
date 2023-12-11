@@ -17,5 +17,8 @@
   },
   "libc": [
     "musl"
-  ]
+  ],
+  "dependencies": {
+    "uuid": "^9.0.1"
+  }
 }

@@ -35,7 +35,8 @@
   "dependencies": {
     "@napi-rs/cli": "^2.15.2",
     "esno": "^4.0.0",
-    "shelljs": "^0.8.5"
+    "shelljs": "^0.8.5",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@types/node": "^20.8.7",

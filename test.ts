@@ -158,6 +158,7 @@ const unitTest = () => {
     deepStrictEqual(d, ['Hello', 'world'])
     deepStrictEqual(e, [101, 202, 303])
     deepStrictEqual(f, newP)
+    console.log('test succeed')
   }
 
   load({
@@ -185,7 +186,7 @@ const unitTest = () => {
     paramsValue: [func],
   })
 
-  console.log('test succeed')
+
 }
 
 unitTest()
