@@ -45,7 +45,6 @@ where
     unsafe { JsObject::to_napi_value(raw_env, obj) }
   }
 }
-
 #[napi]
 #[derive(Debug)]
 pub enum DataType {
@@ -58,6 +57,23 @@ pub enum DataType {
   Boolean = 6,
   Void = 7,
 }
+
+#[derive(Debug)]
+pub enum BasicDataType {
+  String = 0,
+  I32 = 1,
+  Double = 2,
+  Boolean = 6,
+  Void = 7,
+}
+
+#[derive(Debug)]
+pub enum RefDataType {
+  I32Array = 3,
+  StringArray = 4,
+  DoubleArray = 5,
+}
+
 pub fn number_to_data_type(value: i32) -> DataType {
   match value {
     0 => DataType::String,
@@ -68,6 +84,25 @@ pub fn number_to_data_type(value: i32) -> DataType {
     5 => DataType::DoubleArray,
     6 => DataType::Boolean,
     7 => DataType::Void,
+    _ => panic!("unknow DataType"),
+  }
+}
+
+pub fn number_to_basic_data_type(value: i32) -> BasicDataType {
+  match value {
+    0 => BasicDataType::String,
+    1 => BasicDataType::I32,
+    2 => BasicDataType::Double,
+    6 => BasicDataType::Boolean,
+    7 => BasicDataType::Void,
+    _ => panic!("unknow DataType"),
+  }
+}
+pub fn number_to_ref_data_type(value: i32) -> RefDataType {
+  match value {
+    3 => RefDataType::I32Array,
+    4 => RefDataType::StringArray,
+    5 => RefDataType::DoubleArray,
     _ => panic!("unknow DataType"),
   }
 }
