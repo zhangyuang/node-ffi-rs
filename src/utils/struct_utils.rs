@@ -177,19 +177,22 @@ pub fn get_params_value_rs_struct(
           let map = get_params_value_rs_struct(&args_type, &args_type);
           index_map.insert(field, RsArgsValue::Object(map));
         }
-        _ => panic!("jsobject_to_rs_struct err "),
+        _ => panic!(
+          "receive {:?} but params type can only be number or object ",
+          field_type.get_type().unwrap()
+        ),
       };
     });
   index_map
 }
 
-pub fn type_define_to_rs_struct(params_type_object: &JsObject) -> IndexMap<String, RsArgsValue> {
+pub fn type_define_to_rs_struct(params_type: &JsObject) -> IndexMap<String, RsArgsValue> {
   let mut index_map = IndexMap::new();
-  JsObject::keys(params_type_object)
+  JsObject::keys(params_type)
     .unwrap()
     .into_iter()
     .for_each(|field| {
-      let field_type: JsUnknown = params_type_object.get_named_property(&field).unwrap();
+      let field_type: JsUnknown = params_type.get_named_property(&field).unwrap();
       match field_type.get_type().unwrap() {
         ValueType::Number => {
           let number: JsNumber = field_type.try_into().unwrap();
@@ -198,6 +201,7 @@ pub fn type_define_to_rs_struct(params_type_object: &JsObject) -> IndexMap<Strin
         }
 
         ValueType::Object => {
+          // maybe jsobject or jsarray
           let args_type = field_type.coerce_to_object().unwrap();
           let map = type_define_to_rs_struct(&args_type);
           index_map.insert(field, RsArgsValue::Object(map));
@@ -207,7 +211,10 @@ pub fn type_define_to_rs_struct(params_type_object: &JsObject) -> IndexMap<Strin
           let str = js_string_to_string(str);
           index_map.insert(field, RsArgsValue::String(str));
         }
-        _ => panic!("get_params_type_rs_struct err "),
+        _ => panic!(
+          "receive {:?} but params type can only be number or object ",
+          field_type.get_type().unwrap()
+        ),
       };
     });
   index_map

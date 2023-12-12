@@ -170,7 +170,7 @@ unsafe fn load(
             RsArgsValue::Function(params_type_function, params_val_function),
           )
         }
-        _ => panic!("unknow params type"),
+        _ => panic!("unsupported params type {:?}", value_type),
       }
     })
     .unzip();
@@ -434,11 +434,14 @@ unsafe fn load(
     .collect();
   let ret_value_type = ret_type.get_type().unwrap();
   let ret_value = match ret_value_type {
-    ValueType::Number => RsArgsValue::I32(ret_type.coerce_to_number().unwrap().try_into().unwrap()),
+    ValueType::Number => RsArgsValue::I32(js_number_to_i32(ret_type.coerce_to_number().unwrap())),
     ValueType::Object => RsArgsValue::Object(type_define_to_rs_struct(
       &ret_type.coerce_to_object().unwrap(),
     )),
-    _ => panic!("ret_value_type{}", ret_value_type),
+    _ => panic!(
+      "ret_value_type can only be number or object but receive {}",
+      ret_value_type
+    ),
   };
   let r_type: *mut ffi_type = match ret_value {
     RsArgsValue::I32(number) => {
