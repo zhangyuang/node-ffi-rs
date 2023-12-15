@@ -3,8 +3,7 @@ extern crate napi_derive;
 
 #[macro_use]
 mod ffi_macro;
-#[macro_use]
-extern crate lazy_static;
+
 mod define;
 mod utils;
 use define::*;
@@ -31,9 +30,9 @@ use utils::struct_utils::*;
 use utils::transform::*;
 static mut LibraryMap: Option<HashMap<String, Library>> = None;
 
-static mut FUNC_DESC: Option<HashMap<String, IndexMap<String, RsArgsValue>>> = None;
+static mut FUNC_DESC: Option<HashMap<usize, IndexMap<String, RsArgsValue>>> = None;
 static mut TS_FN: Option<
-  HashMap<String, ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal>>,
+  HashMap<usize, ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal>>,
 > = None;
 
 #[napi]
@@ -74,6 +73,9 @@ unsafe fn load(
     params_type,
     params_value,
   } = params;
+  use std::sync::Arc;
+  let data = Arc::new(123);
+  let foo = Arc::clone(&data);
   let lib = LibraryMap.as_ref().unwrap();
   let lib = lib.get(&library).unwrap();
   let func: Symbol<unsafe extern "C" fn()> = lib.get(func_name.as_str().as_bytes()).unwrap();
@@ -174,261 +176,242 @@ unsafe fn load(
       }
     })
     .unzip();
+  let fii = Box::new(1);
   let mut arg_values_c_void: Vec<*mut c_void> = arg_values
     .into_iter()
-    .map(|val| {
-      match val {
-        RsArgsValue::I32(val) => {
-          let c_num = Box::new(val);
-          Box::into_raw(c_num) as *mut c_void
+    .map(|val| match val {
+      RsArgsValue::I32(val) => {
+        let c_num = Box::new(val);
+        Box::into_raw(c_num) as *mut c_void
+      }
+      RsArgsValue::String(val) => {
+        let c_string = Box::new(CString::new(val).unwrap());
+        Box::into_raw(c_string) as *mut c_void
+      }
+      RsArgsValue::Double(val) => {
+        let c_double = Box::new(val);
+        Box::into_raw(c_double) as *mut c_void
+      }
+      RsArgsValue::I32Array(val) => {
+        let ptr = val.as_ptr();
+        let boxed_ptr = Box::new(ptr);
+        let raw_ptr = Box::into_raw(boxed_ptr);
+        std::mem::forget(val);
+        return raw_ptr as *mut c_void;
+      }
+      RsArgsValue::DoubleArray(val) => {
+        let ptr = val.as_ptr();
+        let boxed_ptr = Box::new(ptr);
+        let raw_ptr = Box::into_raw(boxed_ptr);
+        std::mem::forget(val);
+        return raw_ptr as *mut c_void;
+      }
+      RsArgsValue::StringArray(val) => {
+        let c_char_vec: Vec<*const c_char> = val
+          .into_iter()
+          .map(|str| {
+            let c_string = CString::new(str).unwrap();
+            let ptr = c_string.as_ptr();
+            std::mem::forget(c_string);
+            return ptr;
+          })
+          .collect();
+
+        let ptr = c_char_vec.as_ptr();
+        std::mem::forget(c_char_vec);
+        Box::into_raw(Box::new(ptr)) as *mut c_void
+      }
+      RsArgsValue::Boolean(val) => {
+        let c_bool = Box::new(val);
+        Box::into_raw(c_bool) as *mut c_void
+      }
+      RsArgsValue::Void(_) => Box::into_raw(Box::new(())) as *mut c_void,
+      RsArgsValue::Function(func_desc, js_function) => {
+        use libffi::high::*;
+        let func_desc_obj = func_desc
+          .call_without_args(None)
+          .unwrap()
+          .coerce_to_object()
+          .unwrap();
+        let func_args_type: JsObject = func_desc_obj
+          .get_property(env.create_string("paramsType").unwrap())
+          .unwrap();
+        let args_len = func_args_type.get_array_length().unwrap();
+        let func_args_type_rs = type_define_to_rs_struct(&func_args_type);
+
+        if args_len > 10 {
+          panic!("The number of function parameters needs to be less than or equal to 10")
         }
-        RsArgsValue::String(val) => {
-          let c_string = Box::new(CString::new(val).unwrap());
-          Box::into_raw(c_string) as *mut c_void
-        }
-        RsArgsValue::Double(val) => {
-          let c_double = Box::new(val);
-          Box::into_raw(c_double) as *mut c_void
-        }
-        RsArgsValue::I32Array(val) => {
-          let ptr = val.as_ptr();
-          let boxed_ptr = Box::new(ptr);
-          let raw_ptr = Box::into_raw(boxed_ptr);
-          std::mem::forget(val);
-          return raw_ptr as *mut c_void;
-        }
-        RsArgsValue::DoubleArray(val) => {
-          let ptr = val.as_ptr();
-          let boxed_ptr = Box::new(ptr);
-          let raw_ptr = Box::into_raw(boxed_ptr);
-          std::mem::forget(val);
-          return raw_ptr as *mut c_void;
-        }
-        RsArgsValue::StringArray(val) => {
-          let c_char_vec: Vec<*const c_char> = val
-            .into_iter()
-            .map(|str| {
-              let c_string = CString::new(str).unwrap();
-              let ptr = c_string.as_ptr();
-              std::mem::forget(c_string);
-              return ptr;
-            })
-            .collect();
 
-          let ptr = c_char_vec.as_ptr();
-          std::mem::forget(c_char_vec);
-          Box::into_raw(Box::new(ptr)) as *mut c_void
-        }
-        RsArgsValue::Boolean(val) => {
-          let c_bool = Box::new(val);
-          Box::into_raw(c_bool) as *mut c_void
-        }
-        RsArgsValue::Void(_) => Box::into_raw(Box::new(())) as *mut c_void,
-        RsArgsValue::Function(func_desc, js_function) => {
-          use libffi::high::*;
-          let func_desc_obj = func_desc
-            .call_without_args(None)
-            .unwrap()
-            .coerce_to_object()
-            .unwrap();
-          let func_args_type: JsObject = func_desc_obj
-            .get_property(env.create_string("paramsType").unwrap())
-            .unwrap();
-          let args_len = func_args_type.get_array_length().unwrap();
-          let func_args_type_rs = type_define_to_rs_struct(&func_args_type);
+        let tsfn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal> = (&js_function)
+          .create_threadsafe_function(0, |ctx| {
+            let value: Vec<RsArgsValue> = ctx.value;
 
-          if args_len > 10 {
-            panic!("The number of function parameters needs to be less than or equal to 10")
-          }
-
-          let tsfn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal> = (&js_function)
-            .create_threadsafe_function(0, |ctx| {
-              let mut value: Vec<RsArgsValue> = ctx.value;
-              let last_two = value.split_off(value.len() - 2);
-
-              let rest = value;
-              let js_call_params: Vec<JsUnknown> = rest
-                .into_iter()
-                .map(|rs_args| return rs_value_to_js_unknown(&ctx.env, rs_args))
-                .collect();
-              let uuid = &last_two[0];
-              let status = &last_two[1];
-              if let RsArgsValue::Boolean(status) = status {
-                if !*status {
-                  if let RsArgsValue::String(uuid) = uuid {
-                    FUNC_DESC.as_mut().unwrap().remove(uuid);
-                    TS_FN.as_mut().unwrap().remove(uuid);
-                  }
-                }
-              }
-              Ok(js_call_params)
-            })
-            .unwrap();
-          if FUNC_DESC.is_none() {
-            FUNC_DESC = Some(HashMap::new())
-          }
-          if TS_FN.is_none() {
-            TS_FN = Some(HashMap::new())
-          }
-          let func_id: JsString = func_desc_obj
-            .get_property(env.create_string("uuid").unwrap())
-            .unwrap();
-          let func_status: JsBoolean = func_desc_obj
-            .get_property(env.create_string("permanent").unwrap())
-            .unwrap();
-          let func_id = js_string_to_string(func_id);
-          let status: bool = func_status.try_into().unwrap();
-
-          FUNC_DESC
-            .as_mut()
-            .unwrap()
-            .insert(func_id.clone(), func_args_type_rs);
-          TS_FN.as_mut().unwrap().insert(func_id.clone(), tsfn);
-
-          use std::sync::Mutex;
-          lazy_static! {
-            static ref UUID: Mutex<Option<String>> = Mutex::new(None);
-            static ref STATUS: Mutex<Option<bool>> = Mutex::new(None);
-          }
-          let mut uuid = UUID.lock().unwrap();
-          *uuid = Some(func_id);
-          let mut func_status = STATUS.lock().unwrap();
-          *func_status = Some(status);
-          // if args_len == 4 {
-          //   let lambda = |a: *mut c_void, b: *mut c_void, c: *mut c_void, d: *mut c_void| {
-          //     let uuid = UUID.lock().unwrap();
-          //     let uuid = &*uuid;
-          //     let uuid = uuid.as_ref().unwrap();
-          //     let func_args_type_rs = FUNC_DESC.as_ref().unwrap().get(uuid).unwrap();
-
-          //     let func_status = STATUS.lock().unwrap();
-          //     let func_status = func_status.unwrap();
-          //     let tsfn = TS_FN.as_ref().unwrap().get(uuid).unwrap();
-          //     let arg_arr = [a, b, c, d];
-          //     let mut value: Vec<RsArgsValue> = (0..4)
-          //       .map(|index| {
-          //         let c_param = arg_arr[index as usize];
-          //         let arg_type = func_args_type_rs.get(&index.to_string()).unwrap();
-          //         let param = get_js_function_call_value(arg_type, c_param);
-          //         param
-          //       })
-          //       .collect();
-          //     value.push(RsArgsValue::String(uuid.clone()));
-          //     value.push(RsArgsValue::Boolean(func_status.clone()));
-          //     tsfn.call(value, ThreadsafeFunctionCallMode::NonBlocking);
-          //   };
-          //   let closure = Box::into_raw(Box::new(Closure4::new(&lambda)));
-          //   return std::mem::transmute((*closure).code_ptr());
-          // }
-
-          return match_args_len!(args_len, tsfn, func_args_type_rs, js_function,
-              1 => Closure1, a
-              ,2 => Closure2, a,b
-              ,3 => Closure3, a,b,c
-              ,4 => Closure4, a,b,c,d
-              ,5 => Closure5, a,b,c,d,e
-              ,6 => Closure6, a,b,c,d,e,f
-              ,7 => Closure7, a,b,c,d,e,f,g
-              ,8 => Closure8, a,b,c,d,e,f,g,h
-              ,9 => Closure9, a,b,c,d,e,f,g,h,i
-              ,10 => Closure10, a,b,c,d,e,f,g,h,i,j
-          );
-        }
-        RsArgsValue::Object(val) => {
-          let (size, _) = calculate_layout(&val);
-          let layout = if size > 0 {
-            let (_, first_field) = val.get_index(0).unwrap();
-            let (_, align) = get_rs_value_size_align(first_field);
-            Layout::from_size_align(size, align).unwrap()
-          } else {
-            Layout::new::<i32>()
-          };
-
-          let ptr = alloc(layout) as *mut c_void;
-          let field_ptr = ptr;
-          unsafe fn write_data(map: IndexMap<String, RsArgsValue>, mut field_ptr: *mut c_void) {
-            let mut offset = 0;
-            for (_, field_val) in map {
-              match field_val {
-                RsArgsValue::I32(number) => {
-                  let align = std::mem::align_of::<c_int>();
-                  let padding = (align - (offset % align)) % align;
-                  field_ptr = field_ptr.offset(padding as isize);
-                  (field_ptr as *mut c_int).write(number);
-                  offset = std::mem::size_of::<c_int>();
-                }
-                RsArgsValue::Double(double_number) => {
-                  let align = std::mem::align_of::<c_double>();
-                  let padding = (align - (offset % align)) % align;
-                  field_ptr = field_ptr.offset(padding as isize);
-                  (field_ptr as *mut c_double).write(double_number);
-                  offset = std::mem::size_of::<c_double>();
-                }
-                RsArgsValue::Boolean(val) => {
-                  let align = std::mem::align_of::<bool>();
-                  let padding = (align - (offset % align)) % align;
-                  field_ptr = field_ptr.offset(padding as isize);
-                  (field_ptr as *mut bool).write(val);
-                  offset = std::mem::size_of::<bool>();
-                }
-                RsArgsValue::String(str) => {
-                  let align = std::mem::align_of::<*const c_char>();
-                  let padding = (align - (offset % align)) % align;
-                  field_ptr = field_ptr.offset(padding as isize);
-                  let c_string = CString::new(str).unwrap();
-                  (field_ptr as *mut *const c_char).write(c_string.as_ptr());
-                  std::mem::forget(c_string);
-                  offset = std::mem::size_of::<*const c_char>();
-                }
-                RsArgsValue::StringArray(str_arr) => {
-                  let align = std::mem::align_of::<*const *const c_char>();
-                  let padding = (align - (offset % align)) % align;
-                  field_ptr = field_ptr.offset(padding as isize);
-                  let c_char_vec: Vec<*const c_char> = str_arr
-                    .into_iter()
-                    .map(|str| {
-                      let c_string = CString::new(str).unwrap();
-                      let ptr = c_string.as_ptr();
-                      std::mem::forget(c_string);
-                      return ptr;
-                    })
-                    .collect();
-                  (field_ptr as *mut *const *const c_char).write(c_char_vec.as_ptr());
-                  std::mem::forget(c_char_vec);
-                  offset = std::mem::size_of::<*const *const c_char>();
-                }
-                RsArgsValue::DoubleArray(arr) => {
-                  let align = std::mem::align_of::<*const c_double>();
-                  let padding = (align - (offset % align)) % align;
-                  field_ptr = field_ptr.offset(padding as isize);
-                  (field_ptr as *mut *const c_double).write(arr.as_ptr());
-                  std::mem::forget(arr);
-                  offset = std::mem::size_of::<*const c_double>();
-                }
-                RsArgsValue::I32Array(arr) => {
-                  let align = std::mem::align_of::<*const c_int>();
-                  let padding = (align - (offset % align)) % align;
-                  field_ptr = field_ptr.offset(padding as isize);
-                  (field_ptr as *mut *const c_int).write(arr.as_ptr());
-                  std::mem::forget(arr);
-                  offset = std::mem::size_of::<*const c_int>();
-                }
-                RsArgsValue::Object(val) => {
-                  let (size, _) = calculate_layout(&val);
-                  let align = std::mem::align_of::<usize>(); // Assuming the alignment of the object is the same as usize
-                  let padding = (align - (offset % align)) % align;
-                  field_ptr = field_ptr.offset(padding as isize);
-                  write_data(val, field_ptr);
-                  offset = size;
-                }
-                _ => panic!("write_data"),
-              }
-              field_ptr = field_ptr.offset(offset as isize);
+            let js_call_params: Vec<JsUnknown> = value
+              .into_iter()
+              .map(|rs_args| return rs_value_to_js_unknown(&ctx.env, rs_args))
+              .collect();
+            let keys_to_remove: Vec<_> = FUNC_DESC
+              .as_ref()
+              .unwrap()
+              .iter()
+              .filter(|(_, value)| {
+                let permanent = value.get("&permanent");
+                return !permanent.is_some();
+              })
+              .map(|(&k, _)| k)
+              .collect();
+            let ts_fn = TS_FN.as_mut().unwrap();
+            for k in keys_to_remove {
+              ts_fn.remove(&k);
             }
-          }
-          write_data(val, field_ptr);
-          return Box::into_raw(Box::new(ptr)) as *mut c_void;
+
+            Ok(js_call_params)
+          })
+          .unwrap();
+        if FUNC_DESC.is_none() {
+          FUNC_DESC = Some(HashMap::new())
         }
+        if TS_FN.is_none() {
+          TS_FN = Some(HashMap::new())
+        }
+
+        // if args_len == 4 {
+        //   fn lambda(a: *mut c_void, b: *mut c_void, c: *mut c_void, d: *mut c_void) {
+        //     let lambda_id = &lambda as *const _ as usize;
+        //     unsafe {
+        //       let tsfn = TS_FN.as_ref().unwrap().get(&lambda_id).unwrap();
+        //       let func_args_type_rs = FUNC_DESC.as_ref().unwrap().get(&lambda_id).unwrap();
+        //       let arg_arr = [a, b, c, d];
+        //       let value: Vec<RsArgsValue> = (0..4)
+        //         .map(|index| {
+        //           let c_param = arg_arr[index as usize];
+        //           let arg_type = func_args_type_rs.get(&index.to_string()).unwrap();
+        //           let param = get_js_function_call_value(arg_type, c_param);
+        //           param
+        //         })
+        //         .collect();
+
+        //       tsfn.call(value, ThreadsafeFunctionCallMode::NonBlocking);
+        //     }
+        //   };
+        //   let lambda_id = &lambda as *const _ as usize;
+        //   FUNC_DESC
+        //     .as_mut()
+        //     .unwrap()
+        //     .insert(lambda_id, func_args_type_rs);
+        //   TS_FN.as_mut().unwrap().insert(lambda_id, tsfn);
+
+        //   let closure = Box::into_raw(Box::new(Closure4::new(&lambda)));
+        //   return std::mem::transmute((*closure).code_ptr());
+        // }
+
+        return match_args_len!(args_len, tsfn, func_args_type_rs, js_function,
+            1 => Closure1, a
+            ,2 => Closure2, a,b
+            ,3 => Closure3, a,b,c
+            ,4 => Closure4, a,b,c,d
+            ,5 => Closure5, a,b,c,d,e
+            ,6 => Closure6, a,b,c,d,e,f
+            ,7 => Closure7, a,b,c,d,e,f,g
+            ,8 => Closure8, a,b,c,d,e,f,g,h
+            ,9 => Closure9, a,b,c,d,e,f,g,h,i
+            ,10 => Closure10, a,b,c,d,e,f,g,h,i,j
+        );
+      }
+      RsArgsValue::Object(val) => {
+        let (size, _) = calculate_layout(&val);
+        let layout = if size > 0 {
+          let (_, first_field) = val.get_index(0).unwrap();
+          let (_, align) = get_rs_value_size_align(first_field);
+          Layout::from_size_align(size, align).unwrap()
+        } else {
+          Layout::new::<i32>()
+        };
+
+        let ptr = alloc(layout) as *mut c_void;
+        let field_ptr = ptr;
+        unsafe fn write_data(map: IndexMap<String, RsArgsValue>, mut field_ptr: *mut c_void) {
+          let mut offset = 0;
+          for (_, field_val) in map {
+            match field_val {
+              RsArgsValue::I32(number) => {
+                let align = std::mem::align_of::<c_int>();
+                let padding = (align - (offset % align)) % align;
+                field_ptr = field_ptr.offset(padding as isize);
+                (field_ptr as *mut c_int).write(number);
+                offset = std::mem::size_of::<c_int>();
+              }
+              RsArgsValue::Double(double_number) => {
+                let align = std::mem::align_of::<c_double>();
+                let padding = (align - (offset % align)) % align;
+                field_ptr = field_ptr.offset(padding as isize);
+                (field_ptr as *mut c_double).write(double_number);
+                offset = std::mem::size_of::<c_double>();
+              }
+              RsArgsValue::Boolean(val) => {
+                let align = std::mem::align_of::<bool>();
+                let padding = (align - (offset % align)) % align;
+                field_ptr = field_ptr.offset(padding as isize);
+                (field_ptr as *mut bool).write(val);
+                offset = std::mem::size_of::<bool>();
+              }
+              RsArgsValue::String(str) => {
+                let align = std::mem::align_of::<*const c_char>();
+                let padding = (align - (offset % align)) % align;
+                field_ptr = field_ptr.offset(padding as isize);
+                let c_string = CString::new(str).unwrap();
+                (field_ptr as *mut *const c_char).write(c_string.as_ptr());
+                std::mem::forget(c_string);
+                offset = std::mem::size_of::<*const c_char>();
+              }
+              RsArgsValue::StringArray(str_arr) => {
+                let align = std::mem::align_of::<*const *const c_char>();
+                let padding = (align - (offset % align)) % align;
+                field_ptr = field_ptr.offset(padding as isize);
+                let c_char_vec: Vec<*const c_char> = str_arr
+                  .into_iter()
+                  .map(|str| {
+                    let c_string = CString::new(str).unwrap();
+                    let ptr = c_string.as_ptr();
+                    std::mem::forget(c_string);
+                    return ptr;
+                  })
+                  .collect();
+                (field_ptr as *mut *const *const c_char).write(c_char_vec.as_ptr());
+                std::mem::forget(c_char_vec);
+                offset = std::mem::size_of::<*const *const c_char>();
+              }
+              RsArgsValue::DoubleArray(arr) => {
+                let align = std::mem::align_of::<*const c_double>();
+                let padding = (align - (offset % align)) % align;
+                field_ptr = field_ptr.offset(padding as isize);
+                (field_ptr as *mut *const c_double).write(arr.as_ptr());
+                std::mem::forget(arr);
+                offset = std::mem::size_of::<*const c_double>();
+              }
+              RsArgsValue::I32Array(arr) => {
+                let align = std::mem::align_of::<*const c_int>();
+                let padding = (align - (offset % align)) % align;
+                field_ptr = field_ptr.offset(padding as isize);
+                (field_ptr as *mut *const c_int).write(arr.as_ptr());
+                std::mem::forget(arr);
+                offset = std::mem::size_of::<*const c_int>();
+              }
+              RsArgsValue::Object(val) => {
+                let (mut size, align) = calculate_layout(&val);
+                let padding = (align - (offset % align)) % align;
+                field_ptr = field_ptr.offset(padding as isize);
+                write_data(val, field_ptr);
+                offset = size;
+              }
+              _ => panic!("write_data error {:?}", field_val),
+            }
+            field_ptr = field_ptr.offset(offset as isize);
+          }
+        }
+        write_data(val, field_ptr);
+        return Box::into_raw(Box::new(ptr)) as *mut c_void;
       }
     })
     .collect();
@@ -538,19 +521,10 @@ unsafe fn load(
       }
     }
     RsArgsValue::Object(obj) => {
-      if obj.get(ARRAY_LENGTH_TAG).is_some() {
+      let array_desc = get_array_desc(&obj);
+      if array_desc.is_some() {
         // array
-        let array_len = if let RsArgsValue::I32(number) = obj.get(ARRAY_LENGTH_TAG).unwrap() {
-          *number as usize
-        } else {
-          0 as usize
-        };
-        let array_type = if let RsArgsValue::I32(number) = obj.get(ARRAY_TYPE_TAG).unwrap() {
-          *number
-        } else {
-          -1
-        };
-        let array_type = number_to_ref_data_type(array_type);
+        let (array_len, array_type) = array_desc.unwrap();
         match array_type {
           RefDataType::I32Array => {
             let mut result: *mut c_int = malloc(std::mem::size_of::<*mut c_int>()) as *mut c_int;
