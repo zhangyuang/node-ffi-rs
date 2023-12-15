@@ -29,6 +29,9 @@ use utils::pointer::*;
 use utils::struct_utils::*;
 use utils::transform::*;
 
+// enum JsFunDesc {
+//     ParamsType(HashMap<usize, IndexMap<String, RsArgsValue>)
+// }
 static mut LIBRARY_MAP: Option<HashMap<String, Library>> = None;
 static mut FUNC_DESC: Option<HashMap<usize, IndexMap<String, RsArgsValue>>> = None;
 static mut TS_FN: Option<
