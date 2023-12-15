@@ -15,8 +15,8 @@ use libffi_sys::{
   ffi_type_pointer, ffi_type_sint32, ffi_type_uint8, ffi_type_void,
 };
 use libloading::{Library, Symbol};
-use napi::{bindgen_prelude::*, JsBoolean};
-use napi::{Env, JsFunction, JsNumber, JsObject, JsString, JsUnknown};
+use napi::bindgen_prelude::*;
+use napi::{Env, JsFunction, JsNumber, JsObject, JsUnknown};
 
 use std::alloc::{alloc, Layout};
 use std::collections::HashMap;
@@ -28,8 +28,8 @@ use utils::calculate::*;
 use utils::pointer::*;
 use utils::struct_utils::*;
 use utils::transform::*;
-static mut LibraryMap: Option<HashMap<String, Library>> = None;
 
+static mut LIBRARY_MAP: Option<HashMap<String, Library>> = None;
 static mut FUNC_DESC: Option<HashMap<usize, IndexMap<String, RsArgsValue>>> = None;
 static mut TS_FN: Option<
   HashMap<usize, ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal>>,
@@ -39,10 +39,10 @@ static mut TS_FN: Option<
 fn open(params: OpenParams) {
   let OpenParams { library, path } = params;
   unsafe {
-    if LibraryMap.is_none() {
-      LibraryMap = Some(HashMap::new());
+    if LIBRARY_MAP.is_none() {
+      LIBRARY_MAP = Some(HashMap::new());
     }
-    let map = LibraryMap.as_mut().unwrap();
+    let map = LIBRARY_MAP.as_mut().unwrap();
     if map.get(&library).is_none() {
       let lib = Library::new(path).unwrap();
       map.insert(library, lib);
@@ -53,10 +53,10 @@ fn open(params: OpenParams) {
 #[napi]
 fn close(library: String) {
   unsafe {
-    if LibraryMap.is_none() {
+    if LIBRARY_MAP.is_none() {
       return;
     }
-    let map = LibraryMap.as_mut().unwrap();
+    let map = LIBRARY_MAP.as_mut().unwrap();
     map.remove(&library);
   }
 }
@@ -73,10 +73,8 @@ unsafe fn load(
     params_type,
     params_value,
   } = params;
-  use std::sync::Arc;
-  let data = Arc::new(123);
-  let foo = Arc::clone(&data);
-  let lib = LibraryMap.as_ref().unwrap();
+
+  let lib = LIBRARY_MAP.as_ref().unwrap();
   let lib = lib.get(&library).unwrap();
   let func: Symbol<unsafe extern "C" fn()> = lib.get(func_name.as_str().as_bytes()).unwrap();
   let params_type_len = params_type.len();
