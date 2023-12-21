@@ -14,6 +14,7 @@ pub unsafe fn create_rs_struct_from_pointer(
   let mut field_ptr = ptr;
   let mut offset = 0;
   for (field, val) in ret_object {
+    let field = field.clone();
     if let RsArgsValue::I32(number) = val {
       let data_type = number_to_basic_data_type(*number);
       match data_type {
@@ -97,10 +98,15 @@ pub unsafe fn create_rs_struct_from_pointer(
         }
       } else {
         // function | raw object
+        let align = std::mem::align_of::<*const c_void>();
+        let padding = (align - (offset % align)) % align;
+        field_ptr = field_ptr.offset(padding as isize);
+        let type_field_ptr = field_ptr as *mut *mut c_void;
         rs_struct.insert(
           field.clone(),
-          RsArgsValue::Object(create_rs_struct_from_pointer(field_ptr, obj)),
+          RsArgsValue::Object(create_rs_struct_from_pointer(*type_field_ptr, obj)),
         );
+        offset = std::mem::size_of::<*const c_void>();
       };
     }
     field_ptr = field_ptr.offset(offset as isize) as *mut c_void;
@@ -178,6 +184,7 @@ pub fn get_params_value_rs_struct(
   index_map
 }
 
+// describe paramsType or retType, field can only be number or object
 pub fn type_define_to_rs_struct(params_type: &JsObject) -> IndexMap<String, RsArgsValue> {
   let mut index_map = IndexMap::new();
   JsObject::keys(params_type)

@@ -15,11 +15,8 @@ macro_rules! match_args_len {
                                 })
                               .collect();
                             (&*$tsfn_ptr).call(value, ThreadsafeFunctionCallMode::NonBlocking);
-
-
                     };
-                    let lambda_ptr = Box::into_raw(Box::new(lambda));
-                    let closure = Box::into_raw(Box::new($closure::new(&*lambda_ptr)));
+                    let closure = Box::into_raw(Box::new($closure::new(&*Box::into_raw(Box::new(lambda)))));
                     return std::mem::transmute((*closure).code_ptr());
                 }
             )*
