@@ -29,9 +29,6 @@ use utils::pointer::*;
 use utils::struct_utils::*;
 use utils::transform::*;
 
-// enum JsFunDesc {
-//     ParamsType(HashMap<usize, IndexMap<String, RsArgsValue>)
-// }
 static mut LIBRARY_MAP: Option<HashMap<String, Library>> = None;
 static mut FUNC_DESC: Option<HashMap<usize, IndexMap<String, RsArgsValue>>> = None;
 static mut TS_FN: Option<
@@ -177,7 +174,6 @@ unsafe fn load(
       }
     })
     .unzip();
-  let fii = Box::new(1);
   let mut arg_values_c_void: Vec<*mut c_void> = arg_values
     .into_iter()
     .map(|val| match val {
@@ -239,7 +235,7 @@ unsafe fn load(
           .unwrap();
         let args_len = func_args_type.get_array_length().unwrap();
         let func_args_type_rs = type_define_to_rs_struct(&func_args_type);
-
+        let func_args_type_rs_ptr = Box::into_raw(Box::new(func_args_type_rs));
         if args_len > 10 {
           panic!("The number of function parameters needs to be less than or equal to 10")
         }
@@ -247,67 +243,16 @@ unsafe fn load(
         let tsfn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal> = (&js_function)
           .create_threadsafe_function(0, |ctx| {
             let value: Vec<RsArgsValue> = ctx.value;
-
             let js_call_params: Vec<JsUnknown> = value
               .into_iter()
               .map(|rs_args| return rs_value_to_js_unknown(&ctx.env, rs_args))
               .collect();
-            let keys_to_remove: Vec<_> = FUNC_DESC
-              .as_ref()
-              .unwrap()
-              .iter()
-              .filter(|(_, value)| {
-                let permanent = value.get("&permanent");
-                return !permanent.is_some();
-              })
-              .map(|(&k, _)| k)
-              .collect();
-            let ts_fn = TS_FN.as_mut().unwrap();
-            for k in keys_to_remove {
-              ts_fn.remove(&k);
-            }
 
             Ok(js_call_params)
           })
           .unwrap();
-        if FUNC_DESC.is_none() {
-          FUNC_DESC = Some(HashMap::new())
-        }
-        if TS_FN.is_none() {
-          TS_FN = Some(HashMap::new())
-        }
-
-        // if args_len == 4 {
-        //   fn lambda(a: *mut c_void, b: *mut c_void, c: *mut c_void, d: *mut c_void) {
-        //     let lambda_id = &lambda as *const _ as usize;
-        //     unsafe {
-        //       let tsfn = TS_FN.as_ref().unwrap().get(&lambda_id).unwrap();
-        //       let func_args_type_rs = FUNC_DESC.as_ref().unwrap().get(&lambda_id).unwrap();
-        //       let arg_arr = [a, b, c, d];
-        //       let value: Vec<RsArgsValue> = (0..4)
-        //         .map(|index| {
-        //           let c_param = arg_arr[index as usize];
-        //           let arg_type = func_args_type_rs.get(&index.to_string()).unwrap();
-        //           let param = get_js_function_call_value(arg_type, c_param);
-        //           param
-        //         })
-        //         .collect();
-
-        //       tsfn.call(value, ThreadsafeFunctionCallMode::NonBlocking);
-        //     }
-        //   };
-        //   let lambda_id = &lambda as *const _ as usize;
-        //   FUNC_DESC
-        //     .as_mut()
-        //     .unwrap()
-        //     .insert(lambda_id, func_args_type_rs);
-        //   TS_FN.as_mut().unwrap().insert(lambda_id, tsfn);
-
-        //   let closure = Box::into_raw(Box::new(Closure4::new(&lambda)));
-        //   return std::mem::transmute((*closure).code_ptr());
-        // }
-
-        return match_args_len!(args_len, tsfn, func_args_type_rs, js_function,
+        let tsfn_ptr = Box::into_raw(Box::new(tsfn));
+        return match_args_len!(args_len, tsfn_ptr, func_args_type_rs_ptr,
             1 => Closure1, a
             ,2 => Closure2, a,b
             ,3 => Closure3, a,b,c
