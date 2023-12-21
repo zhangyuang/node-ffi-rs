@@ -110,6 +110,7 @@ pub fn number_to_ref_data_type(value: i32) -> RefDataType {
 pub enum RsArgsValue {
   String(String),
   I32(i32),
+  USIZE(usize),
   Double(f64),
   I32Array(Vec<i32>),
   StringArray(Vec<String>),
@@ -124,6 +125,7 @@ impl std::fmt::Debug for RsArgsValue {
     match self {
       RsArgsValue::String(s) => write!(f, "String({})", s),
       RsArgsValue::I32(i) => write!(f, "I32({})", i),
+      RsArgsValue::USIZE(i) => write!(f, "USIZE({})", i),
       RsArgsValue::Double(d) => write!(f, "Double({})", d),
       RsArgsValue::I32Array(arr) => write!(f, "I32Array({:?})", arr),
       RsArgsValue::StringArray(arr) => write!(f, "StringArray({:?})", arr),

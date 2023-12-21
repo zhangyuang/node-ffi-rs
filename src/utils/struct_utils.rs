@@ -252,6 +252,7 @@ pub fn rs_value_to_js_unknown(env: &Env, data: RsArgsValue) -> JsUnknown {
       js_object.into_unknown()
     }
     RsArgsValue::Void(_) => panic!("void cannot be as a call param type"),
+    RsArgsValue::USIZE(_) => panic!("void cannot be as a call param type"),
     RsArgsValue::Function(_, _) => panic!("function need to be improved"),
   };
 }

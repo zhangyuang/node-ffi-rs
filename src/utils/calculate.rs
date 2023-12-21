@@ -33,6 +33,7 @@ pub fn get_rs_value_size_align(val: &RsArgsValue) -> (usize, usize) {
 pub fn get_rs_struct_size_align(data_type: &RsArgsValue) -> (usize, usize) {
   return match data_type {
     RsArgsValue::I32(_) => (std::mem::size_of::<i32>(), std::mem::align_of::<i32>()),
+    RsArgsValue::USIZE(_) => (std::mem::size_of::<usize>(), std::mem::align_of::<usize>()),
     RsArgsValue::Void(_) => (0, 0),
     RsArgsValue::Boolean(_) => (std::mem::size_of::<bool>(), std::mem::align_of::<bool>()),
     RsArgsValue::String(_) => (
@@ -94,6 +95,7 @@ pub fn calculate_layout(map: &IndexMap<String, RsArgsValue>) -> (usize, usize) {
     .iter()
     .fold((0, 0), |(size, align), (_, field_val)| match field_val {
       RsArgsValue::I32(_) => calculate_i32(size, align),
+      RsArgsValue::USIZE(_) => calculate_i32(size, align),
       RsArgsValue::Double(_) => calculate_double(size, align),
       RsArgsValue::String(_) => calculate_string(size, align),
       RsArgsValue::Boolean(_) => calculate_boolean(size, align),

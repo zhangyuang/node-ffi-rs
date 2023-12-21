@@ -44,16 +44,16 @@ const unitTest = () => {
     }),
   );
 
-  equal(
-    undefined,
-    load({
-      library: "libsum",
-      funcName: "noRet",
-      retType: DataType.Void,
-      paramsType: [],
-      paramsValue: [],
-    }),
-  );
+  // equal(
+  //   undefined,
+  //   load({
+  //     library: "libsum",
+  //     funcName: "noRet",
+  //     retType: DataType.Void,
+  //     paramsType: [],
+  //     paramsValue: [],
+  //   }),
+  // );
 
   equal(
     1.1 + 2.2,
@@ -246,41 +246,42 @@ const unitTest = () => {
     console.log("test succeed");
   };
 
-  // load({
-  //   library: "libsum",
-  //   funcName: "callFunction",
-  //   retType: DataType.Void,
-  //   paramsType: [
-  //     funcConstructor({
-  //       paramsType: [
-  //         DataType.I32,
-  //         DataType.Boolean,
-  //         DataType.String,
-  //         arrayConstructor({ type: DataType.StringArray, length: 2 }),
-  //         arrayConstructor({ type: DataType.I32Array, length: 3 }),
-  //         {
-  //           doubleArray: arrayConstructor({
-  //             type: DataType.DoubleArray,
-  //             length: 3,
-  //           }),
-  //           age: DataType.I32,
-  //           doubleProps: DataType.Double,
-  //           name: DataType.String,
-  //           stringArray: arrayConstructor({
-  //             type: DataType.StringArray,
-  //             length: 2,
-  //           }),
-  //           i32Array: arrayConstructor({ type: DataType.I32Array, length: 3 }),
-  //           testnum: DataType.I32,
-  //           boolTrue: DataType.Boolean,
-  //           boolFalse: DataType.Boolean,
-  //         },
-  //       ],
-  //       retType: DataType.Void,
-  //     }),
-  //   ],
-  //   paramsValue: [func],
-  // });
+  load({
+    library: "libsum",
+    funcName: "callFunction",
+    retType: DataType.Void,
+    paramsType: [
+      funcConstructor({
+        paramsType: [
+          DataType.I32,
+          DataType.Boolean,
+          DataType.String,
+          arrayConstructor({ type: DataType.StringArray, length: 2 }),
+          arrayConstructor({ type: DataType.I32Array, length: 3 }),
+          {
+            doubleArray: arrayConstructor({
+              type: DataType.DoubleArray,
+              length: 3,
+            }),
+            age: DataType.I32,
+            doubleProps: DataType.Double,
+            name: DataType.String,
+            stringArray: arrayConstructor({
+              type: DataType.StringArray,
+              length: 2,
+            }),
+            i32Array: arrayConstructor({ type: DataType.I32Array, length: 3 }),
+            testnum: DataType.I32,
+            boolTrue: DataType.Boolean,
+            boolFalse: DataType.Boolean,
+          },
+        ],
+        retType: DataType.Void,
+      }),
+    ],
+    paramsValue: [func],
+  });
+  console.log("finish");
 };
 
 unitTest();

@@ -15,7 +15,7 @@ use libffi_sys::{
   ffi_type_pointer, ffi_type_sint32, ffi_type_uint8, ffi_type_void,
 };
 use libloading::{Library, Symbol};
-use napi::bindgen_prelude::*;
+use napi::{bindgen_prelude::*, JsBoolean};
 use napi::{Env, JsFunction, JsNumber, JsObject, JsUnknown};
 
 use std::alloc::{alloc, Layout};
@@ -30,10 +30,7 @@ use utils::struct_utils::*;
 use utils::transform::*;
 
 static mut LIBRARY_MAP: Option<HashMap<String, Library>> = None;
-static mut FUNC_DESC: Option<HashMap<usize, IndexMap<String, RsArgsValue>>> = None;
-static mut TS_FN: Option<
-  HashMap<usize, ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal>>,
-> = None;
+static mut TS_FN: Option<HashMap<usize, bool>> = None;
 
 #[napi]
 fn open(params: OpenParams) {
@@ -233,6 +230,11 @@ unsafe fn load(
         let func_args_type: JsObject = func_desc_obj
           .get_property(env.create_string("paramsType").unwrap())
           .unwrap();
+        let func_permanent: JsBoolean = func_desc_obj
+          .get_property(env.create_string("permanent").unwrap())
+          .unwrap();
+        let func_permanent: bool = func_permanent.try_into().unwrap();
+
         let args_len = func_args_type.get_array_length().unwrap();
         let func_args_type_rs = type_define_to_rs_struct(&func_args_type);
         let func_args_type_rs_ptr = Box::into_raw(Box::new(func_args_type_rs));
@@ -242,16 +244,26 @@ unsafe fn load(
 
         let tsfn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal> = (&js_function)
           .create_threadsafe_function(0, |ctx| {
-            let value: Vec<RsArgsValue> = ctx.value;
+            let mut value: Vec<RsArgsValue> = ctx.value;
+            let tsfn_id = value.pop().unwrap();
             let js_call_params: Vec<JsUnknown> = value
               .into_iter()
               .map(|rs_args| return rs_value_to_js_unknown(&ctx.env, rs_args))
               .collect();
-
+            if let RsArgsValue::USIZE(id) = tsfn_id {
+              if !TS_FN.as_ref().unwrap().get(&id).unwrap() {
+                let _ = Box::from_raw(id as *mut c_void);
+              }
+            }
             Ok(js_call_params)
           })
           .unwrap();
         let tsfn_ptr = Box::into_raw(Box::new(tsfn));
+        let tsfn_id = tsfn_ptr as usize;
+        if TS_FN.is_none() {
+          TS_FN = Some(HashMap::new())
+        }
+        TS_FN.as_mut().unwrap().insert(tsfn_id, func_permanent);
         return match_args_len!(args_len, tsfn_ptr, func_args_type_rs_ptr,
             1 => Closure1, a
             ,2 => Closure2, a,b
@@ -359,6 +371,7 @@ unsafe fn load(
         write_data(val, field_ptr);
         return Box::into_raw(Box::new(ptr)) as *mut c_void;
       }
+      _ => panic!("unsupport type {:?}", val),
     })
     .collect();
   let ret_value_type = ret_type.get_type().unwrap();
