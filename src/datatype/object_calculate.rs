@@ -64,6 +64,7 @@ pub unsafe fn generate_c_struct(map: IndexMap<String, RsArgsValue>) -> *mut c_vo
   let ptr = alloc(layout) as *mut c_void;
   let mut field_ptr = ptr;
   let mut offset = 0;
+  let mut distance = 0;
   for (_, field_val) in map {
     match field_val {
       RsArgsValue::I32(number) => {
@@ -71,28 +72,32 @@ pub unsafe fn generate_c_struct(map: IndexMap<String, RsArgsValue>) -> *mut c_vo
         let padding = (align - (offset % align)) % align;
         field_ptr = field_ptr.offset(padding as isize);
         (field_ptr as *mut c_int).write(number);
-        offset = std::mem::size_of::<c_int>();
+        distance = std::mem::size_of::<c_int>();
+        offset += distance + padding;
       }
       RsArgsValue::I64(number) => {
         let align = std::mem::align_of::<c_longlong>();
         let padding = (align - (offset % align)) % align;
         field_ptr = field_ptr.offset(padding as isize);
         (field_ptr as *mut c_longlong).write(number);
-        offset = std::mem::size_of::<c_longlong>();
+        distance = std::mem::size_of::<c_longlong>();
+        offset += distance + padding;
       }
       RsArgsValue::Double(double_number) => {
         let align = std::mem::align_of::<c_double>();
         let padding = (align - (offset % align)) % align;
         field_ptr = field_ptr.offset(padding as isize);
         (field_ptr as *mut c_double).write(double_number);
-        offset = std::mem::size_of::<c_double>();
+        distance = std::mem::size_of::<c_double>();
+        offset += distance + padding;
       }
       RsArgsValue::Boolean(val) => {
         let align = std::mem::align_of::<bool>();
         let padding = (align - (offset % align)) % align;
         field_ptr = field_ptr.offset(padding as isize);
         (field_ptr as *mut bool).write(val);
-        offset = std::mem::size_of::<bool>();
+        distance = std::mem::size_of::<bool>();
+        offset += distance + padding;
       }
       RsArgsValue::String(str) => {
         let align = std::mem::align_of::<*const c_char>();
@@ -101,7 +106,8 @@ pub unsafe fn generate_c_struct(map: IndexMap<String, RsArgsValue>) -> *mut c_vo
         let c_string = CString::new(str).unwrap();
         (field_ptr as *mut *const c_char).write(c_string.as_ptr());
         std::mem::forget(c_string);
-        offset = std::mem::size_of::<*const c_char>();
+        distance = std::mem::size_of::<*const c_char>();
+        offset += distance + padding;
       }
       RsArgsValue::StringArray(str_arr) => {
         let align = std::mem::align_of::<*const *const c_char>();
@@ -118,7 +124,8 @@ pub unsafe fn generate_c_struct(map: IndexMap<String, RsArgsValue>) -> *mut c_vo
           .collect();
         (field_ptr as *mut *const *const c_char).write(c_char_vec.as_ptr());
         std::mem::forget(c_char_vec);
-        offset = std::mem::size_of::<*const *const c_char>();
+        distance = std::mem::size_of::<*const *const c_char>();
+        offset += distance + padding;
       }
       RsArgsValue::DoubleArray(arr) => {
         let align = std::mem::align_of::<*const c_double>();
@@ -126,7 +133,8 @@ pub unsafe fn generate_c_struct(map: IndexMap<String, RsArgsValue>) -> *mut c_vo
         field_ptr = field_ptr.offset(padding as isize);
         (field_ptr as *mut *const c_double).write(arr.as_ptr());
         std::mem::forget(arr);
-        offset = std::mem::size_of::<*const c_double>();
+        distance = std::mem::size_of::<*const c_double>();
+        offset += distance + padding;
       }
       RsArgsValue::I32Array(arr) => {
         let align = std::mem::align_of::<*const c_int>();
@@ -134,7 +142,8 @@ pub unsafe fn generate_c_struct(map: IndexMap<String, RsArgsValue>) -> *mut c_vo
         field_ptr = field_ptr.offset(padding as isize);
         (field_ptr as *mut *const c_int).write(arr.as_ptr());
         std::mem::forget(arr);
-        offset = std::mem::size_of::<*const c_int>();
+        distance = std::mem::size_of::<*const c_int>();
+        offset += distance + padding;
       }
       RsArgsValue::Object(val) => {
         let align = std::mem::align_of::<*const c_void>();
@@ -142,18 +151,20 @@ pub unsafe fn generate_c_struct(map: IndexMap<String, RsArgsValue>) -> *mut c_vo
         field_ptr = field_ptr.offset(padding as isize);
         let obj_ptr = generate_c_struct(val);
         (field_ptr as *mut *const c_void).write(obj_ptr);
-        offset = std::mem::size_of::<*const c_void>();
+        distance = std::mem::size_of::<*const c_void>();
+        offset += distance + padding;
       }
       RsArgsValue::Void(_) => {
         let align = std::mem::align_of::<()>();
         let padding = (align - (offset % align)) % align;
         field_ptr = field_ptr.offset(padding as isize);
         (field_ptr as *mut ()).write(());
-        offset = std::mem::size_of::<()>();
+        distance = std::mem::size_of::<()>();
+        offset += distance + padding;
       }
       RsArgsValue::Function(_, _) => panic!("write_data error {:?}", field_val),
     }
-    field_ptr = field_ptr.offset(offset as isize);
+    field_ptr = field_ptr.offset(distance as isize);
   }
   return ptr;
 }

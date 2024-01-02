@@ -1,4 +1,4 @@
-use super::object_utils::create_rs_struct_from_pointer;
+use super::object_generate::create_rs_struct_from_pointer;
 use super::pointer::*;
 use crate::define::*;
 use std::ffi::c_void;
