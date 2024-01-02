@@ -5,19 +5,21 @@ type DataTypeToType<T extends DataType> = T extends DataType.String
   ? string
   : T extends DataType.I32
     ? number
-    : T extends DataType.Double
+    : T extends DataType.I64
       ? number
-      : T extends DataType.I32Array
-        ? number[]
-        : T extends DataType.StringArray
-          ? string[]
-          : T extends DataType.DoubleArray
-            ? number[]
-            : T extends DataType.Boolean
-              ? boolean
-              : T extends DataType.Void
-                ? undefined
-                : never;
+      : T extends DataType.Double
+        ? number
+        : T extends DataType.I32Array
+          ? number[]
+          : T extends DataType.StringArray
+            ? string[]
+            : T extends DataType.DoubleArray
+              ? number[]
+              : T extends DataType.Boolean
+                ? boolean
+                : T extends DataType.Void
+                  ? undefined
+                  : never;
 
 type DataFieldTypeToType<T extends DataFieldType<DataType>> = T extends DataType
   ? DataTypeToType<T>
@@ -94,6 +96,7 @@ export const enum DataType {
   DoubleArray = 5,
   Boolean = 6,
   Void = 7,
+  I64 = 8,
 }
 export interface FfiParams<T extends DataType> {
   library: string;

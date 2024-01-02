@@ -4,15 +4,14 @@ extern crate napi_derive;
 #[macro_use]
 mod ffi_macro;
 
+mod datatype;
 mod define;
-mod utils;
 use define::*;
-use indexmap::IndexMap;
 use libc::malloc;
 use libc::{c_char, c_double, c_int};
 use libffi_sys::{
   ffi_abi_FFI_DEFAULT_ABI, ffi_call, ffi_cif, ffi_prep_cif, ffi_type, ffi_type_double,
-  ffi_type_pointer, ffi_type_sint32, ffi_type_uint8, ffi_type_void,
+  ffi_type_pointer, ffi_type_sint32, ffi_type_sint64, ffi_type_uint8, ffi_type_void,
 };
 use libloading::{Library, Symbol};
 use napi::bindgen_prelude::*;
@@ -22,11 +21,12 @@ use std::collections::HashMap;
 use std::ffi::c_void;
 use std::ffi::{CStr, CString};
 
+use datatype::array::*;
+use datatype::function::*;
+use datatype::object::*;
+use datatype::object_utils::*;
+use datatype::pointer::*;
 use napi::threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode};
-use utils::calculate::*;
-use utils::pointer::*;
-use utils::struct_utils::*;
-use utils::transform::*;
 
 static mut LIBRARY_MAP: Option<HashMap<String, Library>> = None;
 
@@ -60,7 +60,7 @@ fn close(library: String) {
 unsafe fn load(
   env: Env,
   params: FFIParams,
-) -> Either9<String, i32, (), f64, Vec<i32>, Vec<String>, Vec<f64>, bool, JsObject> {
+) -> Either10<String, i32, (), f64, Vec<i32>, Vec<String>, Vec<f64>, bool, JsObject, i64> {
   let FFIParams {
     library,
     func_name,
@@ -87,6 +87,11 @@ unsafe fn load(
               let arg_type = &mut ffi_type_sint32 as *mut ffi_type;
               let arg_val: i32 = value.coerce_to_number().unwrap().try_into().unwrap();
               (arg_type, RsArgsValue::I32(arg_val))
+            }
+            DataType::I64 => {
+              let arg_type = &mut ffi_type_sint32 as *mut ffi_type;
+              let arg_val: i64 = value.coerce_to_number().unwrap().try_into().unwrap();
+              (arg_type, RsArgsValue::I64(arg_val))
             }
             DataType::Double => {
               let arg_type = &mut ffi_type_double as *mut ffi_type;
@@ -176,6 +181,10 @@ unsafe fn load(
         let c_num = Box::new(val);
         Box::into_raw(c_num) as *mut c_void
       }
+      RsArgsValue::I64(val) => {
+        let c_num = Box::new(val);
+        Box::into_raw(c_num) as *mut c_void
+      }
       RsArgsValue::String(val) => {
         let c_string = Box::new(CString::new(val).unwrap());
         Box::into_raw(c_string) as *mut c_void
@@ -260,7 +269,7 @@ unsafe fn load(
             ,10 => Closure10, a,b,c,d,e,f,g,h,i,j
         );
       }
-      RsArgsValue::Object(val) => Box::into_raw(Box::new(write_object_data(val))) as *mut c_void,
+      RsArgsValue::Object(val) => Box::into_raw(Box::new(generate_c_struct(val))) as *mut c_void,
     })
     .collect();
   let ret_value_type = ret_type.get_type().unwrap();
@@ -279,6 +288,7 @@ unsafe fn load(
       let ret_data_type = number_to_basic_data_type(number);
       match ret_data_type {
         BasicDataType::I32 => &mut ffi_type_sint32 as *mut ffi_type,
+        BasicDataType::I64 => &mut ffi_type_sint64 as *mut ffi_type,
         BasicDataType::String => &mut ffi_type_pointer as *mut ffi_type,
         BasicDataType::Void => &mut ffi_type_void as *mut ffi_type,
         BasicDataType::Double => &mut ffi_type_double as *mut ffi_type,
@@ -323,7 +333,7 @@ unsafe fn load(
 
           let result_str = CStr::from_ptr(result).to_string_lossy().to_string();
 
-          Either9::A(result_str)
+          Either10::A(result_str)
         }
         BasicDataType::I32 => {
           let mut result: i32 = 0;
@@ -333,7 +343,17 @@ unsafe fn load(
             &mut result as *mut i32 as *mut c_void,
             arg_values_c_void.as_mut_ptr(),
           );
-          Either9::B(result)
+          Either10::B(result)
+        }
+        BasicDataType::I64 => {
+          let mut result: i64 = 0;
+          ffi_call(
+            &mut cif,
+            Some(*func),
+            &mut result as *mut i64 as *mut c_void,
+            arg_values_c_void.as_mut_ptr(),
+          );
+          Either10::J(result)
         }
         BasicDataType::Void => {
           let mut result = ();
@@ -343,7 +363,7 @@ unsafe fn load(
             &mut result as *mut () as *mut c_void,
             arg_values_c_void.as_mut_ptr(),
           );
-          Either9::C(())
+          Either10::C(())
         }
         BasicDataType::Double => {
           let mut result: f64 = 0.0;
@@ -353,7 +373,7 @@ unsafe fn load(
             &mut result as *mut f64 as *mut c_void,
             arg_values_c_void.as_mut_ptr(),
           );
-          Either9::D(result)
+          Either10::D(result)
         }
         BasicDataType::Boolean => {
           let mut result: bool = false;
@@ -364,7 +384,7 @@ unsafe fn load(
             arg_values_c_void.as_mut_ptr(),
           );
 
-          Either9::H(result)
+          Either10::H(result)
         }
       }
     }
@@ -386,7 +406,7 @@ unsafe fn load(
             if !result.is_null() {
               libc::free(result as *mut c_void);
             }
-            Either9::E(arr)
+            Either10::E(arr)
           }
           RefDataType::DoubleArray => {
             let mut result: *mut c_double =
@@ -401,7 +421,7 @@ unsafe fn load(
             if !result.is_null() {
               libc::free(result as *mut c_void);
             }
-            Either9::G(arr)
+            Either10::G(arr)
           }
           RefDataType::StringArray => {
             let mut result: *mut *mut c_char =
@@ -417,7 +437,7 @@ unsafe fn load(
             if !result.is_null() {
               libc::free(result as *mut c_void);
             }
-            Either9::F(arr)
+            Either10::F(arr)
           }
         }
       } else {
@@ -439,7 +459,7 @@ unsafe fn load(
             )
             .unwrap();
         }
-        Either9::I(js_object)
+        Either10::I(js_object)
       }
     }
     _ => panic!("ret_type err {:?}", ret_value),

@@ -1,10 +1,10 @@
+use super::array::*;
 use super::pointer::*;
-use super::transform::*;
 use crate::define::*;
 use indexmap::IndexMap;
 use napi::{Env, JsBoolean, JsNumber, JsObject, JsString, JsUnknown, ValueType};
 use std::ffi::c_void;
-use std::ffi::{c_char, c_double, c_int, CStr};
+use std::ffi::{c_char, c_double, c_int, c_longlong, CStr};
 
 pub unsafe fn create_rs_struct_from_pointer(
   ptr: *mut c_void,
@@ -14,8 +14,8 @@ pub unsafe fn create_rs_struct_from_pointer(
   let mut field_ptr = ptr;
   let mut offset = 0;
   for (field, val) in ret_object {
-    let field = field.clone();
     if let RsArgsValue::I32(number) = val {
+      let field = field.clone();
       let data_type = number_to_basic_data_type(*number);
       match data_type {
         BasicDataType::I32 => {
@@ -23,15 +23,23 @@ pub unsafe fn create_rs_struct_from_pointer(
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           let type_field_ptr = field_ptr as *mut c_int;
-          rs_struct.insert(field.clone(), RsArgsValue::I32(*type_field_ptr));
+          rs_struct.insert(field, RsArgsValue::I32(*type_field_ptr));
           offset = std::mem::size_of::<c_int>();
+        }
+        BasicDataType::I64 => {
+          let align = std::mem::align_of::<c_longlong>();
+          let padding = (align - (offset % align)) % align;
+          field_ptr = field_ptr.offset(padding as isize);
+          let type_field_ptr = field_ptr as *mut c_longlong;
+          rs_struct.insert(field, RsArgsValue::I64(*type_field_ptr));
+          offset = std::mem::size_of::<c_longlong>();
         }
         BasicDataType::Double => {
           let align = std::mem::align_of::<c_double>();
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           let type_field_ptr = field_ptr as *mut c_double;
-          rs_struct.insert(field.clone(), RsArgsValue::Double(*type_field_ptr));
+          rs_struct.insert(field, RsArgsValue::Double(*type_field_ptr));
           offset = std::mem::size_of::<c_double>();
         }
         BasicDataType::Boolean => {
@@ -39,14 +47,14 @@ pub unsafe fn create_rs_struct_from_pointer(
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           let type_field_ptr = field_ptr as *mut bool;
-          rs_struct.insert(field.clone(), RsArgsValue::Boolean(*type_field_ptr));
+          rs_struct.insert(field, RsArgsValue::Boolean(*type_field_ptr));
           offset = std::mem::size_of::<bool>();
         }
         BasicDataType::Void => {
           let align = std::mem::align_of::<()>();
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
-          rs_struct.insert(field.clone(), RsArgsValue::Void(()));
+          rs_struct.insert(field, RsArgsValue::Void(()));
           offset = std::mem::size_of::<bool>();
         }
         BasicDataType::String => {
@@ -57,12 +65,13 @@ pub unsafe fn create_rs_struct_from_pointer(
           let js_string = CStr::from_ptr(*type_field_ptr)
             .to_string_lossy()
             .to_string();
-          rs_struct.insert(field.clone(), RsArgsValue::String(js_string));
+          rs_struct.insert(field, RsArgsValue::String(js_string));
           offset = std::mem::size_of::<*const c_char>();
         }
       }
     }
     if let RsArgsValue::Object(obj) = val {
+      let field = field.clone();
       let array_desc = get_array_desc(obj);
       if array_desc.is_some() {
         // array
@@ -74,7 +83,7 @@ pub unsafe fn create_rs_struct_from_pointer(
             field_ptr = field_ptr.offset(padding as isize);
             let type_field_ptr = field_ptr as *mut *mut *mut c_char;
             let arr = create_array_from_pointer(*type_field_ptr, array_len);
-            rs_struct.insert(field.clone(), RsArgsValue::StringArray(arr));
+            rs_struct.insert(field, RsArgsValue::StringArray(arr));
             offset = std::mem::size_of::<*const *const c_char>();
           }
           RefDataType::DoubleArray => {
@@ -83,7 +92,7 @@ pub unsafe fn create_rs_struct_from_pointer(
             field_ptr = field_ptr.offset(padding as isize);
             let type_field_ptr = field_ptr as *mut *mut c_double;
             let arr = create_array_from_pointer(*type_field_ptr, array_len);
-            rs_struct.insert(field.clone(), RsArgsValue::DoubleArray(arr));
+            rs_struct.insert(field, RsArgsValue::DoubleArray(arr));
             offset = std::mem::size_of::<*const c_double>();
           }
           RefDataType::I32Array => {
@@ -92,7 +101,7 @@ pub unsafe fn create_rs_struct_from_pointer(
             field_ptr = field_ptr.offset(padding as isize);
             let type_field_ptr = field_ptr as *mut *mut c_int;
             let arr = create_array_from_pointer(*type_field_ptr, array_len);
-            rs_struct.insert(field.clone(), RsArgsValue::I32Array(arr));
+            rs_struct.insert(field, RsArgsValue::I32Array(arr));
             offset = std::mem::size_of::<*const c_int>();
           }
         }
@@ -103,7 +112,7 @@ pub unsafe fn create_rs_struct_from_pointer(
         field_ptr = field_ptr.offset(padding as isize);
         let type_field_ptr = field_ptr as *mut *mut c_void;
         rs_struct.insert(
-          field.clone(),
+          field,
           RsArgsValue::Object(create_rs_struct_from_pointer(*type_field_ptr, obj)),
         );
         offset = std::mem::size_of::<*const c_void>();
@@ -138,6 +147,11 @@ pub fn get_params_value_rs_struct(
               let val: JsNumber = params_value_object.get_named_property(&field).unwrap();
               let val: i32 = val.try_into().unwrap();
               RsArgsValue::I32(val)
+            }
+            DataType::I64 => {
+              let val: JsNumber = params_value_object.get_named_property(&field).unwrap();
+              let val: i64 = val.try_into().unwrap();
+              RsArgsValue::I64(val)
             }
             DataType::Boolean => {
               let val: JsBoolean = params_value_object.get_named_property(&field).unwrap();
@@ -235,7 +249,8 @@ pub fn get_array_desc(obj: &IndexMap<String, RsArgsValue>) -> Option<(usize, Ref
 }
 pub fn rs_value_to_js_unknown(env: &Env, data: RsArgsValue) -> JsUnknown {
   return match data {
-    RsArgsValue::I32(number) => env.create_int32(number as i32).unwrap().into_unknown(),
+    RsArgsValue::I32(number) => env.create_int32(number).unwrap().into_unknown(),
+    RsArgsValue::I64(number) => env.create_int64(number).unwrap().into_unknown(),
     RsArgsValue::Boolean(val) => env.get_boolean(val).unwrap().into_unknown(),
     RsArgsValue::String(val) => env.create_string(&val).unwrap().into_unknown(),
     RsArgsValue::Double(val) => env.create_double(val).unwrap().into_unknown(),
