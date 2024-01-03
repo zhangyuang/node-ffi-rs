@@ -27,7 +27,14 @@ pub unsafe fn get_js_function_call_value(
         ),
         BasicDataType::Void => RsArgsValue::Void(()),
         // need to be improved
-        BasicDataType::Double => RsArgsValue::Double(1.1),
+        BasicDataType::Double => {
+          let y_ptr = func_val_ptr as *const f64;
+          // 使用`ptr::read`来读取`f64`值
+          let y_val = unsafe { y_ptr.read() };
+          // 现在`y_val`是`f64`类型，你可以像使用普通的f64值一样使用它
+          println!("The value of y is: {}", y_val);
+          RsArgsValue::Double(1.1)
+        }
       };
       data
     }

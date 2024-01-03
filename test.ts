@@ -261,6 +261,18 @@ const unitTest = () => {
     ],
     paramsValue: [func],
   });
+  load({
+    library: "libsum",
+    funcName: "callFunctionDouble",
+    retType: DataType.Void,
+    paramsType: [
+      funcConstructor({
+        paramsType: [DataType.Double],
+        retType: DataType.Void,
+      }),
+    ],
+    paramsValue: [func],
+  });
 };
 
 unitTest();

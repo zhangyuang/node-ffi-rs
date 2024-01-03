@@ -60,7 +60,7 @@ fn close(library: String) {
 unsafe fn load(
   env: Env,
   params: FFIParams,
-) -> Either10<String, i32, (), f64, Vec<i32>, Vec<String>, Vec<f64>, bool, JsObject, i64> {
+) -> Either7<String, JsNumber, (), Vec<JsNumber>, Vec<String>, bool, JsObject> {
   let FFIParams {
     library,
     func_name,
@@ -333,7 +333,7 @@ unsafe fn load(
 
           let result_str = CStr::from_ptr(result).to_string_lossy().to_string();
 
-          Either10::A(result_str)
+          Either7::A(result_str)
         }
         BasicDataType::I32 => {
           let mut result: i32 = 0;
@@ -343,7 +343,7 @@ unsafe fn load(
             &mut result as *mut i32 as *mut c_void,
             arg_values_c_void.as_mut_ptr(),
           );
-          Either10::B(result)
+          Either7::B(env.create_int32(result).unwrap())
         }
         BasicDataType::I64 => {
           let mut result: i64 = 0;
@@ -353,7 +353,7 @@ unsafe fn load(
             &mut result as *mut i64 as *mut c_void,
             arg_values_c_void.as_mut_ptr(),
           );
-          Either10::J(result)
+          Either7::B(env.create_int64(result).unwrap())
         }
         BasicDataType::Void => {
           let mut result = ();
@@ -363,7 +363,7 @@ unsafe fn load(
             &mut result as *mut () as *mut c_void,
             arg_values_c_void.as_mut_ptr(),
           );
-          Either10::C(())
+          Either7::C(())
         }
         BasicDataType::Double => {
           let mut result: f64 = 0.0;
@@ -373,7 +373,7 @@ unsafe fn load(
             &mut result as *mut f64 as *mut c_void,
             arg_values_c_void.as_mut_ptr(),
           );
-          Either10::D(result)
+          Either7::B(env.create_double(result).unwrap())
         }
         BasicDataType::Boolean => {
           let mut result: bool = false;
@@ -384,7 +384,7 @@ unsafe fn load(
             arg_values_c_void.as_mut_ptr(),
           );
 
-          Either10::H(result)
+          Either7::F(result)
         }
       }
     }
@@ -402,11 +402,14 @@ unsafe fn load(
               &mut result as *mut _ as *mut c_void,
               arg_values_c_void.as_mut_ptr(),
             );
-            let arr = create_array_from_pointer(result, array_len);
+            let arr = create_array_from_pointer(result, array_len)
+              .into_iter()
+              .map(|item| env.create_int32(item).unwrap())
+              .collect();
             if !result.is_null() {
               libc::free(result as *mut c_void);
             }
-            Either10::E(arr)
+            Either7::D(arr)
           }
           RefDataType::DoubleArray => {
             let mut result: *mut c_double =
@@ -417,11 +420,14 @@ unsafe fn load(
               &mut result as *mut _ as *mut c_void,
               arg_values_c_void.as_mut_ptr(),
             );
-            let arr = create_array_from_pointer(result, array_len);
+            let arr = create_array_from_pointer(result, array_len)
+              .into_iter()
+              .map(|item| env.create_double(item).unwrap())
+              .collect();
             if !result.is_null() {
               libc::free(result as *mut c_void);
             }
-            Either10::G(arr)
+            Either7::D(arr)
           }
           RefDataType::StringArray => {
             let mut result: *mut *mut c_char =
@@ -437,7 +443,7 @@ unsafe fn load(
             if !result.is_null() {
               libc::free(result as *mut c_void);
             }
-            Either10::F(arr)
+            Either7::E(arr)
           }
         }
       } else {
@@ -459,7 +465,7 @@ unsafe fn load(
             )
             .unwrap();
         }
-        Either10::I(js_object)
+        Either7::G(js_object)
       }
     }
     _ => panic!("ret_type err {:?}", ret_value),
