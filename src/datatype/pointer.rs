@@ -16,6 +16,7 @@ macro_rules! impl_array_pointer {
     }
   };
 }
+impl_array_pointer!(*mut u8, u8);
 impl_array_pointer!(*mut i32, i32);
 impl_array_pointer!(*mut f64, f64);
 

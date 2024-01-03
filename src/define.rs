@@ -58,6 +58,7 @@ pub enum DataType {
   Void = 7,
   I64 = 8,
   U8 = 9,
+  U8Array = 10,
 }
 
 #[derive(Debug)]
@@ -76,6 +77,7 @@ pub enum RefDataType {
   I32Array = 3,
   StringArray = 4,
   DoubleArray = 5,
+  U8Array = 10,
 }
 
 pub fn number_to_data_type(value: i32) -> DataType {
@@ -90,6 +92,7 @@ pub fn number_to_data_type(value: i32) -> DataType {
     7 => DataType::Void,
     8 => DataType::I64,
     9 => DataType::U8,
+    10 => DataType::U8Array,
     _ => panic!("unknow DataType"),
   }
 }
@@ -111,6 +114,7 @@ pub fn number_to_ref_data_type(value: i32) -> RefDataType {
     3 => RefDataType::I32Array,
     4 => RefDataType::StringArray,
     5 => RefDataType::DoubleArray,
+    10 => RefDataType::U8Array,
     _ => panic!("unknow DataType"),
   }
 }
@@ -121,6 +125,7 @@ pub enum RsArgsValue {
   I32(i32),
   I64(i64),
   Double(f64),
+  U8Array(Vec<u8>),
   I32Array(Vec<i32>),
   StringArray(Vec<String>),
   DoubleArray(Vec<f64>),
@@ -137,6 +142,7 @@ impl std::fmt::Debug for RsArgsValue {
       RsArgsValue::I32(i) => write!(f, "I32({})", i),
       RsArgsValue::I64(i) => write!(f, "I64({})", i),
       RsArgsValue::Double(d) => write!(f, "Double({})", d),
+      RsArgsValue::U8Array(arr) => write!(f, "U8Array({:?})", arr),
       RsArgsValue::I32Array(arr) => write!(f, "I32Array({:?})", arr),
       RsArgsValue::StringArray(arr) => write!(f, "StringArray({:?})", arr),
       RsArgsValue::DoubleArray(arr) => write!(f, "DoubleArray({:?})", arr),

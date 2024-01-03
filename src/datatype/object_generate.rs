@@ -101,7 +101,7 @@ pub unsafe fn create_rs_struct_from_pointer(
     if let RsArgsValue::Object(obj) = val {
       let field = field.clone();
       let array_desc = get_array_desc(obj);
-      let size = if array_desc.is_some() {
+      if array_desc.is_some() {
         // array
         let (array_len, array_type) = array_desc.unwrap();
         let size = match array_type {
@@ -141,6 +141,19 @@ pub unsafe fn create_rs_struct_from_pointer(
             let type_field_ptr = field_ptr as *mut *mut c_int;
             let arr = create_array_from_pointer(*type_field_ptr, array_len);
             rs_struct.insert(field, RsArgsValue::I32Array(arr));
+            offset += size + padding;
+            field_size = size
+          }
+          RefDataType::U8Array => {
+            let (size, align) = (
+              std::mem::size_of::<*const c_void>(),
+              std::mem::align_of::<*const c_void>(),
+            );
+            let padding = (align - (offset % align)) % align;
+            field_ptr = field_ptr.offset(padding as isize);
+            let type_field_ptr = field_ptr as *mut *mut c_uchar;
+            let arr = create_array_from_pointer(*type_field_ptr, array_len);
+            rs_struct.insert(field, RsArgsValue::U8Array(arr));
             offset += size + padding;
             field_size = size
           }
@@ -228,6 +241,11 @@ pub fn get_params_value_rs_struct(
               let arg_val = js_array_to_number_array(js_array);
               RsArgsValue::I32Array(arg_val)
             }
+            DataType::U8Array => {
+              let js_array: JsObject = params_value_object.get_named_property(&field).unwrap();
+              let arg_val: Vec<u32> = js_array_to_number_array(js_array);
+              RsArgsValue::U8Array(arg_val.into_iter().map(|item| item as u8).collect())
+            }
             DataType::Void => RsArgsValue::Void(()),
           };
           index_map.insert(field, val);
@@ -305,6 +323,7 @@ pub fn rs_value_to_js_unknown(env: &Env, data: RsArgsValue) -> JsUnknown {
     RsArgsValue::Boolean(val) => env.get_boolean(val).unwrap().into_unknown(),
     RsArgsValue::String(val) => env.create_string(&val).unwrap().into_unknown(),
     RsArgsValue::Double(val) => env.create_double(val).unwrap().into_unknown(),
+    RsArgsValue::U8Array(val) => rs_array_to_js_array(env, ArrayType::U8(val)).into_unknown(),
     RsArgsValue::I32Array(val) => rs_array_to_js_array(env, ArrayType::I32(val)).into_unknown(),
     RsArgsValue::StringArray(val) => {
       rs_array_to_js_array(env, ArrayType::String(val)).into_unknown()
