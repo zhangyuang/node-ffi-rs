@@ -88,6 +88,11 @@ unsafe fn load(
               let arg_val: i32 = value.coerce_to_number().unwrap().try_into().unwrap();
               (arg_type, RsArgsValue::I32(arg_val))
             }
+            DataType::U8 => {
+              let arg_type = &mut ffi_type_sint32 as *mut ffi_type;
+              let arg_val: u32 = value.coerce_to_number().unwrap().try_into().unwrap();
+              (arg_type, RsArgsValue::U8(arg_val as u8))
+            }
             DataType::I64 => {
               let arg_type = &mut ffi_type_sint32 as *mut ffi_type;
               let arg_val: i64 = value.coerce_to_number().unwrap().try_into().unwrap();
@@ -177,6 +182,10 @@ unsafe fn load(
   let mut arg_values_c_void: Vec<*mut c_void> = arg_values
     .into_iter()
     .map(|val| match val {
+      RsArgsValue::U8(val) => {
+        let c_num = Box::new(val);
+        Box::into_raw(c_num) as *mut c_void
+      }
       RsArgsValue::I32(val) => {
         let c_num = Box::new(val);
         Box::into_raw(c_num) as *mut c_void
@@ -255,6 +264,7 @@ unsafe fn load(
             Ok(js_call_params)
           })
           .unwrap();
+
         let tsfn_ptr = Box::into_raw(Box::new(tsfn));
         return match_args_len!(args_len, tsfn_ptr, func_args_type_rs_ptr,
             1 => Closure1, a
@@ -287,6 +297,7 @@ unsafe fn load(
     RsArgsValue::I32(number) => {
       let ret_data_type = number_to_basic_data_type(number);
       match ret_data_type {
+        BasicDataType::U8 => &mut ffi_type_uint8 as *mut ffi_type,
         BasicDataType::I32 => &mut ffi_type_sint32 as *mut ffi_type,
         BasicDataType::I64 => &mut ffi_type_sint64 as *mut ffi_type,
         BasicDataType::String => &mut ffi_type_pointer as *mut ffi_type,
@@ -334,6 +345,16 @@ unsafe fn load(
           let result_str = CStr::from_ptr(result).to_string_lossy().to_string();
 
           Either7::A(result_str)
+        }
+        BasicDataType::U8 => {
+          let mut result: u8 = 0;
+          ffi_call(
+            &mut cif,
+            Some(*func),
+            &mut result as *mut u8 as *mut c_void,
+            arg_values_c_void.as_mut_ptr(),
+          );
+          Either7::B(env.create_uint32(result as u32).unwrap())
         }
         BasicDataType::I32 => {
           let mut result: i32 = 0;

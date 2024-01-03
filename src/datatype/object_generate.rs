@@ -4,7 +4,7 @@ use crate::define::*;
 use indexmap::IndexMap;
 use napi::{Env, JsBoolean, JsNumber, JsObject, JsString, JsUnknown, ValueType};
 use std::ffi::c_void;
-use std::ffi::{c_char, c_double, c_int, c_longlong, CStr};
+use std::ffi::{c_char, c_double, c_int, c_longlong, c_uchar, CStr};
 
 pub unsafe fn create_rs_struct_from_pointer(
   ptr: *mut c_void,
@@ -19,6 +19,18 @@ pub unsafe fn create_rs_struct_from_pointer(
       let field = field.clone();
       let data_type = number_to_basic_data_type(*number);
       match data_type {
+        BasicDataType::U8 => {
+          let (size, align) = (
+            std::mem::size_of::<c_uchar>(),
+            std::mem::align_of::<c_uchar>(),
+          );
+          let padding = (align - (offset % align)) % align;
+          field_ptr = field_ptr.offset(padding as isize);
+          let type_field_ptr = field_ptr as *mut c_uchar;
+          rs_struct.insert(field, RsArgsValue::U8(*type_field_ptr));
+          offset += size + padding;
+          field_size = size
+        }
         BasicDataType::I32 => {
           let (size, align) = (std::mem::size_of::<c_int>(), std::mem::align_of::<c_int>());
           let padding = (align - (offset % align)) % align;
@@ -176,6 +188,11 @@ pub fn get_params_value_rs_struct(
               let val: String = val.into_utf8().unwrap().try_into().unwrap();
               RsArgsValue::String(val)
             }
+            DataType::U8 => {
+              let val: JsNumber = params_value_object.get_named_property(&field).unwrap();
+              let val: u32 = val.try_into().unwrap();
+              RsArgsValue::U8(val as u8)
+            }
             DataType::I32 => {
               let val: JsNumber = params_value_object.get_named_property(&field).unwrap();
               let val: i32 = val.try_into().unwrap();
@@ -282,6 +299,7 @@ pub fn get_array_desc(obj: &IndexMap<String, RsArgsValue>) -> Option<(usize, Ref
 }
 pub fn rs_value_to_js_unknown(env: &Env, data: RsArgsValue) -> JsUnknown {
   return match data {
+    RsArgsValue::U8(number) => env.create_uint32(number as u32).unwrap().into_unknown(),
     RsArgsValue::I32(number) => env.create_int32(number).unwrap().into_unknown(),
     RsArgsValue::I64(number) => env.create_int64(number).unwrap().into_unknown(),
     RsArgsValue::Boolean(val) => env.get_boolean(val).unwrap().into_unknown(),
