@@ -392,7 +392,7 @@ unsafe fn load(env: Env, params: FFIParams) -> Either<JsUnknown, ()> {
           );
           if func_name == "TIMGetLoginUserID" {
             let ptr = arg_values_c_void[0] as *mut *mut u8;
-            let result_str = CStr::from_ptr(*ptr as *const i8)
+            let result_str = CStr::from_ptr(*ptr as *const c_char)
               .to_string_lossy()
               .to_string();
             Either::A(rs_value_to_js_unknown(
