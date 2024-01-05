@@ -31,22 +31,28 @@ use napi::threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFun
 
 static mut LIBRARY_MAP: Option<HashMap<String, Library>> = None;
 
-// #[napi]
-// unsafe fn createExternal(env: Env, mut params: Vec<i32>) -> JsExternal {
-//   let mut params = params.into_iter().map(|item| item as u8).collect();
-//   let val = Box::into_raw(Box::new(params.as_mut_ptr()));
-//   env.create_external(val as *mut c_void, None).unwrap()
-// }
+#[napi]
+unsafe fn createExternal(env: Env, js_val: JsUnknown) -> JsExternal {
+  // let mut params: Vec<u8> = params.into_iter().map(|item| item as u8).collect();
+  // let ptr = params.as_ptr();
+  // let val = Box::into_raw(Box::new(params));
+  // let js_external = env
+  //   .create_external((*val).as_ptr() as *mut c_void, None)
+  //   .unwrap();
+  // js_external
 
-// #[napi]
-// unsafe fn getExternal(env: Env, js_external: JsExternal) {
-//   let js_external_raw = JsExternal::to_napi_value(env.raw(), js_external).unwrap();
-//   let external: External<*mut c_void> =
-//     External::from_napi_value(env.raw(), js_external_raw).unwrap();
-//   let ptr = *external as *mut *mut u8;
-//   println!("xx{:?}", create_array_from_pointer(*ptr, 200));
-//   // return create_array_from_pointer(ptr, 100);
-// }
+  panic!("")
+}
+
+#[napi]
+unsafe fn getExternal(env: Env, js_external: JsExternal) {
+  let js_external_raw = JsExternal::to_napi_value(env.raw(), js_external).unwrap();
+  let external: External<*mut c_void> =
+    External::from_napi_value(env.raw(), js_external_raw).unwrap();
+  let ptr = (*external) as *mut u8;
+  println!("xx{:?}", create_array_from_pointer(ptr, 200));
+  // return create_array_from_pointer(ptr, 100);
+}
 
 #[napi]
 fn open(params: OpenParams) {
@@ -390,8 +396,14 @@ unsafe fn load(env: Env, params: FFIParams) -> Either<JsUnknown, ()> {
             &mut result as *mut *mut c_char as *mut c_void,
             arg_values_c_void.as_mut_ptr(),
           );
-          if func_name == "TIMGetLoginUserID" {
-            let ptr = arg_values_c_void[0] as *mut *mut u8;
+          let mut id_map = HashMap::new();
+          id_map.insert("TIMGetLoginUserID", 0);
+          id_map.insert("TIMMsgSendMessage", 3);
+          id_map.insert("TIMSignalingInvite(const", 5);
+          id_map.insert("TIMSignalingInviteInGroup", 5);
+          if id_map.get(func_name.as_str()).is_some() {
+            let ptr = arg_values_c_void[id_map.get(func_name.as_str()).unwrap().clone() as usize]
+              as *mut *mut u8;
             let result_str = CStr::from_ptr(*ptr as *const c_char)
               .to_string_lossy()
               .to_string();
