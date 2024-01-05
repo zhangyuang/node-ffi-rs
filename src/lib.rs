@@ -399,7 +399,7 @@ unsafe fn load(env: Env, params: FFIParams) -> Either<JsUnknown, ()> {
           let mut id_map = HashMap::new();
           id_map.insert("TIMGetLoginUserID", 0);
           id_map.insert("TIMMsgSendMessage", 3);
-          id_map.insert("TIMSignalingInvite(const", 5);
+          id_map.insert("TIMSignalingInvite", 5);
           id_map.insert("TIMSignalingInviteInGroup", 5);
           if id_map.get(func_name.as_str()).is_some() {
             let ptr = arg_values_c_void[id_map.get(func_name.as_str()).unwrap().clone() as usize]
