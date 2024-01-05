@@ -14,7 +14,9 @@ use libffi_sys::{
   ffi_type_pointer, ffi_type_sint32, ffi_type_sint64, ffi_type_uint8, ffi_type_void,
 };
 use libloading::{Library, Symbol};
-use napi::{bindgen_prelude::*, Env, JsExternal, JsFunction, JsNumber, JsObject, JsUnknown};
+use napi::{
+  bindgen_prelude::*, Env, JsBuffer, JsExternal, JsFunction, JsNumber, JsObject, JsUnknown,
+};
 
 use std::collections::HashMap;
 use std::ffi::c_void;
@@ -28,6 +30,23 @@ use datatype::pointer::*;
 use napi::threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode};
 
 static mut LIBRARY_MAP: Option<HashMap<String, Library>> = None;
+
+// #[napi]
+// unsafe fn createExternal(env: Env, mut params: Vec<i32>) -> JsExternal {
+//   let mut params = params.into_iter().map(|item| item as u8).collect();
+//   let val = Box::into_raw(Box::new(params.as_mut_ptr()));
+//   env.create_external(val as *mut c_void, None).unwrap()
+// }
+
+// #[napi]
+// unsafe fn getExternal(env: Env, js_external: JsExternal) {
+//   let js_external_raw = JsExternal::to_napi_value(env.raw(), js_external).unwrap();
+//   let external: External<*mut c_void> =
+//     External::from_napi_value(env.raw(), js_external_raw).unwrap();
+//   let ptr = *external as *mut *mut u8;
+//   println!("xx{:?}", create_array_from_pointer(*ptr, 200));
+//   // return create_array_from_pointer(ptr, 100);
+// }
 
 #[napi]
 fn open(params: OpenParams) {
@@ -371,12 +390,22 @@ unsafe fn load(env: Env, params: FFIParams) -> Either<JsUnknown, ()> {
             &mut result as *mut *mut c_char as *mut c_void,
             arg_values_c_void.as_mut_ptr(),
           );
-
-          let result_str = CStr::from_ptr(result).to_string_lossy().to_string();
-          Either::A(rs_value_to_js_unknown(
-            &env,
-            RsArgsValue::String(result_str),
-          ))
+          if func_name == "TIMGetLoginUserID" {
+            let ptr = arg_values_c_void[0] as *mut *mut u8;
+            let result_str = CStr::from_ptr(*ptr as *const i8)
+              .to_string_lossy()
+              .to_string();
+            Either::A(rs_value_to_js_unknown(
+              &env,
+              RsArgsValue::String(result_str),
+            ))
+          } else {
+            let result_str = CStr::from_ptr(result).to_string_lossy().to_string();
+            Either::A(rs_value_to_js_unknown(
+              &env,
+              RsArgsValue::String(result_str),
+            ))
+          }
         }
         BasicDataType::U8 => {
           let mut result: u8 = 0;
@@ -396,6 +425,7 @@ unsafe fn load(env: Env, params: FFIParams) -> Either<JsUnknown, ()> {
             &mut result as *mut i32 as *mut c_void,
             arg_values_c_void.as_mut_ptr(),
           );
+
           Either::A(rs_value_to_js_unknown(&env, RsArgsValue::I32(result)))
         }
         BasicDataType::I64 => {
@@ -471,6 +501,7 @@ unsafe fn load(env: Env, params: FFIParams) -> Either<JsUnknown, ()> {
               &mut result as *mut _ as *mut c_void,
               arg_values_c_void.as_mut_ptr(),
             );
+
             let arr = create_array_from_pointer(result, array_len);
 
             if !result.is_null() {
@@ -487,7 +518,6 @@ unsafe fn load(env: Env, params: FFIParams) -> Either<JsUnknown, ()> {
               arg_values_c_void.as_mut_ptr(),
             );
             let arr = create_array_from_pointer(result, array_len);
-
             if !result.is_null() {
               libc::free(result as *mut c_void);
             }

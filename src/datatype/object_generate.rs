@@ -2,8 +2,7 @@ use super::array::*;
 use super::pointer::*;
 use crate::define::*;
 use indexmap::IndexMap;
-use napi::JsExternal;
-use napi::{Env, JsBoolean, JsNumber, JsObject, JsString, JsUnknown, ValueType};
+use napi::{Env, JsBoolean, JsExternal, JsNumber, JsObject, JsString, JsUnknown, ValueType};
 use std::ffi::c_void;
 use std::ffi::{c_char, c_double, c_int, c_longlong, c_uchar, CStr};
 
