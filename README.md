@@ -13,6 +13,13 @@ A module written in Rust and N-APi provides interface (FFI) features for Node.js
 
 This module aims to provide similar functionality to the node-ffi module, but with a completely rewritten underlying codebase. The node-ffi module has been unmaintained for several years and is no longer usable, which is why ffi-rs was developed.
 
+## features
+
+- High performance
+- Simpler data describe and api interface
+- Support more data type between `Node.js` and `c type`
+- Support modify data in place
+
 ## benchmark
 
 ```bash
@@ -54,7 +61,7 @@ Currently, ffi-rs only supports there types of parameters and return values. How
 ### Reference Type
 
 - [pointer](#pointer)
-- [u8Array](#array)
+- [u8Array](#buffer)(buffer)
 - [i32Array](#array)
 - [stringArray](#array)
 - [doubleArray](#array)
@@ -184,6 +191,32 @@ equal(!bool_val, load({
   paramsType: [DataType.Boolean],
   paramsValue: [bool_val],
 }))
+```
+
+### Buffer
+
+In the lateset version, `ffi-rs` support modify data in place.
+
+The sample code is as follows
+
+```c
+extern int modifyData(char* buffer) {
+    // modify buffer data in place
+}
+```
+
+```js
+const arr = Buffer.alloc(200) // create buffer
+const res = load({
+  library: "libsum",
+  funcName: "modifyData",
+  retType: DataType.I32,
+  paramsType: [
+    DataType.U8Array
+  ],
+  paramsValue: [arr]
+})
+console.log(arr) // buffer data can be updated
 ```
 
 ### Array
