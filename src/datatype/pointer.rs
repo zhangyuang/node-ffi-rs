@@ -105,7 +105,7 @@ pub unsafe fn get_arg_types_values(
               let js_buffer: JsBuffer = value.try_into().unwrap();
               (
                 arg_type,
-                RsArgsValue::U8Array(js_buffer.into_value().unwrap()),
+                RsArgsValue::U8Array(Some(js_buffer.into_value().unwrap()), None),
               )
             }
             DataType::I32Array => {
@@ -208,11 +208,12 @@ pub unsafe fn get_value_pointer(env: &Env, arg_values: Vec<RsArgsValue>) -> Vec<
         let c_double = Box::new(val);
         Box::into_raw(c_double) as *mut c_void
       }
-      RsArgsValue::U8Array(val) => {
-        let ptr = val.as_ptr();
+      RsArgsValue::U8Array(buffer, v) => {
+        let buffer = buffer.unwrap();
+        let ptr = buffer.as_ptr();
         let boxed_ptr = Box::new(ptr);
         let raw_ptr = Box::into_raw(boxed_ptr);
-        std::mem::forget(val);
+        std::mem::forget(buffer);
         return raw_ptr as *mut c_void;
       }
       RsArgsValue::I32Array(val) => {

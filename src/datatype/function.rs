@@ -1,3 +1,4 @@
+use super::buffer::*;
 use super::object_generate::create_rs_struct_from_pointer;
 use super::pointer::*;
 use crate::define::*;
@@ -9,6 +10,7 @@ pub unsafe fn get_js_function_call_value(
   env: &Env,
   func_arg_type: &RsArgsValue,
   func_val_ptr: *mut c_void,
+  need_thread_safe: bool,
 ) -> RsArgsValue {
   return match func_arg_type {
     RsArgsValue::I32(number) => {
@@ -34,7 +36,6 @@ pub unsafe fn get_js_function_call_value(
         // need to be improved
         BasicDataType::Double => {
           panic!("Double type cannot be used as function parameter type so far");
-          RsArgsValue::Double(1.1)
         }
       };
       data
@@ -63,7 +64,7 @@ pub unsafe fn get_js_function_call_value(
           }
           RefDataType::U8Array => {
             let arr = create_array_from_pointer(func_val_ptr as *mut c_uchar, array_len);
-            return RsArgsValue::U8Array(env.create_buffer_with_data(arr).unwrap());
+            return get_safe_buffer(env, arr, need_thread_safe);
           }
           RefDataType::DoubleArray => {
             let arr = create_array_from_pointer(func_val_ptr as *mut c_double, array_len);
@@ -72,7 +73,7 @@ pub unsafe fn get_js_function_call_value(
         }
       } else {
         // function | raw object
-        return RsArgsValue::Object(create_rs_struct_from_pointer(env, func_val_ptr, obj));
+        return RsArgsValue::Object(create_rs_struct_from_pointer(env, func_val_ptr, obj, true));
       }
     }
 
