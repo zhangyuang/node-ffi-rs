@@ -8,9 +8,8 @@ const {
   open,
   close,
   DataType,
-} = require("@yuuang/ffi-rs-win32-ia32-msvc")
-const platform = process.platform;
-const dynamicLib = platform === "win32" ? "./sum32.dll" : "./libsum.so";
+} = require("./")
+const dynamicLib = "./sum32.dll"
 
 console.log(process.arch, process.platform)
 console.log(require("@yuuang/ffi-rs-win32-ia32-msvc"))
