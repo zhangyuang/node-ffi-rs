@@ -29,6 +29,7 @@ const unitTest = () => {
     })],
   });
   console.log('xxx', foo)
+  return
   const TIMAddRecvNewMsgCallback = (...args) => {
     console.log("TIMAddRecvNewMsgCallback", args);
   };
@@ -48,7 +49,7 @@ const unitTest = () => {
   const bar = load({
     library: "libsum",
     funcName: "TIMLogin",
-    retType: DataType.Void,
+    retType: DataType.I32,
     paramsType: [
       DataType.String,
       DataType.String,
