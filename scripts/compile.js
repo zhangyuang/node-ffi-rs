@@ -16,5 +16,5 @@ if (platform === 'linux') {
 
 if (platform === 'win32') {
   execSync('g++ -std=c++11 -shared -o sum.dll cpp/sum.cpp', options)
-  execSync('g++ -m32 -std=c++11 -shared -o sum32.dll cpp/sum.cpp', options)
+  // execSync('g++ -m32 -std=c++11 -shared -o sum32.dll cpp/sum.cpp', options)
 }
