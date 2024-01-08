@@ -38,7 +38,7 @@ const unitTest = () => {
       console.log('xxx', args);
     }, ""],
   });
-  console.log('TIMSetLogCallback', TIMSetLogCallback)
+  console.log('TIMSetLogCallback', foo)
   console.log(load({
     library: "libsum",
     funcName: "TIMInit",
