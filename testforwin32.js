@@ -19,32 +19,32 @@ open({
 });
 
 const unitTest = () => {
-  // load({
-  //   library: "libsum",
-  //   funcName: "TIMSetLogCallback",
-  //   retType: DataType.Void,
-  //   paramsType: [
-  //     funcConstructor({
-  //       paramsType: [
-  //         DataType.I32,
-  //         DataType.String,
-  //         DataType.String,
-  //       ],
-  //       permanent: true,
-  //     }),
-  //     DataType.String,
-  //   ],
-  //   paramsValue: [(...args) => {
-  //     console.log('xxx', args);
-  //   }, ""],
-  // });
+  load({
+    library: "libsum",
+    funcName: "TIMSetLogCallback",
+    retType: DataType.Void,
+    paramsType: [
+      funcConstructor({
+        paramsType: [
+          DataType.I32,
+          DataType.String,
+          DataType.String,
+        ],
+        permanent: true,
+      }),
+      DataType.String,
+    ],
+    paramsValue: [(...args) => {
+      console.log('xxx', args);
+    }, ""],
+  });
   console.log(load({
     library: "libsum",
     funcName: "TIMInit",
     retType: DataType.I32,
     paramsType: [DataType.I32, DataType.String],
     paramsValue: [1400187352, JSON.stringify({
-      "sdk_config_log_file_path": ".tencent-im/sdk-log", "sdk_config_config_file_path": ".tencent-im/sdk-config"
+      "sdk_config_log_file_path": "yuuangtest", "sdk_config_config_file_path": "yuuangtest"
     })],
   }))
 
