@@ -33,7 +33,6 @@ fn open(params: OpenParams) {
       LIBRARY_MAP = Some(HashMap::new());
     }
     let map = LIBRARY_MAP.as_mut().unwrap();
-    println!("xx{:?}", path);
     if map.get(&library).is_none() {
       let lib = Library::new(path).unwrap();
       map.insert(library, lib);
