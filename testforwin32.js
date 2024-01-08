@@ -12,7 +12,7 @@ const {
 const dynamicLib = "./sum32.dll"
 
 console.log(process.arch, process.platform)
-console.log(require("@yuuang/ffi-rs-win32-ia32-msvc"))
+console.log(require("."))
 open({
   library: "libsum",
   path: dynamicLib,
