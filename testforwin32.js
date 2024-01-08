@@ -9,7 +9,7 @@ const {
   close,
   DataType,
 } = require("./")
-const dynamicLib = "./sum32.dll"
+const dynamicLib = "./ImSDK.dll"
 
 console.log(process.arch, process.platform)
 console.log(require("."))
@@ -18,6 +18,7 @@ open({
   path: dynamicLib,
 });
 
+return
 const unitTest = () => {
   const a = 1;
   const b = 100;
