@@ -9,7 +9,8 @@ use libc::malloc;
 use libc::{c_char, c_double, c_int, c_uchar};
 use libffi_sys::{
   ffi_abi_FFI_DEFAULT_ABI, ffi_call, ffi_cif, ffi_prep_cif, ffi_type, ffi_type_double,
-  ffi_type_pointer, ffi_type_sint32, ffi_type_sint64, ffi_type_uint8, ffi_type_void,
+  ffi_type_pointer, ffi_type_sint32, ffi_type_sint64, ffi_type_uint64, ffi_type_uint8,
+  ffi_type_void,
 };
 use libloading::{Library, Symbol};
 use napi::{bindgen_prelude::*, Env, JsBuffer, JsBufferValue, JsExternal, JsUnknown};
@@ -85,6 +86,7 @@ unsafe fn load(env: Env, params: FFIParams) -> Either<JsUnknown, ()> {
         BasicDataType::U8 => &mut ffi_type_uint8 as *mut ffi_type,
         BasicDataType::I32 => &mut ffi_type_sint32 as *mut ffi_type,
         BasicDataType::I64 => &mut ffi_type_sint64 as *mut ffi_type,
+        BasicDataType::U64 => &mut ffi_type_uint64 as *mut ffi_type,
         BasicDataType::String => &mut ffi_type_pointer as *mut ffi_type,
         BasicDataType::Void => &mut ffi_type_void as *mut ffi_type,
         BasicDataType::Double => &mut ffi_type_double as *mut ffi_type,
@@ -163,6 +165,16 @@ unsafe fn load(env: Env, params: FFIParams) -> Either<JsUnknown, ()> {
             arg_values_c_void.as_mut_ptr(),
           );
           Either::A(rs_value_to_js_unknown(&env, RsArgsValue::I64(result)))
+        }
+        BasicDataType::U64 => {
+          let mut result: u64 = 0;
+          ffi_call(
+            &mut cif,
+            Some(*func),
+            &mut result as *mut u64 as *mut c_void,
+            arg_values_c_void.as_mut_ptr(),
+          );
+          Either::A(rs_value_to_js_unknown(&env, RsArgsValue::U64(result)))
         }
         BasicDataType::Void => {
           let mut result = ();

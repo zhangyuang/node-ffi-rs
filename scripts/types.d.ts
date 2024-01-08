@@ -12,7 +12,8 @@ export const enum DataType {
   I64 = 8,
   U8 = 9,
   U8Array = 10,
-  External = 11
+  External = 11,
+  U64 = 12,
 }
 
 type DataTypeToType<T extends DataType> = T extends DataType.String
@@ -22,6 +23,8 @@ type DataTypeToType<T extends DataType> = T extends DataType.String
   : T extends DataType.I32
   ? number
   : T extends DataType.I64
+  ? number
+  : T extends DataType.U64
   ? number
   : T extends DataType.Double
   ? number

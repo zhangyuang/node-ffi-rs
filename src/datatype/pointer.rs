@@ -5,7 +5,8 @@ use crate::datatype::object_generate::*;
 use crate::define::*;
 use libc::c_void;
 use libffi_sys::{
-  ffi_type, ffi_type_double, ffi_type_pointer, ffi_type_sint32, ffi_type_uint8, ffi_type_void,
+  ffi_type, ffi_type_double, ffi_type_pointer, ffi_type_sint32, ffi_type_sint64, ffi_type_uint64,
+  ffi_type_uint8, ffi_type_void,
 };
 use napi::threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi::{bindgen_prelude::*, Env, JsBuffer, JsExternal, JsNumber, JsObject, JsUnknown};
@@ -109,9 +110,14 @@ pub unsafe fn get_arg_types_values(
               (arg_type, RsArgsValue::U8(arg_val as u8))
             }
             DataType::I64 => {
-              let arg_type = &mut ffi_type_sint32 as *mut ffi_type;
+              let arg_type = &mut ffi_type_sint64 as *mut ffi_type;
               let arg_val: i64 = value.coerce_to_number().unwrap().try_into().unwrap();
               (arg_type, RsArgsValue::I64(arg_val))
+            }
+            DataType::U64 => {
+              let arg_type = &mut ffi_type_uint64 as *mut ffi_type;
+              let arg_val: i64 = value.coerce_to_number().unwrap().try_into().unwrap();
+              (arg_type, RsArgsValue::U64(arg_val as u64))
             }
             DataType::Double => {
               let arg_type = &mut ffi_type_double as *mut ffi_type;
@@ -229,9 +235,15 @@ pub unsafe fn get_value_pointer(env: &Env, arg_values: Vec<RsArgsValue>) -> Vec<
         let c_num = Box::new(val);
         Box::into_raw(c_num) as *mut c_void
       }
+      RsArgsValue::U64(val) => {
+        let c_num = Box::new(val);
+        Box::into_raw(c_num) as *mut c_void
+      }
       RsArgsValue::String(val) => {
-        let c_string = Box::new(CString::new(val).unwrap());
-        Box::into_raw(c_string) as *mut c_void
+        let c_string = CString::new(val).unwrap();
+        let ptr = c_string.as_ptr();
+        std::mem::forget(c_string);
+        return Box::into_raw(Box::new(ptr)) as *mut c_void;
       }
       RsArgsValue::Double(val) => {
         let c_double = Box::new(val);
@@ -240,24 +252,18 @@ pub unsafe fn get_value_pointer(env: &Env, arg_values: Vec<RsArgsValue>) -> Vec<
       RsArgsValue::U8Array(buffer, v) => {
         let buffer = buffer.unwrap();
         let ptr = buffer.as_ptr();
-        let boxed_ptr = Box::new(ptr);
-        let raw_ptr = Box::into_raw(boxed_ptr);
         std::mem::forget(buffer);
-        return raw_ptr as *mut c_void;
+        return Box::into_raw(Box::new(ptr)) as *mut c_void;
       }
       RsArgsValue::I32Array(val) => {
         let ptr = val.as_ptr();
-        let boxed_ptr = Box::new(ptr);
-        let raw_ptr = Box::into_raw(boxed_ptr);
         std::mem::forget(val);
-        return raw_ptr as *mut c_void;
+        return Box::into_raw(Box::new(ptr)) as *mut c_void;
       }
       RsArgsValue::DoubleArray(val) => {
         let ptr = val.as_ptr();
-        let boxed_ptr = Box::new(ptr);
-        let raw_ptr = Box::into_raw(boxed_ptr);
         std::mem::forget(val);
-        return raw_ptr as *mut c_void;
+        return Box::into_raw(Box::new(ptr)) as *mut c_void;
       }
       RsArgsValue::StringArray(val) => {
         let c_char_vec: Vec<*const c_char> = val
