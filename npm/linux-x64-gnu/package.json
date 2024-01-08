@@ -1,6 +1,6 @@
 {
   "name": "@yuuang/ffi-rs-linux-x64-gnu",
-  "version": "1.0.39",
+  "version": "1.0.40",
   "os": [
     "linux"
   ],
