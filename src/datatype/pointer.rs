@@ -127,6 +127,7 @@ pub unsafe fn get_arg_types_values(
                 .unwrap()
                 .try_into()
                 .unwrap();
+              println!("xx{:?}", arg_val);
               (arg_type, RsArgsValue::String(arg_val))
             }
             DataType::U8Array => {
