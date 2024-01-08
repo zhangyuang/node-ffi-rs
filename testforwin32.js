@@ -2,7 +2,7 @@ const { equal, deepStrictEqual } = require("assert");
 const {
   arrayConstructor,
   funcConstructor,
-} = require("ffi-rs");
+} = require("./");
 const {
   load,
   open,
