@@ -32,6 +32,15 @@ jobs:
           - host: windows-latest
             build: uname -a && yarn build && ls
             target: x86_64-pc-windows-msvc
+
+          # - host: windows-latest
+          #   target: aarch64-pc-windows-msvc
+          #   build: target=aarch64-pc-windows-msvc yarn build && ls
+
+          - host: windows-latest
+            build: target=i686-pc-windows-msvc yarn build && ls
+            target: i686-pc-windows-msvc
+
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:stable-2023-09-17-x64
@@ -188,6 +197,11 @@ jobs:
         settings:
           - host: windows-latest
             target: x86_64-pc-windows-msvc
+          # - host: windows-latest
+          #   target: i686-pc-windows-msvc
+          # - host: windows-latest
+          #   target: aarch64-pc-windows-msvc
+
         node:
           - "18"
     runs-on: ${{ matrix.settings.host }}
@@ -199,6 +213,19 @@ jobs:
           node-version: ${{ matrix.node }}
           check-latest: true
           cache: yarn
+      - name: Setup node x86
+        uses: actions/setup-node@v3
+        if: matrix.settings.target == 'i686-pc-windows-msvc'
+        with:
+          node-version: 18
+          check-latest: true
+          cache: yarn
+          architecture: x86
+      - name: Setup node x86
+        if: matrix.settings.target == 'i686-pc-windows-msvc'
+        run: yarn config set supportedArchitectures.cpu "ia32"
+        shell: bash
+
       - name: Install dependencies
         run: yarn install --prod
       - name: Download artifacts
@@ -207,10 +234,10 @@ jobs:
           name: bindings-${{ matrix.settings.target }}
           path: .
       - name: List packages
-        run: ls -R .
+        run: ls .
         shell: bash
       - name: Test bindings
-        run: yarn test
+        run:  yarn test
   test-linux-x64-gnu-binding:
     name: Test bindings on Linux-x64-gnu - node@${{ matrix.node }}
     needs:
