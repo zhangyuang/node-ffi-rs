@@ -12,14 +12,14 @@ const {
 const platform = process.platform;
 const dynamicLib = platform === "win32" ? "./sum.dll" : "./libsum.so";
 
+console.log(process.arch, process.platform)
+console.log(require("@yuuang/ffi-rs-win32-ia32-msvc"))
 open({
   library: "libsum",
   path: dynamicLib,
 });
 
 const unitTest = () => {
-  console.log(process.arch, process.platform)
-  console.log(require("@yuuang/ffi-rs-win32-ia32-msvc"))
   const a = 1;
   const b = 100;
   equal(
