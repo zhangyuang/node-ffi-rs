@@ -230,7 +230,7 @@ pub unsafe fn get_value_pointer(env: &Env, arg_values: Vec<RsArgsValue>) -> Vec<
         Box::into_raw(c_num) as *mut c_void
       }
       RsArgsValue::String(val) => {
-        println!("xx{:?}", CString::new(val.clone()).unwrap());
+        println!("cstring{:?}", CString::new(val.clone()).unwrap());
         let c_string = Box::new(CString::new(val).unwrap());
         Box::into_raw(c_string) as *mut c_void
       }
