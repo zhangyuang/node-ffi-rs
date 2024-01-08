@@ -11,8 +11,6 @@ const {
 } = require("./")
 const dynamicLib = "./ImSDK.dll"
 
-console.log(process.arch, process.platform)
-console.log(require("."))
 open({
   library: "libsum",
   path: dynamicLib,
@@ -21,10 +19,10 @@ setInterval(() => {
   console.log('running')
 }, 1000)
 const unitTest = () => {
-  load({
+  const foo = load({
     library: "libsum",
     funcName: "TIMSetLogCallback",
-    retType: DataType.Void,
+    retType: DataType.I32,
     paramsType: [
       funcConstructor({
         paramsType: [
@@ -40,6 +38,7 @@ const unitTest = () => {
       console.log('xxx', args);
     }, ""],
   });
+  console.log('TIMSetLogCallback', TIMSetLogCallback)
   console.log(load({
     library: "libsum",
     funcName: "TIMInit",
