@@ -24,11 +24,10 @@ const unitTest = () => {
     funcName: "TIMInit",
     retType: DataType.I32,
     paramsType: [DataType.I32, DataType.String],
-    paramsValue: [1400187352, JSON.stringify({
-      // "sdk_config_log_file_path": ".tencent-im/sdk-log", "sdk_config_config_file_path": ".tencent-im/sdk-config"
-    })],
+    paramsValue: [1400187352, "{}"],
   });
-  console.log('xxx', foo)
+  console.log('xxx', JSON.stringify({
+  }), foo)
   return
   const TIMAddRecvNewMsgCallback = (...args) => {
     console.log("TIMAddRecvNewMsgCallback", args);
