@@ -28,6 +28,11 @@ const unitTest = () => {
   });
   console.log('xxx', JSON.stringify({
   }), foo)
+  open({
+    library: "libsum2",
+    path: "./sum32.dll",
+  });
+
   return
   const TIMAddRecvNewMsgCallback = (...args) => {
     console.log("TIMAddRecvNewMsgCallback", args);
