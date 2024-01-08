@@ -19,19 +19,21 @@ open({
 });
 
 const unitTest = () => {
-  const foo = load({
+
+  console.log(load({
     library: "libsum",
     funcName: "TIMInit",
     retType: DataType.I32,
     paramsType: [DataType.I32, DataType.String],
     paramsValue: [1400187352, "{}"],
-  });
-  console.log('xxx', JSON.stringify({
-  }), foo)
-  open({
-    library: "libsum2",
-    path: "./sum32.dll",
-  });
+  }))
+  console.log(load({
+    library: "libsum",
+    funcName: "TIMInit",
+    retType: DataType.I32,
+    paramsType: [DataType.I32, DataType.String],
+    paramsValue: [1400187352, JSON.stringify({})],
+  }))
 
   return
   const TIMAddRecvNewMsgCallback = (...args) => {
