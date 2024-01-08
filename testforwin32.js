@@ -1,13 +1,14 @@
 const { equal, deepStrictEqual } = require("assert");
 const {
+  arrayConstructor,
+  funcConstructor,
+} = require("ffi-rs");
+const {
   load,
   open,
   close,
   DataType,
-  arrayConstructor,
-  funcConstructor,
-} = require("@yuuang/ffi-rs-win32-ia32-msvc");
-
+} = require("@yuuang/ffi-rs-win32-ia32-msvc")
 const platform = process.platform;
 const dynamicLib = platform === "win32" ? "./sum.dll" : "./libsum.so";
 
@@ -17,6 +18,7 @@ open({
 });
 
 const unitTest = () => {
+  console.log(process.arch, process.platform)
   console.log(require("@yuuang/ffi-rs-win32-ia32-msvc"))
   const a = 1;
   const b = 100;

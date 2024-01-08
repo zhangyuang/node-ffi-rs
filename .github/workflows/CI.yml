@@ -30,7 +30,7 @@ jobs:
               yarn build
               strip -x *.node
           - host: windows-latest
-            build: uname -a && yarn build && ls && node ./testforwin32.js
+            build: uname -a && yarn build && ls
             target: x86_64-pc-windows-msvc
 
           # - host: windows-latest
@@ -38,7 +38,7 @@ jobs:
           #   build: target=aarch64-pc-windows-msvc yarn build && ls
 
           - host: windows-latest
-            build: target=i686-pc-windows-msvc yarn build && ls
+            build: target=i686-pc-windows-msvc yarn build && ls && uname -a && node ./testforwin32.js
             target: i686-pc-windows-msvc
 
           - host: ubuntu-latest
