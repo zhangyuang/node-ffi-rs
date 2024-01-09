@@ -35,8 +35,7 @@ pub fn calculate_struct_size(map: &IndexMap<String, RsArgsValue>) -> (usize, usi
       |(size, align, offset), (_, field_val)| match field_val {
         RsArgsValue::U8(_) => calculate_u8(size, align, offset),
         RsArgsValue::I32(_) => calculate_i32(size, align, offset),
-        RsArgsValue::I64(_) => calculate_i64(size, align, offset),
-        RsArgsValue::U64(_) => calculate_i64(size, align, offset),
+        RsArgsValue::I64(_) | RsArgsValue::U64(_) => calculate_i64(size, align, offset),
         RsArgsValue::Double(_) => calculate_double(size, align, offset),
         RsArgsValue::String(_) => calculate_string(size, align, offset),
         RsArgsValue::Boolean(_) => calculate_boolean(size, align, offset),
