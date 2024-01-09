@@ -17,26 +17,26 @@ open({
 });
 
 const unitTest = () => {
-  const foo = load({
-    library: "libsum",
-    funcName: "TIMSetLogCallback",
-    retType: DataType.I32,
-    paramsType: [
-      funcConstructor({
-        paramsType: [
-          DataType.I32,
-          DataType.String,
-          DataType.String,
-        ],
-        permanent: true,
-      }),
-      DataType.String,
-    ],
-    paramsValue: [(...args) => {
-      console.log('xxx', args);
-    }, ""],
-  });
-  console.log('TIMSetLogCallback', foo)
+  // const foo = load({
+  //   library: "libsum",
+  //   funcName: "TIMSetLogCallback",
+  //   retType: DataType.I32,
+  //   paramsType: [
+  //     funcConstructor({
+  //       paramsType: [
+  //         DataType.I32,
+  //         DataType.String,
+  //         DataType.String,
+  //       ],
+  //       permanent: true,
+  //     }),
+  //     DataType.String,
+  //   ],
+  //   paramsValue: [(...args) => {
+  //     console.log('xxx', args);
+  //   }, ""],
+  // });
+  // console.log('TIMSetLogCallback', foo)
   console.log(load({
     library: "libsum",
     funcName: "TIMInit",
