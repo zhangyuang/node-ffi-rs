@@ -15,9 +15,7 @@ open({
   library: "libsum",
   path: dynamicLib,
 });
-setInterval(() => {
-  console.log('running')
-}, 1000)
+
 const unitTest = () => {
   const foo = load({
     library: "libsum",
