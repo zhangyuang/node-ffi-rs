@@ -41,7 +41,7 @@ const unitTest = () => {
     library: "libsum",
     funcName: "TIMInit",
     retType: DataType.I32,
-    paramsType: [DataType.I32, DataType.String],
+    paramsType: [DataType.I64, DataType.String],
     paramsValue: [1400187352, JSON.stringify({
       "sdk_config_log_file_path": "yuuangtest", "sdk_config_config_file_path": "yuuangtest"
     })],
