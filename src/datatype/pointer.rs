@@ -5,7 +5,8 @@ use crate::datatype::object_generate::*;
 use crate::define::*;
 use libc::c_void;
 use libffi_sys::{
-  ffi_type, ffi_type_double, ffi_type_pointer, ffi_type_sint32, ffi_type_uint8, ffi_type_void,
+  ffi_type, ffi_type_double, ffi_type_pointer, ffi_type_sint32, ffi_type_sint64, ffi_type_uint64,
+  ffi_type_uint8, ffi_type_void,
 };
 use napi::threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi::{bindgen_prelude::*, Env, JsBuffer, JsExternal, JsNumber, JsObject, JsUnknown};
@@ -109,7 +110,12 @@ pub unsafe fn get_arg_types_values(
               (arg_type, RsArgsValue::U8(arg_val as u8))
             }
             DataType::I64 => {
-              let arg_type = &mut ffi_type_sint32 as *mut ffi_type;
+              let arg_type = &mut ffi_type_sint64 as *mut ffi_type;
+              let arg_val: i64 = value.coerce_to_number().unwrap().try_into().unwrap();
+              (arg_type, RsArgsValue::I64(arg_val))
+            }
+            DataType::U64 => {
+              let arg_type = &mut ffi_type_uint64 as *mut ffi_type;
               let arg_val: i64 = value.coerce_to_number().unwrap().try_into().unwrap();
               (arg_type, RsArgsValue::I64(arg_val))
             }
@@ -226,6 +232,10 @@ pub unsafe fn get_value_pointer(env: &Env, arg_values: Vec<RsArgsValue>) -> Vec<
         Box::into_raw(c_num) as *mut c_void
       }
       RsArgsValue::I64(val) => {
+        let c_num = Box::new(val);
+        Box::into_raw(c_num) as *mut c_void
+      }
+      RsArgsValue::U64(val) => {
         let c_num = Box::new(val);
         Box::into_raw(c_num) as *mut c_void
       }

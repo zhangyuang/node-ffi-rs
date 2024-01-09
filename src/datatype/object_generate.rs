@@ -6,7 +6,7 @@ use indexmap::IndexMap;
 use napi::JsBuffer;
 use napi::{Env, JsBoolean, JsExternal, JsNumber, JsObject, JsString, JsUnknown, ValueType};
 use std::ffi::c_void;
-use std::ffi::{c_char, c_double, c_int, c_longlong, c_uchar, CStr};
+use std::ffi::{c_char, c_double, c_int, c_longlong, c_uchar, c_ulonglong, CStr};
 
 pub unsafe fn create_rs_struct_from_pointer(
   env: &Env,
@@ -53,6 +53,18 @@ pub unsafe fn create_rs_struct_from_pointer(
           field_ptr = field_ptr.offset(padding as isize);
           let type_field_ptr = field_ptr as *mut c_longlong;
           rs_struct.insert(field, RsArgsValue::I64(*type_field_ptr));
+          offset += size + padding;
+          field_size = size
+        }
+        BasicDataType::U64 => {
+          let (size, align) = (
+            std::mem::size_of::<c_ulonglong>(),
+            std::mem::align_of::<c_ulonglong>(),
+          );
+          let padding = (align - (offset % align)) % align;
+          field_ptr = field_ptr.offset(padding as isize);
+          let type_field_ptr = field_ptr as *mut c_ulonglong;
+          rs_struct.insert(field, RsArgsValue::U64(*type_field_ptr));
           offset += size + padding;
           field_size = size
         }
@@ -241,6 +253,11 @@ pub fn get_params_value_rs_struct(
               let val: i64 = val.try_into().unwrap();
               RsArgsValue::I64(val)
             }
+            DataType::U64 => {
+              let val: JsNumber = params_value_object.get_named_property(&field).unwrap();
+              let val: i64 = val.try_into().unwrap();
+              RsArgsValue::U64(val as u64)
+            }
             DataType::Boolean => {
               let val: JsBoolean = params_value_object.get_named_property(&field).unwrap();
               let val: bool = val.get_value().unwrap();
@@ -363,6 +380,7 @@ pub fn rs_value_to_js_unknown(env: &Env, data: RsArgsValue) -> JsUnknown {
     RsArgsValue::U8(number) => env.create_uint32(number as u32).unwrap().into_unknown(),
     RsArgsValue::I32(number) => env.create_int32(number).unwrap().into_unknown(),
     RsArgsValue::I64(number) => env.create_int64(number).unwrap().into_unknown(),
+    RsArgsValue::U64(number) => env.create_uint32(number as u32).unwrap().into_unknown(),
     RsArgsValue::Boolean(val) => env.get_boolean(val).unwrap().into_unknown(),
     RsArgsValue::String(val) => env.create_string(&val).unwrap().into_unknown(),
     RsArgsValue::Double(val) => env.create_double(val).unwrap().into_unknown(),
