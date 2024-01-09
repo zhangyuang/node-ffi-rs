@@ -31,6 +31,13 @@ const unitTest = () => {
     library: "libsum2",
     path: "./sum32.dll",
   });
+  console.log(load({
+    library: "libsum2",
+    funcName: "concatenateStrings",
+    retType: DataType.String,
+    paramsType: [DataType.String],
+    paramsValue: ["yuuang"],
+  }))
   return
 
 };
