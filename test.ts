@@ -9,7 +9,7 @@ import {
 } from "./index";
 
 const platform = process.platform;
-const dynamicLib = platform === "win32" ? "./sum32.dll" : "./libsum.so";
+const dynamicLib = platform === "win32" ? "./sum.dll" : "./libsum.so";
 
 open({
   library: "libsum",
