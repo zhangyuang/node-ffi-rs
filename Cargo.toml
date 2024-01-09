@@ -14,7 +14,7 @@ napi-derive = "2.13.0"
 napi-derive-backend="1.0.52"
 libloading = "0.8"
 libffi = { version = "3.2.0" }
-libffi-sys = { version = "^2.3.0" }
+libffi-sys = { version = "^2.3.0",features = ["system"] }
 libc="0.2"
 indexmap="2.0"
 
