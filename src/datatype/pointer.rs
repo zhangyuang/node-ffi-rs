@@ -235,7 +235,7 @@ pub unsafe fn get_value_pointer(env: &Env, arg_values: Vec<RsArgsValue>) -> Vec<
         let boxed_ptr = Box::new(ptr);
         let raw_ptr = Box::into_raw(boxed_ptr);
         std::mem::forget(c_string);
-        println!("cstringptr{:?}", raw_ptr);
+        println!("cstringptr{:?}", ptr);
 
         return raw_ptr as *mut c_void;
       }
