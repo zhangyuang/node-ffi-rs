@@ -231,11 +231,12 @@ pub unsafe fn get_value_pointer(env: &Env, arg_values: Vec<RsArgsValue>) -> Vec<
       }
       RsArgsValue::String(val) => {
         let c_string = CString::new(val).unwrap();
-        println!("cstring{:?}:{:?}", c_string, c_string.as_bytes());
         let ptr = c_string.as_ptr();
         let boxed_ptr = Box::new(ptr);
         let raw_ptr = Box::into_raw(boxed_ptr);
         std::mem::forget(c_string);
+        println!("cstringptr{:?}", raw_ptr);
+
         return raw_ptr as *mut c_void;
       }
       RsArgsValue::Double(val) => {
