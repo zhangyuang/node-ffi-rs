@@ -177,6 +177,13 @@ pub struct FFIParams {
   pub params_type: Vec<JsUnknown>,
   pub params_value: Vec<JsUnknown>,
 }
+
+#[napi(object)]
+pub struct CreateExternalParams {
+  pub params_type: Vec<JsUnknown>,
+  pub params_value: Vec<JsUnknown>,
+}
+
 #[napi(object)]
 pub struct OpenParams {
   pub library: String,

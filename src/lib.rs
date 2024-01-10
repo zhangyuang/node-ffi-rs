@@ -13,7 +13,7 @@ use libffi_sys::{
   ffi_type_void,
 };
 use libloading::{Library, Symbol};
-use napi::{bindgen_prelude::*, Env, JsBuffer, JsBufferValue, JsExternal, JsUnknown};
+use napi::{bindgen_prelude::*, Env, JsBuffer, JsBufferValue, JsExternal, JsObject, JsUnknown};
 
 use std::collections::HashMap;
 use std::ffi::c_void;
@@ -25,6 +25,20 @@ use datatype::object_generate::*;
 use datatype::pointer::*;
 
 static mut LIBRARY_MAP: Option<HashMap<String, Library>> = None;
+
+#[napi]
+unsafe fn create_external(env: Env, params: CreateExternalParams) -> Vec<JsExternal> {
+  let CreateExternalParams {
+    params_type,
+    params_value,
+  } = params;
+  let (_, arg_values) = get_arg_types_values(&env, params_type, params_value);
+  let arg_values_c_void = get_value_pointer(&env, arg_values);
+  arg_values_c_void
+    .into_iter()
+    .map(|p| env.create_external(*(p as *mut *mut c_void), None).unwrap())
+    .collect()
+}
 
 #[napi]
 fn open(params: OpenParams) {
