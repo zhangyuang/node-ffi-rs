@@ -1,6 +1,8 @@
 use super::array::*;
 use super::buffer::*;
+use super::object_calculate::get_size_align;
 use super::pointer::*;
+
 use crate::define::*;
 use indexmap::IndexMap;
 use napi::JsBuffer;
@@ -24,10 +26,7 @@ pub unsafe fn create_rs_struct_from_pointer(
       let data_type = number_to_basic_data_type(*number);
       match data_type {
         BasicDataType::U8 => {
-          let (size, align) = (
-            std::mem::size_of::<c_uchar>(),
-            std::mem::align_of::<c_uchar>(),
-          );
+          let (size, align) = get_size_align::<c_uchar>();
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           let type_field_ptr = field_ptr as *mut c_uchar;
@@ -36,7 +35,7 @@ pub unsafe fn create_rs_struct_from_pointer(
           field_size = size
         }
         BasicDataType::I32 => {
-          let (size, align) = (std::mem::size_of::<c_int>(), std::mem::align_of::<c_int>());
+          let (size, align) = get_size_align::<c_int>();
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           let type_field_ptr = field_ptr as *mut c_int;
@@ -45,10 +44,7 @@ pub unsafe fn create_rs_struct_from_pointer(
           field_size = size
         }
         BasicDataType::I64 => {
-          let (size, align) = (
-            std::mem::size_of::<c_longlong>(),
-            std::mem::align_of::<c_longlong>(),
-          );
+          let (size, align) = get_size_align::<c_longlong>();
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           let type_field_ptr = field_ptr as *mut c_longlong;
@@ -57,10 +53,7 @@ pub unsafe fn create_rs_struct_from_pointer(
           field_size = size
         }
         BasicDataType::U64 => {
-          let (size, align) = (
-            std::mem::size_of::<c_ulonglong>(),
-            std::mem::align_of::<c_ulonglong>(),
-          );
+          let (size, align) = get_size_align::<c_ulonglong>();
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           let type_field_ptr = field_ptr as *mut c_ulonglong;
@@ -69,10 +62,7 @@ pub unsafe fn create_rs_struct_from_pointer(
           field_size = size
         }
         BasicDataType::Double => {
-          let (size, align) = (
-            std::mem::size_of::<c_double>(),
-            std::mem::align_of::<c_double>(),
-          );
+          let (size, align) = get_size_align::<c_double>();
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           let type_field_ptr = field_ptr as *mut c_double;
@@ -81,7 +71,7 @@ pub unsafe fn create_rs_struct_from_pointer(
           field_size = size
         }
         BasicDataType::Boolean => {
-          let (size, align) = (std::mem::size_of::<bool>(), std::mem::align_of::<bool>());
+          let (size, align) = get_size_align::<bool>();
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           let type_field_ptr = field_ptr as *mut bool;
@@ -98,10 +88,7 @@ pub unsafe fn create_rs_struct_from_pointer(
           field_size = size
         }
         BasicDataType::String => {
-          let (size, align) = (
-            std::mem::size_of::<*const char>(),
-            std::mem::align_of::<*const char>(),
-          );
+          let (size, align) = get_size_align::<*const c_void>();
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           let type_field_ptr = field_ptr as *mut *mut c_char;
@@ -113,10 +100,7 @@ pub unsafe fn create_rs_struct_from_pointer(
           field_size = size
         }
         BasicDataType::External => {
-          let (size, align) = (
-            std::mem::size_of::<*const c_void>(),
-            std::mem::align_of::<*const c_void>(),
-          );
+          let (size, align) = get_size_align::<*const c_void>();
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           let type_field_ptr = field_ptr as *mut *mut c_void;
@@ -137,10 +121,7 @@ pub unsafe fn create_rs_struct_from_pointer(
         let (array_len, array_type) = array_desc.unwrap();
         let size = match array_type {
           RefDataType::StringArray => {
-            let (size, align) = (
-              std::mem::size_of::<*const c_void>(),
-              std::mem::align_of::<*const c_void>(),
-            );
+            let (size, align) = get_size_align::<*const c_void>();
             let padding = (align - (offset % align)) % align;
             field_ptr = field_ptr.offset(padding as isize);
             let type_field_ptr = field_ptr as *mut *mut *mut c_char;
@@ -150,10 +131,7 @@ pub unsafe fn create_rs_struct_from_pointer(
             field_size = size
           }
           RefDataType::DoubleArray => {
-            let (size, align) = (
-              std::mem::size_of::<*const c_void>(),
-              std::mem::align_of::<*const c_void>(),
-            );
+            let (size, align) = get_size_align::<*const c_void>();
             let padding = (align - (offset % align)) % align;
             field_ptr = field_ptr.offset(padding as isize);
             let type_field_ptr = field_ptr as *mut *mut c_double;
@@ -163,10 +141,7 @@ pub unsafe fn create_rs_struct_from_pointer(
             field_size = size
           }
           RefDataType::I32Array => {
-            let (size, align) = (
-              std::mem::size_of::<*const c_void>(),
-              std::mem::align_of::<*const c_void>(),
-            );
+            let (size, align) = get_size_align::<*const c_void>();
             let padding = (align - (offset % align)) % align;
             field_ptr = field_ptr.offset(padding as isize);
             let type_field_ptr = field_ptr as *mut *mut c_int;
@@ -176,10 +151,7 @@ pub unsafe fn create_rs_struct_from_pointer(
             field_size = size
           }
           RefDataType::U8Array => {
-            let (size, align) = (
-              std::mem::size_of::<*const c_void>(),
-              std::mem::align_of::<*const c_void>(),
-            );
+            let (size, align) = get_size_align::<*const c_void>();
             let padding = (align - (offset % align)) % align;
             field_ptr = field_ptr.offset(padding as isize);
             let type_field_ptr = field_ptr as *mut *mut c_uchar;
@@ -192,10 +164,7 @@ pub unsafe fn create_rs_struct_from_pointer(
         size
       } else {
         // function | raw object
-        let (size, align) = (
-          std::mem::size_of::<*const c_void>(),
-          std::mem::align_of::<*const c_void>(),
-        );
+        let (size, align) = get_size_align::<*const c_void>();
         let padding = (align - (offset % align)) % align;
         field_ptr = field_ptr.offset(padding as isize);
         let type_field_ptr = field_ptr as *mut *mut c_void;
