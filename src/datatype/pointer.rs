@@ -3,6 +3,7 @@ use crate::datatype::function::*;
 use crate::datatype::object_calculate::*;
 use crate::datatype::object_generate::*;
 use crate::define::*;
+use crate::utils::dataprocess::{get_params_value_rs_struct, type_object_to_rs_struct};
 use libc::c_void;
 use libffi_sys::{
   ffi_type, ffi_type_double, ffi_type_pointer, ffi_type_sint32, ffi_type_sint64, ffi_type_uint64,
@@ -296,7 +297,7 @@ pub unsafe fn get_value_pointer(env: &Env, arg_values: Vec<RsArgsValue>) -> Vec<
           .get_property(env.create_string("paramsType").unwrap())
           .unwrap();
         let args_len = func_args_type.get_array_length().unwrap();
-        let func_args_type_rs = type_define_to_rs_struct(&func_args_type);
+        let func_args_type_rs = type_object_to_rs_struct(&func_args_type);
         let func_args_type_rs_ptr = Box::into_raw(Box::new(func_args_type_rs));
         if args_len > 10 {
           panic!("The number of function parameters needs to be less than or equal to 10")
