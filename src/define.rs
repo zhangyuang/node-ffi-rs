@@ -1,7 +1,6 @@
 use indexmap::IndexMap;
 use napi::{bindgen_prelude::*, JsBuffer, JsBufferValue};
 use napi::{Env, JsExternal, JsObject, JsUnknown};
-use std::ffi::c_void;
 use std::hash::Hash;
 
 #[derive(Clone)]
@@ -187,7 +186,7 @@ pub struct CreateExternalParams {
 #[napi(object)]
 pub struct ReStoreExternalParams {
   pub ret_type: Vec<JsUnknown>,
-  pub params_value: Vec<JsUnknown>,
+  pub params_value: Vec<JsExternal>,
 }
 
 #[napi(object)]

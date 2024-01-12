@@ -363,6 +363,23 @@ load({
 
 The two pieces of code above are equivalent
 
+Similary, you can use `restoreExternal` to restore data from `pointer` which wrap by `createExternal`
+
+```js
+const external = createExternal({
+  paramsType: [DataType.DoubleArray],
+  paramsValue: [[1.1, 2.2]]
+})
+const restoreData = restoreExternal({
+  retType: [arrayConstructor({
+    type: DataType.DoubleArray,
+    length: 2
+  })],
+  paramsValue: external
+})
+deepStrictEqual(restoreData, [[1.1, 2.2]])
+```
+
 ### Struct
 
 For create a c struct or get a c struct as a return type, you need to define the types of the parameters strictly in the order in which the fields of the c structure are defined.

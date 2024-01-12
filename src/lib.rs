@@ -37,11 +37,24 @@ unsafe fn create_external(env: Env, params: CreateExternalParams) -> Vec<JsExter
 }
 
 #[napi]
-unsafe fn restore_external(env: Env, params: ReStoreExternalParams) {
+unsafe fn restore_external(env: Env, params: ReStoreExternalParams) -> Vec<JsUnknown> {
   let ReStoreExternalParams {
     ret_type,
     params_value,
   } = params;
+  ret_type
+    .into_iter()
+    .zip(params_value.into_iter())
+    .map(|(ret_type_item, js_external)| {
+      let mut ptr = get_js_external_wrap_Data(&env, js_external);
+      let ret_type_rs = type_define_to_rs_args(ret_type_item);
+      get_js_unknown_from_pointer(
+        &env,
+        ret_type_rs,
+        &mut ptr as *mut *mut c_void as *mut c_void,
+      )
+    })
+    .collect()
 }
 
 #[napi]
