@@ -363,19 +363,19 @@ load({
 
 The two pieces of code above are equivalent
 
-Similary, you can use `storePointer` to restore data from `pointer` which wrap by `createPointer`
+Similary, you can use `restorePointer` to restore data from `pointer` which wrap by `createPointer`
 
 ```js
-const external = createPointer({
+const pointerArr = createPointer({
   paramsType: [DataType.DoubleArray],
   paramsValue: [[1.1, 2.2]]
 })
-const restoreData = storePointer({
+const restoreData = restorePointer({
   retType: [arrayConstructor({
     type: DataType.DoubleArray,
     length: 2
   })],
-  paramsValue: external
+  paramsValue: pointerArr
 })
 deepStrictEqual(restoreData, [[1.1, 2.2]])
 ```
