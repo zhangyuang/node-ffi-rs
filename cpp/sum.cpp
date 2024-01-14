@@ -170,6 +170,32 @@ extern "C" void bufferToFill(double bufferToFill[3]) {
   printf("%f", bufferToFill[0]);
 }
 
+#include <iostream>
+#include <string>
+
+// 定义 C++ 类
+class MyClass {
+public:
+  std::string name;
+  int age;
+
+  MyClass(std::string n, int a) : name(n), age(a) {}
+
+  void print() {
+    std::cout << "Name: " << name << ", Age: " << age << std::endl;
+  }
+};
+
+MyClass *createMyClass(std::string name, int age) {
+  return new MyClass(name, age);
+}
+
+extern "C" MyClass *createMyClassFromC(const char *name, int age) {
+  return createMyClass(std::string(name), age);
+}
+
+extern "C" void printMyClass(MyClass *instance) { instance->print(); }
+
 // typedef void (*CallbackType)(const char *);
 // extern "C" void call_callback_async() {
 //   dispatch_async(dispatch_get_main_queue(), ^{
