@@ -1,7 +1,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
-
+#include <iostream>
 #include <string>
 
 extern "C" int sum(int a, int b) { return a + b; }
@@ -138,6 +138,7 @@ extern "C" void callFunction(FunctionPointer func) {
     double ddd = 100.11;
     char *c = (char *)malloc(14 * sizeof(char));
     strcpy(c, "Hello, World!");
+    printf("Memory address of ddd: %p\n", (void *)&a);
 
     char **stringArray = (char **)malloc(sizeof(char *) * 2);
     stringArray[0] = strdup("Hello");
@@ -162,16 +163,6 @@ extern "C" void callFunctionDouble(FunctionPointerDouble func) {
 
   func(ddd);
 }
-
-extern "C" void bufferToFill(double bufferToFill[3]) {
-  bufferToFill[0] = -0.5;
-  bufferToFill[1] = 7.5;
-  bufferToFill[2] = 3;
-  printf("%f", bufferToFill[0]);
-}
-
-#include <iostream>
-#include <string>
 
 // 定义 C++ 类
 class MyClass {
