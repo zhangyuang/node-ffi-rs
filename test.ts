@@ -7,7 +7,7 @@ import {
   arrayConstructor,
   funcConstructor,
   createPointer,
-  restorePointer
+  restorePointer,
 } from "./index";
 
 const platform = process.platform;
