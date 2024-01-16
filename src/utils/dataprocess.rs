@@ -330,12 +330,11 @@ pub fn get_params_value_rs_struct(
   params_value_object: &JsObject,
 ) -> Result<IndexMap<String, RsArgsValue>> {
   let mut index_map = IndexMap::new();
-  let _: Result<()> = JsObject::keys(&params_value_object)
-    .unwrap()
+  let _: Result<()> = JsObject::keys(&params_value_object)?
     .into_iter()
     .try_for_each(|field| {
       let field_type: JsUnknown = params_type_object.get_named_property(&field)?;
-      match field_type.get_type().unwrap() {
+      let _: Result<()> = match field_type.get_type()? {
         ValueType::Number => {
           let data_type: DataType = number_to_data_type(field_type.coerce_to_number()?.try_into()?);
           let val = match data_type {
@@ -400,6 +399,7 @@ pub fn get_params_value_rs_struct(
             DataType::Void => RsArgsValue::Void(()),
           };
           index_map.insert(field, val);
+          Ok(())
         }
 
         ValueType::Object => {
@@ -407,10 +407,14 @@ pub fn get_params_value_rs_struct(
           let params_value: JsObject = params_value_object.get_named_property(&field)?;
           let map = get_params_value_rs_struct(env, &params_type, &params_value);
           index_map.insert(field, RsArgsValue::Object(map?));
+          Ok(())
         }
-        _ => panic!(
-          "receive {:?} but params type can only be number or object ",
-          field_type.get_type().unwrap()
+        _ => Err(
+          FFIError::UnsupportedValueType(format!(
+            "Received {:?} but params type only supported number or object ",
+            field_type.get_type().unwrap()
+          ))
+          .into(),
         ),
       };
       Ok(())
