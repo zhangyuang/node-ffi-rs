@@ -6,7 +6,7 @@ use crate::utils::dataprocess::get_array_desc;
 
 use crate::define::*;
 use indexmap::IndexMap;
-use napi::{Env, JsObject, JsUnknown};
+use napi::{Env, JsObject, JsUnknown, Result};
 use std::ffi::c_void;
 use std::ffi::{c_char, c_double, c_int, c_longlong, c_uchar, c_ulonglong, CStr};
 
@@ -195,21 +195,21 @@ pub fn create_js_object_from_rs_map(
     js_object
       .set_property(
         env.create_string(&field).unwrap(),
-        rs_value_to_js_unknown(&env, value),
+        rs_value_to_js_unknown(&env, value).unwrap(),
       )
       .unwrap();
   }
   js_object
 }
-pub fn rs_value_to_js_unknown(env: &Env, data: RsArgsValue) -> JsUnknown {
-  return match data {
-    RsArgsValue::U8(number) => env.create_uint32(number as u32).unwrap().into_unknown(),
-    RsArgsValue::I32(number) => env.create_int32(number).unwrap().into_unknown(),
-    RsArgsValue::I64(number) => env.create_int64(number).unwrap().into_unknown(),
-    RsArgsValue::U64(number) => env.create_int64(number as i64).unwrap().into_unknown(),
-    RsArgsValue::Boolean(val) => env.get_boolean(val).unwrap().into_unknown(),
-    RsArgsValue::String(val) => env.create_string(&val).unwrap().into_unknown(),
-    RsArgsValue::Double(val) => env.create_double(val).unwrap().into_unknown(),
+pub fn rs_value_to_js_unknown(env: &Env, data: RsArgsValue) -> Result<JsUnknown> {
+  let res = match data {
+    RsArgsValue::U8(number) => env.create_uint32(number as u32)?.into_unknown(),
+    RsArgsValue::I32(number) => env.create_int32(number)?.into_unknown(),
+    RsArgsValue::I64(number) => env.create_int64(number)?.into_unknown(),
+    RsArgsValue::U64(number) => env.create_int64(number as i64)?.into_unknown(),
+    RsArgsValue::Boolean(val) => env.get_boolean(val)?.into_unknown(),
+    RsArgsValue::String(val) => env.create_string(&val)?.into_unknown(),
+    RsArgsValue::Double(val) => env.create_double(val)?.into_unknown(),
     RsArgsValue::U8Array(buffer, arr) => {
       if buffer.is_some() {
         buffer.unwrap().into_unknown()
@@ -217,16 +217,17 @@ pub fn rs_value_to_js_unknown(env: &Env, data: RsArgsValue) -> JsUnknown {
         create_buffer_val(env, arr.unwrap()).into_unknown()
       }
     }
-    RsArgsValue::I32Array(val) => rs_array_to_js_array(env, ArrayType::I32(val)).into_unknown(),
+    RsArgsValue::I32Array(val) => rs_array_to_js_array(env, ArrayType::I32(val))?.into_unknown(),
     RsArgsValue::StringArray(val) => {
-      rs_array_to_js_array(env, ArrayType::String(val)).into_unknown()
+      rs_array_to_js_array(env, ArrayType::String(val))?.into_unknown()
     }
     RsArgsValue::DoubleArray(val) => {
-      rs_array_to_js_array(env, ArrayType::Double(val)).into_unknown()
+      rs_array_to_js_array(env, ArrayType::Double(val))?.into_unknown()
     }
     RsArgsValue::Object(obj) => create_js_object_from_rs_map(env, obj).into_unknown(),
     RsArgsValue::External(val) => val.into_unknown(),
-    RsArgsValue::Void(_) => env.get_undefined().unwrap().into_unknown(),
+    RsArgsValue::Void(_) => env.get_undefined()?.into_unknown(),
     RsArgsValue::Function(_, _) => panic!("function need to be improved"),
   };
+  Ok(res)
 }

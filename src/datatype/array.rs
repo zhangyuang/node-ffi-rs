@@ -32,43 +32,38 @@ pub enum ArrayType {
   String(Vec<String>),
 }
 
-pub fn rs_array_to_js_array(env: &Env, val: ArrayType) -> JsObject {
+pub fn rs_array_to_js_array(env: &Env, val: ArrayType) -> Result<JsObject> {
   match val {
     ArrayType::String(arr) => {
-      let mut js_array = env.create_array_with_length(arr.len()).unwrap();
-      arr.into_iter().enumerate().for_each(|(index, str)| {
-        js_array
-          .set_element(index as u32, env.create_string(&str).unwrap())
-          .unwrap();
-      });
-      js_array
+      let mut js_array = env.create_array_with_length(arr.len())?;
+      arr
+        .into_iter()
+        .enumerate()
+        .try_for_each(|(index, str)| js_array.set_element(index as u32, env.create_string(&str)?));
+      Ok(js_array)
     }
     ArrayType::Double(arr) => {
-      let mut js_array = env.create_array_with_length(arr.len()).unwrap();
-      arr.into_iter().enumerate().for_each(|(index, item)| {
-        js_array
-          .set_element(index as u32, env.create_double(item).unwrap())
-          .unwrap();
-      });
-      js_array
+      let mut js_array = env.create_array_with_length(arr.len())?;
+      arr
+        .into_iter()
+        .enumerate()
+        .try_for_each(|(index, item)| js_array.set_element(index as u32, env.create_double(item)?));
+      Ok(js_array)
     }
     ArrayType::I32(arr) => {
-      let mut js_array = env.create_array_with_length(arr.len()).unwrap();
-      arr.into_iter().enumerate().for_each(|(index, item)| {
-        js_array
-          .set_element(index as u32, env.create_int32(item).unwrap())
-          .unwrap();
-      });
-      js_array
+      let mut js_array = env.create_array_with_length(arr.len())?;
+      arr
+        .into_iter()
+        .enumerate()
+        .try_for_each(|(index, item)| js_array.set_element(index as u32, env.create_int32(item)?));
+      Ok(js_array)
     }
     ArrayType::U8(arr) => {
-      let mut js_array = env.create_array_with_length(arr.len()).unwrap();
-      arr.into_iter().enumerate().for_each(|(index, item)| {
-        js_array
-          .set_element(index as u32, env.create_uint32(item as u32).unwrap())
-          .unwrap();
+      let mut js_array = env.create_array_with_length(arr.len())?;
+      arr.into_iter().enumerate().try_for_each(|(index, item)| {
+        js_array.set_element(index as u32, env.create_uint32(item as u32)?)
       });
-      js_array
+      Ok(js_array)
     }
   }
 }
