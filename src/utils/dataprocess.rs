@@ -1,4 +1,4 @@
-use crate::datatype::array::{js_array_to_number_array, js_array_to_string_array};
+use crate::datatype::array::ToRsArray;
 use crate::datatype::buffer::get_safe_buffer;
 use crate::datatype::function::get_js_function_call_value;
 use crate::datatype::object_calculate::generate_c_struct;
@@ -13,7 +13,8 @@ use libffi_sys::{
 };
 use napi::threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi::{
-  bindgen_prelude::*, Env, JsBoolean, JsBuffer, JsExternal, JsNumber, JsObject, JsString, JsUnknown,
+  bindgen_prelude::*, Env, JsBoolean, JsBuffer, JsExternal, JsNumber, JsObject, JsString,
+  JsStringUtf8, JsUnknown,
 };
 use std::ffi::{CStr, CString};
 
@@ -129,7 +130,7 @@ pub unsafe fn get_arg_types_values(
             DataType::StringArray => {
               let arg_type = &mut ffi_type_pointer as *mut ffi_type;
               let js_object = value.coerce_to_object()?;
-              let arg_val = js_array_to_string_array(js_object);
+              let arg_val = js_object.to_rs_array()?;
               (arg_type, RsArgsValue::StringArray(arg_val))
             }
             DataType::Boolean => {
@@ -385,17 +386,17 @@ pub fn get_params_value_rs_struct(
             }
             DataType::StringArray => {
               let js_array: JsObject = params_value_object.get_named_property(&field)?;
-              let arg_val = js_array_to_string_array(js_array);
+              let arg_val = js_array.to_rs_array()?;
               RsArgsValue::StringArray(arg_val)
             }
             DataType::DoubleArray => {
               let js_array: JsObject = params_value_object.get_named_property(&field)?;
-              let arg_val = js_array_to_number_array(js_array);
+              let arg_val: Vec<f64> = js_array.to_rs_array()?;
               RsArgsValue::DoubleArray(arg_val)
             }
             DataType::I32Array => {
               let js_array: JsObject = params_value_object.get_named_property(&field)?;
-              let arg_val = js_array_to_number_array(js_array);
+              let arg_val = js_array.to_rs_array()?;
               RsArgsValue::I32Array(arg_val)
             }
             DataType::U8Array => {

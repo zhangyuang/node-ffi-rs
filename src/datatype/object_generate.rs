@@ -189,17 +189,17 @@ pub unsafe fn create_rs_struct_from_pointer(
 pub fn create_js_object_from_rs_map(
   env: &Env,
   rs_struct: IndexMap<String, RsArgsValue>,
-) -> JsObject {
-  let mut js_object = env.create_object().unwrap();
+) -> Result<JsObject> {
+  let mut js_object = env.create_object()?;
   for (field, value) in rs_struct {
     js_object
       .set_property(
-        env.create_string(&field).unwrap(),
-        rs_value_to_js_unknown(&env, value).unwrap(),
+        env.create_string(&field)?,
+        rs_value_to_js_unknown(&env, value)?,
       )
       .unwrap();
   }
-  js_object
+  Ok(js_object)
 }
 pub fn rs_value_to_js_unknown(env: &Env, data: RsArgsValue) -> Result<JsUnknown> {
   let res = match data {
@@ -220,7 +220,7 @@ pub fn rs_value_to_js_unknown(env: &Env, data: RsArgsValue) -> Result<JsUnknown>
     RsArgsValue::I32Array(val) => val.to_js_array(env)?.into_unknown(),
     RsArgsValue::StringArray(val) => val.to_js_array(env)?.into_unknown(),
     RsArgsValue::DoubleArray(val) => val.to_js_array(env)?.into_unknown(),
-    RsArgsValue::Object(obj) => create_js_object_from_rs_map(env, obj).into_unknown(),
+    RsArgsValue::Object(obj) => create_js_object_from_rs_map(env, obj)?.into_unknown(),
     RsArgsValue::External(val) => val.into_unknown(),
     RsArgsValue::Void(_) => env.get_undefined()?.into_unknown(),
     RsArgsValue::Function(_, _) => panic!("function need to be improved"),
