@@ -6,6 +6,9 @@
 
 A module written in Rust and N-APi provides interface (FFI) features for Node.js
 
+## Updated
+
+ffi-rs will continue to be updated, but the source code will not be released at this time. You can still download the latest binaries via npm. The readme will be updated in real time. The source code will be re-released later
 
 ## Description
 
