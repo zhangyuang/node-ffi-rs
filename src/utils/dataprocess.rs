@@ -521,9 +521,12 @@ pub unsafe fn get_js_unknown_from_pointer(
       let ret_data_type = number_to_basic_data_type(number);
       match ret_data_type {
         BasicDataType::String => {
-          let ptr_str = CString::from_raw(*(ptr as *mut *mut c_char))
-            .into_string()
-            .unwrap();
+          // let ptr_str = CString::from_raw(*(ptr as *mut *mut c_char))
+          //   .into_string()
+          //   .unwrap();
+          let ptr_str = CStr::from_ptr(*(ptr as *mut *const c_char))
+            .to_string_lossy()
+            .to_string();
           rs_value_to_js_unknown(&env, RsArgsValue::String(ptr_str))
         }
         BasicDataType::U8 => rs_value_to_js_unknown(env, RsArgsValue::U8(*(ptr as *mut u8))),
