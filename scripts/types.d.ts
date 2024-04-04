@@ -1,4 +1,3 @@
-/* tslint:disable */
 /* eslint-disable */
 export const enum DataType {
   String = 0,
@@ -50,21 +49,6 @@ type DataFieldTypeToType<T extends DataFieldType<DataType>> = T extends DataType
   ? DataTypeToType<U>
   : never;
 
-export function load<
-  T extends DataType,
-  U extends Record<string, DataFieldType<T>>,
->(
-  params: Omit<FfiParams<T>, "retType"> & {
-    retType?: U;
-  },
-): { [K in keyof U]: DataFieldTypeToType<U[K]> };
-
-export function load<T extends DataType>(
-  params: Omit<FfiParams<T>, "retType"> & {
-    retType: T;
-  },
-): DataTypeToType<T>;
-
 export type ArrayConstructorOptions<T extends DataType> = {
   type: T;
   length: number;
@@ -84,11 +68,6 @@ export function funcConstructor<T extends DataType>(
   options: FuncConstructorOptions<T>,
 ): Func;
 
-export function load<T extends DataType>(
-  params: Omit<FfiParams<T>, "retType"> & {
-    retType: ArrayConstructorOptions<T>;
-  },
-): DataTypeToType<T>;
 
 type Func = <T extends DataType>() => FuncConstructorOptions<T>;
 
@@ -104,14 +83,14 @@ export type DataRecordFieldType<T extends DataType> =
   | DataFieldType<T>
   | {};
 
-export interface FfiParams<T extends DataType> {
+export interface FFIParams<T extends DataType> {
   library: string;
   funcName: string;
   retType: DataFieldType<T>;
   paramsType: Array<DataRecordFieldType<T>>;
   paramsValue: Array<unknown>;
 }
-export interface FfiParams<T extends DataType> {
+export interface FFIParams<T extends DataType> {
   library: string;
   funcName: string;
   retType: DataFieldType<T>;
@@ -125,7 +104,7 @@ export interface OpenParams {
 export function open(params: OpenParams): void;
 export function close(library: string): void;
 export function load<T extends DataType>(
-  params: Omit<FfiParams<T>, "retType"> & {
+  params: Omit<FFIParams<T>, "retType"> & {
     retType: ArrayConstructorOptions<T>;
   },
 ): DataTypeToType<T>;
@@ -140,3 +119,24 @@ export function restorePointer<T extends DataType>(params: {
   retType: Array<DataRecordFieldType<T>>;
   paramsValue: Array<unknown>;
 }): Array<DataTypeToType<T>>
+
+export function load<
+  T extends DataType,
+  U extends Record<string, DataFieldType<T>>,
+>(
+  params: Omit<FFIParams<T>, "retType"> & {
+    retType?: U;
+  },
+): { [K in keyof U]: DataFieldTypeToType<U[K]> };
+
+export function load<T extends DataType>(
+  params: Omit<FFIParams<T>, "retType"> & {
+    retType: T;
+  },
+): DataTypeToType<T>;
+
+export function load<T extends DataType>(
+  params: Omit<FFIParams<T>, "retType"> & {
+    retType: ArrayConstructorOptions<T>;
+  },
+): DataTypeToType<T>;
