@@ -32,7 +32,7 @@ export type ArrayConstructorOptions<T extends DataType> = {
 }
 
 export type FuncConstructorOptions<T extends DataType> = {
-  paramsType: Array<DataFieldType<T>>
+  paramsType: Array<DataRecordFieldType<T>>
   retType: DataFieldType<T>
 }
 
@@ -51,6 +51,8 @@ export function load<T extends DataType>(params: Omit<FfiParams<T>, 'retType'> &
 }): DataTypeToType<T>
 
 export type DataFieldType<T extends DataType> = DataType | Record<string, DataType> | ArrayConstructorOptions<T> | Func
+
+export type DataRecordFieldType<T extends DataType> = Record<string, DataFieldType<T>> | DataFieldType<T>
 
 
 export const enum DataType {
