@@ -64,53 +64,64 @@ pub unsafe fn generate_c_struct(map: IndexMap<String, RsArgsValue>) -> *mut c_vo
   let ptr = alloc(layout) as *mut c_void;
   let mut field_ptr = ptr;
   let mut offset = 0;
-  let mut distance = 0;
   for (_, field_val) in map {
-    match field_val {
+    let field_size = match field_val {
       RsArgsValue::I32(number) => {
-        let align = std::mem::align_of::<c_int>();
+        let (size, align) = (std::mem::size_of::<c_int>(), std::mem::align_of::<c_int>());
         let padding = (align - (offset % align)) % align;
         field_ptr = field_ptr.offset(padding as isize);
         (field_ptr as *mut c_int).write(number);
-        distance = std::mem::size_of::<c_int>();
-        offset += distance + padding;
+        offset += size + padding;
+        size
       }
       RsArgsValue::I64(number) => {
-        let align = std::mem::align_of::<c_longlong>();
+        let (size, align) = (
+          std::mem::size_of::<c_longlong>(),
+          std::mem::align_of::<c_longlong>(),
+        );
         let padding = (align - (offset % align)) % align;
         field_ptr = field_ptr.offset(padding as isize);
         (field_ptr as *mut c_longlong).write(number);
-        distance = std::mem::size_of::<c_longlong>();
-        offset += distance + padding;
+        offset += size + padding;
+        size
       }
       RsArgsValue::Double(double_number) => {
-        let align = std::mem::align_of::<c_double>();
+        let (size, align) = (
+          std::mem::size_of::<c_double>(),
+          std::mem::align_of::<c_double>(),
+        );
         let padding = (align - (offset % align)) % align;
         field_ptr = field_ptr.offset(padding as isize);
         (field_ptr as *mut c_double).write(double_number);
-        distance = std::mem::size_of::<c_double>();
-        offset += distance + padding;
+        offset += size + padding;
+        size
       }
       RsArgsValue::Boolean(val) => {
-        let align = std::mem::align_of::<bool>();
+        let (size, align) = (std::mem::size_of::<bool>(), std::mem::align_of::<bool>());
         let padding = (align - (offset % align)) % align;
         field_ptr = field_ptr.offset(padding as isize);
         (field_ptr as *mut bool).write(val);
-        distance = std::mem::size_of::<bool>();
-        offset += distance + padding;
+        offset += size + padding;
+        size
       }
       RsArgsValue::String(str) => {
-        let align = std::mem::align_of::<*const c_char>();
+        let (size, align) = (
+          std::mem::size_of::<*const c_void>(),
+          std::mem::align_of::<*const c_void>(),
+        );
         let padding = (align - (offset % align)) % align;
         field_ptr = field_ptr.offset(padding as isize);
         let c_string = CString::new(str).unwrap();
         (field_ptr as *mut *const c_char).write(c_string.as_ptr());
         std::mem::forget(c_string);
-        distance = std::mem::size_of::<*const c_char>();
-        offset += distance + padding;
+        offset += size + padding;
+        size
       }
       RsArgsValue::StringArray(str_arr) => {
-        let align = std::mem::align_of::<*const *const c_char>();
+        let (size, align) = (
+          std::mem::size_of::<*const c_void>(),
+          std::mem::align_of::<*const c_void>(),
+        );
         let padding = (align - (offset % align)) % align;
         field_ptr = field_ptr.offset(padding as isize);
         let c_char_vec: Vec<*const c_char> = str_arr
@@ -124,47 +135,56 @@ pub unsafe fn generate_c_struct(map: IndexMap<String, RsArgsValue>) -> *mut c_vo
           .collect();
         (field_ptr as *mut *const *const c_char).write(c_char_vec.as_ptr());
         std::mem::forget(c_char_vec);
-        distance = std::mem::size_of::<*const *const c_char>();
-        offset += distance + padding;
+        offset += size + padding;
+        size
       }
       RsArgsValue::DoubleArray(arr) => {
-        let align = std::mem::align_of::<*const c_double>();
+        let (size, align) = (
+          std::mem::size_of::<*const c_void>(),
+          std::mem::align_of::<*const c_void>(),
+        );
         let padding = (align - (offset % align)) % align;
         field_ptr = field_ptr.offset(padding as isize);
         (field_ptr as *mut *const c_double).write(arr.as_ptr());
         std::mem::forget(arr);
-        distance = std::mem::size_of::<*const c_double>();
-        offset += distance + padding;
+        offset += size + padding;
+        size
       }
       RsArgsValue::I32Array(arr) => {
-        let align = std::mem::align_of::<*const c_int>();
+        let (size, align) = (
+          std::mem::size_of::<*const c_void>(),
+          std::mem::align_of::<*const c_void>(),
+        );
         let padding = (align - (offset % align)) % align;
         field_ptr = field_ptr.offset(padding as isize);
         (field_ptr as *mut *const c_int).write(arr.as_ptr());
         std::mem::forget(arr);
-        distance = std::mem::size_of::<*const c_int>();
-        offset += distance + padding;
+        offset += size + padding;
+        size
       }
       RsArgsValue::Object(val) => {
-        let align = std::mem::align_of::<*const c_void>();
+        let (size, align) = (
+          std::mem::size_of::<*const c_void>(),
+          std::mem::align_of::<*const c_void>(),
+        );
         let padding = (align - (offset % align)) % align;
         field_ptr = field_ptr.offset(padding as isize);
         let obj_ptr = generate_c_struct(val);
         (field_ptr as *mut *const c_void).write(obj_ptr);
-        distance = std::mem::size_of::<*const c_void>();
-        offset += distance + padding;
+        offset += size + padding;
+        size
       }
       RsArgsValue::Void(_) => {
-        let align = std::mem::align_of::<()>();
+        let (size, align) = (std::mem::size_of::<()>(), std::mem::align_of::<()>());
         let padding = (align - (offset % align)) % align;
         field_ptr = field_ptr.offset(padding as isize);
         (field_ptr as *mut ()).write(());
-        distance = std::mem::size_of::<()>();
-        offset += distance + padding;
+        offset += size + padding;
+        size
       }
       RsArgsValue::Function(_, _) => panic!("write_data error {:?}", field_val),
-    }
-    field_ptr = field_ptr.offset(distance as isize);
+    };
+    field_ptr = field_ptr.offset(field_size as isize);
   }
   return ptr;
 }
