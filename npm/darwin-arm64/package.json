@@ -1,10 +1,16 @@
 {
   "name": "@yuuang/ffi-rs-darwin-arm64",
-  "version": "1.0.29",
-  "os": ["darwin"],
-  "cpu": ["arm64"],
+  "version": "1.0.30",
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "arm64"
+  ],
   "main": "ffi-rs.darwin-arm64.node",
-  "files": ["ffi-rs.darwin-arm64.node"],
+  "files": [
+    "ffi-rs.darwin-arm64.node"
+  ],
   "license": "MIT",
   "engines": {
     "node": ">= 12"
