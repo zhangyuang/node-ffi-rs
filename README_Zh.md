@@ -117,14 +117,23 @@ typedef struct Person {
   const char *name;
   int age;
   double doubleProps;
+  char **stringArray;
+  double *doubleArray;
+  int *i32Array;
 } Person;
 
 extern "C" const Person *getStruct(const Person *person) {
   printf("Name: %s\n", person->name);
   printf("Age: %d\n", person->age);
   printf("doubleProps: %f \n", person->doubleProps);
+  printf("stringArray: %s\n", person->stringArray[0]);
+  printf("stringArray: %s\n", person->stringArray[1]);
+  printf("doubleArray: %f\n", person->doubleArray[0]);
+  printf("doubleArray: %f\n", person->doubleArray[1]);
+  printf("i32Array: %d\n", person->i32Array[0]);
   return person;
 }
+
 ```
 
 ```bash
