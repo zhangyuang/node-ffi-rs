@@ -54,6 +54,7 @@ Currently, ffi-rs only supports there types of parameters and return values. How
 - [u8](#basic-types)
 - [i32](#basic-types)
 - [i64](#basic-types)
+- [u64](#basic-types)
 - [void](#basic-types)(undefined)
 - [double](#basic-types)
 - [boolean](#basic-types)
