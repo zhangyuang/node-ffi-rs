@@ -270,7 +270,7 @@ const unitTest = () => {
     deepStrictEqual(f, person);
     console.log("callback called");
     count++;
-    if (count === 1) {
+    if (count === 2) {
       console.log("test succeed");
       process.exit(0);
     }
