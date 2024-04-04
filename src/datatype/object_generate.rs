@@ -217,13 +217,9 @@ pub fn rs_value_to_js_unknown(env: &Env, data: RsArgsValue) -> Result<JsUnknown>
         create_buffer_val(env, arr.unwrap()).into_unknown()
       }
     }
-    RsArgsValue::I32Array(val) => rs_array_to_js_array(env, ArrayType::I32(val))?.into_unknown(),
-    RsArgsValue::StringArray(val) => {
-      rs_array_to_js_array(env, ArrayType::String(val))?.into_unknown()
-    }
-    RsArgsValue::DoubleArray(val) => {
-      rs_array_to_js_array(env, ArrayType::Double(val))?.into_unknown()
-    }
+    RsArgsValue::I32Array(val) => val.to_js_array(env)?.into_unknown(),
+    RsArgsValue::StringArray(val) => val.to_js_array(env)?.into_unknown(),
+    RsArgsValue::DoubleArray(val) => val.to_js_array(env)?.into_unknown(),
     RsArgsValue::Object(obj) => create_js_object_from_rs_map(env, obj).into_unknown(),
     RsArgsValue::External(val) => val.into_unknown(),
     RsArgsValue::Void(_) => env.get_undefined()?.into_unknown(),
