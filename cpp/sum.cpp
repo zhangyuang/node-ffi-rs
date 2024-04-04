@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <xlocale/_stdio.h>
 
 extern "C" int sum(int a, int b) { return a + b; }
 
@@ -98,6 +99,7 @@ typedef void (*FunctionPointer)(double a);
 extern "C" void callFunction(FunctionPointer func) {
   printf("callFunction");
   double a = 100.11;
+  // bool a = false;
   // char *a = "Hello, World!";
   // char *str = (char *)malloc(14 * sizeof(char));
   // strcpy(str, "Hello, World!");

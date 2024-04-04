@@ -161,6 +161,7 @@ const unitTest = () => {
     retType: DataType.Void,
     paramsType: [funcConstructor({
       paramsType: [DataType.Double],
+      retType: DataType.Void
     })],
     paramsValue: [func],
   })
