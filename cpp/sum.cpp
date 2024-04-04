@@ -54,6 +54,7 @@ typedef struct Person {
   bool boolTrue;
   bool boolFalse;
   int64_t longVal;
+  char byte;
 } Person;
 
 extern "C" Person *getStruct(Person *person) {
@@ -73,7 +74,7 @@ extern "C" Person *createPerson() {
   // Initialize age and doubleProps
   person->age = 23;
   person->doubleProps = 1.1;
-
+  person->byte = 'A';
   // Allocate and initialize name
   person->name = strdup("tom");
 
@@ -107,6 +108,7 @@ extern "C" Person *createPerson() {
   person->parent->boolTrue = true;
   person->parent->boolFalse = false;
   person->parent->longVal = 5294967296;
+  person->parent->byte = 'B';
   return person;
 }
 typedef void (*FunctionPointer)(int a, bool b, char *c, char **d, int *e,
@@ -141,6 +143,8 @@ typedef void (*FunctionPointerDouble)(double a);
 extern "C" void callFunctionDouble(FunctionPointerDouble func) {
 
   double ddd = 100.11;
+  printf("Memory address of ddd: %p\n", (void *)&ddd);
+
   func(ddd);
 }
 

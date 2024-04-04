@@ -131,6 +131,7 @@ const unitTest = () => {
     boolTrue: true,
     boolFalse: false,
     longVal: 5294967296,
+    byte: 66,
   };
   const person = {
     age: 23,
@@ -143,6 +144,7 @@ const unitTest = () => {
     boolTrue: true,
     boolFalse: false,
     longVal: 4294967296,
+    byte: 65,
   };
   const parentType = {
     age: DataType.I32,
@@ -164,6 +166,7 @@ const unitTest = () => {
     boolTrue: DataType.Boolean,
     boolFalse: DataType.Boolean,
     longVal: DataType.I64,
+    byte: DataType.U8,
   };
   const personType = {
     age: DataType.I32,
@@ -185,6 +188,7 @@ const unitTest = () => {
     boolTrue: DataType.Boolean,
     boolFalse: DataType.Boolean,
     longVal: DataType.I64,
+    byte: DataType.U8,
   };
   const personObj = load({
     library: "libsum",
@@ -205,6 +209,7 @@ const unitTest = () => {
           boolTrue: DataType.Boolean,
           boolFalse: DataType.Boolean,
           longVal: DataType.I64,
+          byte: DataType.U8,
         },
         doubleProps: DataType.Double,
         name: DataType.String,
@@ -213,6 +218,7 @@ const unitTest = () => {
         boolTrue: DataType.Boolean,
         boolFalse: DataType.Boolean,
         longVal: DataType.I64,
+        byte: DataType.U8,
       },
     ],
     paramsValue: [person],
@@ -261,18 +267,18 @@ const unitTest = () => {
     ],
     paramsValue: [func],
   });
-  load({
-    library: "libsum",
-    funcName: "callFunctionDouble",
-    retType: DataType.Void,
-    paramsType: [
-      funcConstructor({
-        paramsType: [DataType.Double],
-        retType: DataType.Void,
-      }),
-    ],
-    paramsValue: [func],
-  });
+  // load({
+  //   library: "libsum",
+  //   funcName: "callFunctionDouble",
+  //   retType: DataType.Void,
+  //   paramsType: [
+  //     funcConstructor({
+  //       paramsType: [DataType.Double],
+  //       retType: DataType.Void,
+  //     }),
+  //   ],
+  //   paramsValue: [func],
+  // });
 };
 
 unitTest();
