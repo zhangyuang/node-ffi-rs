@@ -6,7 +6,8 @@ import {
   DataType,
   arrayConstructor,
   funcConstructor,
-  createExternal
+  createExternal,
+  restoreExternal
 } from "./index";
 
 const platform = process.platform;
@@ -44,6 +45,19 @@ const unitTest = () => {
       paramsValue: [c, d],
     }),
   );
+  const external = createExternal({
+    paramsType: [DataType.DoubleArray],
+    paramsValue: [[1.1, 2.2]]
+  })
+  const restoreData = restoreExternal({
+    retType: [arrayConstructor({
+      type: DataType.DoubleArray,
+      length: 2
+    })],
+    paramsValue: external
+  })
+  deepStrictEqual(restoreData, [[1.1, 2.2]])
+
   const ptr = load({
     library: "libsum",
     funcName: "concatenateStrings",
