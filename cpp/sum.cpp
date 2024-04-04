@@ -42,11 +42,6 @@ extern "C" char **createArrayString(char **arr, int size) {
 
 extern "C" bool return_opposite(bool input) { return !input; }
 
-typedef struct Parent {
-  int age;
-  // const char *name;
-} Parent;
-
 typedef struct Person {
   double *doubleArray;
   int age;
@@ -57,10 +52,21 @@ typedef struct Person {
   int testnum;
   bool boolTrue;
   bool boolFalse;
-  // Parent parent;
+  // struct Person *parent; // 新增parent字段
 } Person;
-
-extern "C" Person *getStruct(Person *person) { return person; }
+void printPersonAttributes(Person *person) {
+  printf("age: %d\n", person->age);
+  printf("doubleProps: %f\n", person->doubleProps);
+  printf("name: %s\n", person->name);
+  printf("testnum: %d\n", person->testnum);
+  printf("boolTrue: %d\n", person->boolTrue);
+  printf("boolFalse: %d\n", person->boolFalse);
+}
+extern "C" Person *getStruct(Person *person) {
+  printPersonAttributes(person);
+  // printPersonAttributes(person->parent);
+  return person;
+}
 
 extern "C" Person *createPerson() {
   Person *person = (Person *)malloc(sizeof(Person));
@@ -89,6 +95,26 @@ extern "C" Person *createPerson() {
   person->testnum = 123;
   person->boolTrue = true;
   person->boolFalse = false;
+
+  // Allocate and initialize parent
+  // person->parent = (Person *)malloc(sizeof(Person));
+  // person->parent->doubleArray = (double *)malloc(sizeof(double) * 3);
+  // person->parent->doubleArray[0] = 4.0;
+  // person->parent->doubleArray[1] = 5.0;
+  // person->parent->doubleArray[2] = 6.0;
+  // person->parent->age = 50;
+  // person->parent->doubleProps = 4.56;
+  // person->parent->name = strdup("Jane Doe");
+  // person->parent->stringArray = (char **)malloc(sizeof(char *) * 2);
+  // person->parent->stringArray[0] = strdup("Parent");
+  // person->parent->stringArray[1] = strdup("String");
+  // person->parent->i32Array = (int *)malloc(sizeof(int) * 3);
+  // person->parent->i32Array[0] = 4;
+  // person->parent->i32Array[1] = 5;
+  // person->parent->i32Array[2] = 6;
+  // person->parent->testnum = 456;
+  // person->parent->boolTrue = true;
+  // person->parent->boolFalse = false;
 
   return person;
 }

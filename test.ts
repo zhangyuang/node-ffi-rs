@@ -90,8 +90,21 @@ const unitTest = () => {
     i32Array: [1, 2, 3, 4],
     testnum: 32,
     boolTrue: true,
-    boolFalse: false
+    boolFalse: false,
+    // parent: {}
   }
+  // person.parent = {
+  //   doubleArray: [1.1, 2.2, 3.3],
+  //   age: 43,
+  //   doubleProps: 1.1,
+  //   name: 'tom father',
+  //   stringArray: ["foo", "bar"],
+  //   i32Array: [1, 2, 3, 4],
+  //   testnum: 62,
+  //   boolTrue: true,
+  //   boolFalse: false,
+  // }
+
   const personObj = load({
     library: 'libsum',
     funcName: 'getStruct',
@@ -105,6 +118,17 @@ const unitTest = () => {
       testnum: DataType.I32,
       boolTrue: DataType.Boolean,
       boolFalse: DataType.Boolean,
+      // parent: {
+      //   doubleArray: arrayConstructor({ type: DataType.DoubleArray, length: person.doubleArray.length }),
+      //   age: DataType.I32,
+      //   doubleProps: DataType.Double,
+      //   name: DataType.String,
+      //   stringArray: arrayConstructor({ type: DataType.StringArray, length: person.stringArray.length }),
+      //   i32Array: arrayConstructor({ type: DataType.I32Array, length: person.i32Array.length }),
+      //   testnum: DataType.I32,
+      //   boolTrue: DataType.Boolean,
+      //   boolFalse: DataType.Boolean,
+      // }
     },
     paramsType: [{
       age: DataType.I32,
@@ -116,6 +140,17 @@ const unitTest = () => {
       testnum: DataType.I32,
       boolTrue: DataType.Boolean,
       boolFalse: DataType.Boolean,
+      // parent: {
+      //   age: DataType.I32,
+      //   doubleProps: DataType.Double,
+      //   name: DataType.String,
+      //   stringArray: DataType.StringArray,
+      //   doubleArray: DataType.DoubleArray,
+      //   i32Array: DataType.I32Array,
+      //   testnum: DataType.I32,
+      //   boolTrue: DataType.Boolean,
+      //   boolFalse: DataType.Boolean,
+      // }
     }],
     paramsValue: [person]
   })
@@ -185,7 +220,6 @@ const unitTest = () => {
     })],
     paramsValue: [func],
   })
-
 
 }
 
