@@ -1,6 +1,6 @@
 {
   "name": "@yuuang/ffi-rs-darwin-x64",
-  "version": "1.0.20",
+  "version": "1.0.21",
   "os": [
     "darwin"
   ],
