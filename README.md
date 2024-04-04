@@ -143,7 +143,7 @@ close('libsum')
 
 ```
 
-### Use Basic Types
+### Basic Types
 
 `number|string|boolean|double|void` are basic types
 
@@ -187,7 +187,7 @@ equal(!bool_val, load({
 
 ### Array
 
-Use `arrayConstructor` to specify array type with legal length which is important.
+When use `array` as `retType` should use `arrayConstructor` to specify array type with legal length which is important.
 
 If the length is incorrect, program maybe exit abnormally
 
