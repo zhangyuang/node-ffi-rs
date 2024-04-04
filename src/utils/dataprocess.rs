@@ -1,9 +1,14 @@
 use crate::datatype::array::*;
-
+use crate::datatype::buffer::*;
+use crate::datatype::object_generate::*;
+use crate::datatype::pointer::*;
 use crate::define::*;
 use indexmap::IndexMap;
-use napi::JsBuffer;
-use napi::{Env, JsBoolean, JsExternal, JsNumber, JsObject, JsString, JsUnknown, ValueType};
+use libc::{c_char, c_double, c_int, c_uchar, c_void};
+use napi::{
+  Env, JsBoolean, JsBuffer, JsExternal, JsNumber, JsObject, JsString, JsUnknown, ValueType,
+};
+use std::ffi::CStr;
 
 pub fn get_params_value_rs_struct(
   env: &Env,
@@ -149,4 +154,84 @@ pub fn type_define_to_rs_args(type_define: JsUnknown) -> RsArgsValue {
     ),
   };
   return ret_value;
+}
+
+pub unsafe fn get_js_unknown_from_pointer(
+  env: &Env,
+  ret_type_rs: RsArgsValue,
+  ptr: *mut c_void,
+) -> JsUnknown {
+  match ret_type_rs {
+    RsArgsValue::I32(number) => {
+      let ret_data_type = number_to_basic_data_type(number);
+      match ret_data_type {
+        BasicDataType::String => {
+          let ptr_str = CStr::from_ptr(*(ptr as *mut *const c_char))
+            .to_string_lossy()
+            .to_string();
+          rs_value_to_js_unknown(&env, RsArgsValue::String(ptr_str))
+        }
+        BasicDataType::U8 => rs_value_to_js_unknown(&env, RsArgsValue::U8(*(ptr as *mut u8))),
+        BasicDataType::I32 => rs_value_to_js_unknown(&env, RsArgsValue::I32(*(ptr as *mut i32))),
+        BasicDataType::I64 => rs_value_to_js_unknown(&env, RsArgsValue::I64(*(ptr as *mut i64))),
+        BasicDataType::U64 => rs_value_to_js_unknown(&env, RsArgsValue::U64(*(ptr as *mut u64))),
+        BasicDataType::Void => env.get_undefined().unwrap().into_unknown(),
+        BasicDataType::Double => {
+          rs_value_to_js_unknown(&env, RsArgsValue::Double(*(ptr as *mut f64)))
+        }
+        BasicDataType::Boolean => {
+          rs_value_to_js_unknown(&env, RsArgsValue::Boolean(*(ptr as *mut bool)))
+        }
+        BasicDataType::External => {
+          let js_external = env
+            .create_external(*(ptr as *mut *mut c_void), None)
+            .unwrap();
+          rs_value_to_js_unknown(&env, RsArgsValue::External(js_external))
+        }
+      }
+    }
+    RsArgsValue::Object(obj) => {
+      let array_desc = get_array_desc(&obj);
+      if array_desc.is_some() {
+        // array
+        let (array_len, array_type) = array_desc.unwrap();
+        match array_type {
+          RefDataType::U8Array => {
+            let arr = create_array_from_pointer(*(ptr as *mut *mut c_uchar), array_len);
+            if !ptr.is_null() {
+              libc::free(ptr);
+            }
+            rs_value_to_js_unknown(&env, get_safe_buffer(&env, arr, false))
+          }
+          RefDataType::I32Array => {
+            let arr = create_array_from_pointer(*(ptr as *mut *mut c_int), array_len);
+            if !ptr.is_null() {
+              libc::free(ptr);
+            }
+            rs_value_to_js_unknown(&env, RsArgsValue::I32Array(arr))
+          }
+          RefDataType::DoubleArray => {
+            let arr = create_array_from_pointer(*(ptr as *mut *mut c_double), array_len);
+            if !ptr.is_null() {
+              libc::free(ptr);
+            }
+            rs_value_to_js_unknown(&env, RsArgsValue::DoubleArray(arr))
+          }
+          RefDataType::StringArray => {
+            let arr = create_array_from_pointer(*(ptr as *mut *mut *mut c_char), array_len);
+            if !ptr.is_null() {
+              libc::free(ptr as *mut c_void);
+            }
+            rs_value_to_js_unknown(&env, RsArgsValue::StringArray(arr))
+          }
+        }
+      } else {
+        // raw object
+        let rs_struct =
+          create_rs_struct_from_pointer(&env, *(ptr as *mut *mut c_void), &obj, false);
+        rs_value_to_js_unknown(&env, RsArgsValue::Object(rs_struct))
+      }
+    }
+    _ => panic!("ret_type err {:?}", ret_type_rs),
+  }
 }

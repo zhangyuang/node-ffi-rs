@@ -7,7 +7,6 @@ mod utils;
 
 use define::*;
 use libc::malloc;
-use libc::{c_char, c_double, c_int, c_uchar};
 use libffi_sys::{
   ffi_abi_FFI_DEFAULT_ABI, ffi_call, ffi_cif, ffi_prep_cif, ffi_type, ffi_type_double,
   ffi_type_pointer, ffi_type_sint32, ffi_type_sint64, ffi_type_uint64, ffi_type_uint8,
@@ -16,14 +15,10 @@ use libffi_sys::{
 use libloading::{Library, Symbol};
 use napi::{Env, JsExternal, JsUnknown};
 
+use datatype::pointer::*;
 use std::collections::HashMap;
 use std::ffi::c_void;
-use std::ffi::CStr;
-
-use datatype::buffer::*;
-use datatype::object_generate::*;
-use datatype::pointer::*;
-use utils::dataprocess::type_define_to_rs_args;
+use utils::dataprocess::{get_js_unknown_from_pointer, type_define_to_rs_args};
 
 static mut LIBRARY_MAP: Option<HashMap<String, Library>> = None;
 
@@ -138,77 +133,5 @@ unsafe fn load(env: Env, params: FFIParams) -> JsUnknown {
     result,
     arg_values_c_void.as_mut_ptr(),
   );
-  match ret_type_rs {
-    RsArgsValue::I32(number) => {
-      let ret_data_type = number_to_basic_data_type(number);
-      match ret_data_type {
-        BasicDataType::String => {
-          let result_str = CStr::from_ptr(*(result as *mut *const c_char))
-            .to_string_lossy()
-            .to_string();
-          rs_value_to_js_unknown(&env, RsArgsValue::String(result_str))
-        }
-        BasicDataType::U8 => rs_value_to_js_unknown(&env, RsArgsValue::U8(*(result as *mut u8))),
-        BasicDataType::I32 => rs_value_to_js_unknown(&env, RsArgsValue::I32(*(result as *mut i32))),
-        BasicDataType::I64 => rs_value_to_js_unknown(&env, RsArgsValue::I64(*(result as *mut i64))),
-        BasicDataType::U64 => rs_value_to_js_unknown(&env, RsArgsValue::U64(*(result as *mut u64))),
-        BasicDataType::Void => env.get_undefined().unwrap().into_unknown(),
-        BasicDataType::Double => {
-          rs_value_to_js_unknown(&env, RsArgsValue::Double(*(result as *mut f64)))
-        }
-        BasicDataType::Boolean => {
-          rs_value_to_js_unknown(&env, RsArgsValue::Boolean(*(result as *mut bool)))
-        }
-        BasicDataType::External => {
-          let js_external = env
-            .create_external(*(result as *mut *mut c_void), None)
-            .unwrap();
-          rs_value_to_js_unknown(&env, RsArgsValue::External(js_external))
-        }
-      }
-    }
-    RsArgsValue::Object(obj) => {
-      let array_desc = get_array_desc(&obj);
-      if array_desc.is_some() {
-        // array
-        let (array_len, array_type) = array_desc.unwrap();
-        match array_type {
-          RefDataType::U8Array => {
-            let arr = create_array_from_pointer(*(result as *mut *mut c_uchar), array_len);
-            if !result.is_null() {
-              libc::free(result);
-            }
-            rs_value_to_js_unknown(&env, get_safe_buffer(&env, arr, false))
-          }
-          RefDataType::I32Array => {
-            let arr = create_array_from_pointer(*(result as *mut *mut c_int), array_len);
-            if !result.is_null() {
-              libc::free(result);
-            }
-            rs_value_to_js_unknown(&env, RsArgsValue::I32Array(arr))
-          }
-          RefDataType::DoubleArray => {
-            let arr = create_array_from_pointer(*(result as *mut *mut c_double), array_len);
-            if !result.is_null() {
-              libc::free(result);
-            }
-            rs_value_to_js_unknown(&env, RsArgsValue::DoubleArray(arr))
-          }
-          RefDataType::StringArray => {
-            let arr = create_array_from_pointer(*(result as *mut *mut *mut c_char), array_len);
-            if !result.is_null() {
-              libc::free(result as *mut c_void);
-            }
-            rs_value_to_js_unknown(&env, RsArgsValue::StringArray(arr))
-          }
-        }
-      } else {
-        // raw object
-        let rs_struct =
-          create_rs_struct_from_pointer(&env, *(result as *mut *mut c_void), &obj, false);
-        rs_value_to_js_unknown(&env, RsArgsValue::Object(rs_struct))
-      }
-    }
-    _ => panic!("ret_type err {:?}", ret_type_rs),
-  }
+  get_js_unknown_from_pointer(&env, ret_type_rs, result)
 }
