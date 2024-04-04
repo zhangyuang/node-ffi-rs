@@ -3,10 +3,10 @@ extern crate napi_derive;
 
 use napi::bindgen_prelude::*;
 
-use napi::{Env, JsNumber, JsUnknown};
+use napi::{Env, JsNumber, JsObject, JsUnknown};
 
-use libc::c_char;
 use libc::malloc;
+use libc::{c_char, c_int};
 use libffi_sys::{
   ffi_abi_FFI_DEFAULT_ABI, ffi_call, ffi_cif, ffi_prep_cif, ffi_type, ffi_type_double,
   ffi_type_pointer, ffi_type_sint32, ffi_type_void,
@@ -21,12 +21,14 @@ pub enum RetType {
   I32,
   Void,
   Double,
+  I32Array,
 }
 
 pub enum RsArgsValue {
   String(String),
   I32(i32),
   Double(f64),
+  I32Array(Vec<i32>),
 }
 
 #[napi]
@@ -34,6 +36,7 @@ pub enum ParamsType {
   String,
   I32,
   Double,
+  I32Array,
 }
 
 #[napi(object)]
@@ -41,18 +44,20 @@ struct FFIParams {
   pub library: String,
   pub func_name: String,
   pub ret_type: RetType,
+  pub ret_type_len: Option<u32>,
   pub params_type: Vec<ParamsType>,
   pub params_value: Vec<JsUnknown>,
 }
 
 #[napi]
-fn load(params: FFIParams) -> Either4<String, i32, (), f64> {
+fn load(params: FFIParams) -> Either5<String, i32, (), f64, Vec<i32>> {
   let FFIParams {
     library,
     func_name,
     ret_type,
     params_type,
     params_value,
+    ret_type_len,
   } = params;
   unsafe {
     let lib = Library::new(library).unwrap();
@@ -83,6 +88,20 @@ fn load(params: FFIParams) -> Either4<String, i32, (), f64> {
             .unwrap();
           (arg_type, RsArgsValue::String(arg_val))
         }
+        ParamsType::I32Array => {
+          let arg_type = &mut ffi_type_pointer as *mut ffi_type;
+          let js_object = value.coerce_to_object().unwrap();
+          let arg_val = vec![0; js_object.get_array_length().unwrap() as usize]
+            .iter()
+            .enumerate()
+            .map(|(index, _)| {
+              let js_element: JsNumber = js_object.get_element(index as u32).unwrap();
+              return js_element.get_int32().unwrap();
+            })
+            .collect::<Vec<i32>>();
+
+          (arg_type, RsArgsValue::I32Array(arg_val))
+        }
       })
       .unzip();
     let mut arg_values: Vec<*mut c_void> = arg_values
@@ -100,6 +119,13 @@ fn load(params: FFIParams) -> Either4<String, i32, (), f64> {
           let c_double = Box::new(val);
           Box::into_raw(c_double) as *mut c_void
         }
+        RsArgsValue::I32Array(val) => {
+          let ptr = val.as_ptr();
+          let boxed_ptr = Box::new(ptr);
+          let raw_ptr = Box::into_raw(boxed_ptr);
+          std::mem::forget(val);
+          return raw_ptr as *mut c_void;
+        }
       })
       .collect();
 
@@ -108,6 +134,7 @@ fn load(params: FFIParams) -> Either4<String, i32, (), f64> {
       RetType::String => &mut ffi_type_pointer as *mut ffi_type,
       RetType::Void => &mut ffi_type_void as *mut ffi_type,
       RetType::Double => &mut ffi_type_double as *mut ffi_type,
+      RetType::I32Array => &mut ffi_type_pointer as *mut ffi_type,
     };
 
     let mut cif = ffi_cif {
@@ -118,7 +145,7 @@ fn load(params: FFIParams) -> Either4<String, i32, (), f64> {
       bytes: 0,
       flags: 0,
       #[cfg(all(target_arch = "aarch64", target_vendor = "apple"))]
-      aarch64_nfixedargs: 0,
+      aarch64_nfixedargs: params_type.len() as u32,
     };
 
     ffi_prep_cif(
@@ -139,8 +166,11 @@ fn load(params: FFIParams) -> Either4<String, i32, (), f64> {
           arg_values.as_mut_ptr(),
         );
 
-        let result_str = CString::from_raw(result).into_string().unwrap();
-        Either4::A(result_str)
+        let result_str = CString::from_raw(result)
+          .into_string()
+          .expect(format!("{} retType is not string", func_name).as_str());
+
+        Either5::A(result_str)
       }
       RetType::I32 => {
         let mut result: i32 = 0;
@@ -150,7 +180,7 @@ fn load(params: FFIParams) -> Either4<String, i32, (), f64> {
           &mut result as *mut i32 as *mut c_void,
           arg_values.as_mut_ptr(),
         );
-        Either4::B(result)
+        Either5::B(result)
       }
       RetType::Void => {
         let mut result = ();
@@ -160,7 +190,7 @@ fn load(params: FFIParams) -> Either4<String, i32, (), f64> {
           &mut result as *mut () as *mut c_void,
           arg_values.as_mut_ptr(),
         );
-        Either4::C(())
+        Either5::C(())
       }
       RetType::Double => {
         let mut result: f64 = 0.0;
@@ -170,7 +200,25 @@ fn load(params: FFIParams) -> Either4<String, i32, (), f64> {
           &mut result as *mut f64 as *mut c_void,
           arg_values.as_mut_ptr(),
         );
-        Either4::D(result)
+        Either5::D(result)
+      }
+      RetType::I32Array => {
+        let mut result: *mut c_int = malloc(std::mem::size_of::<*mut c_int>()) as *mut c_int;
+        let arg_values = arg_values.as_mut_ptr();
+        ffi_call(
+          &mut cif,
+          Some(*func),
+          &mut result as *mut _ as *mut c_void,
+          arg_values,
+        );
+
+        let result_slice = std::slice::from_raw_parts(result, ret_type_len.unwrap() as usize);
+        let result_vec = result_slice.to_vec();
+        if !result.is_null() {
+          libc::free(result as *mut c_void);
+        }
+
+        Either5::E(result_vec)
       }
     }
   }
