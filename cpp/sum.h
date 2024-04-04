@@ -12,7 +12,7 @@ const char *concatenateStrings(const char *str1, const char *str2);
 void noRet();
 int *createArrayi32(const int *arr, int size);
 
-char *createArrayString(const char *arr, int size);
+char **createArrayString(const char **arr, int size);
 
 #ifdef __cplusplus
 }
