@@ -62,6 +62,11 @@ extern "C" const Person *getStruct(const Person *person) {
   return person;
 }
 
-typedef void (*FunctionPointer)();
+typedef int (*FunctionPointer)(int a, int b);
 
-extern "C" void callFunction(FunctionPointer func) { func(); }
+extern "C" void callFunction(FunctionPointer func) {
+  printf("callFunction");
+  int a = 1;
+  int b = 2;
+  func(a, b);
+}

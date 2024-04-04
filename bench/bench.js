@@ -24,12 +24,12 @@ async function run() {
       libm.sum(1, 2);
       libm.concatenateStrings("foo", "bar");
     }),
-    b.add('koffi', () => {
-      const sum = koffilib.func('int sum(int a, int b)');
-      const concatenateStrings = koffilib.func('const char *concatenateStrings(const char *str1, const char *str2)');
-      sum(1, 2)
-      concatenateStrings("foo", "bar")
-    }),
+    // b.add('koffi', () => {
+    //   const sum = koffilib.func('int sum(int a, int b)');
+    //   const concatenateStrings = koffilib.func('const char *concatenateStrings(const char *str1, const char *str2)');
+    //   sum(1, 2)
+    //   concatenateStrings("foo", "bar")
+    // }),
     b.add('ffi-rs', () => {
       load({
         library: 'libsum',

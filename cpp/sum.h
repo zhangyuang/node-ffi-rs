@@ -18,12 +18,17 @@ typedef struct Parent {
   int age;
 } Parent;
 
+typedef void (*FunctionPointer)(int a, int b);
+
+extern int callFunction(FunctionPointer func);
+
 typedef struct Person {
   const char *name;
   int age;
   Parent parent;
 } Person;
 extern const Person *getStruct(const Person *p);
+
 #ifdef __cplusplus
 }
 #endif
