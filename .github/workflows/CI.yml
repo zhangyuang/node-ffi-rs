@@ -30,7 +30,7 @@ jobs:
               yarn build
               strip -x *.node
           - host: windows-latest
-            build: uname -a && yarn build
+            build: uname -a && yarn build && ls
             target: x86_64-pc-windows-msvc
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
