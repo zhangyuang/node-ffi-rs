@@ -151,8 +151,13 @@ const unitTest = () => {
     boolTrue: true,
     boolFalse: false
   })
-  const func = (a) => {
-    console.log('func param1', a)
+  const func = (a, b, c, d, e) => {
+    console.log('func params', a, b, c, d, e)
+    equal(a, 100)
+    equal(b, false)
+    equal(c, 'Hello, World!')
+    deepStrictEqual(d, ['Hello', 'world'])
+    deepStrictEqual(e, [101, 202, 303])
   }
 
   load({
@@ -160,12 +165,15 @@ const unitTest = () => {
     funcName: 'callFunction',
     retType: DataType.Void,
     paramsType: [funcConstructor({
-      paramsType: [DataType.Double],
+      paramsType: [DataType.I32, DataType.Boolean, DataType.String,
+      arrayConstructor({ type: DataType.StringArray, length: 2 }),
+      arrayConstructor({ type: DataType.I32Array, length: 3 }),
+      ],
       retType: DataType.Void
     })],
     paramsValue: [func],
   })
-
+  console.log('test succeed')
 }
 
 unitTest()
