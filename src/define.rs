@@ -9,6 +9,7 @@ pub enum FFIError {
   UnExpectedError,
   Panic(String),
   LibraryNotFound(String),
+  FunctionNotFound(String),
   UnsupportedValueType(String),
 }
 impl AsRef<str> for FFIError {
@@ -17,7 +18,7 @@ impl AsRef<str> for FFIError {
       FFIError::UnExpectedError => "UnexpectedError",
       FFIError::NapiError(e) => e.status.as_ref(),
       FFIError::Panic(desc) => desc,
-      FFIError::LibraryNotFound(desc) => desc,
+      FFIError::LibraryNotFound(desc) | FFIError::FunctionNotFound(desc) => desc,
       FFIError::UnsupportedValueType(desc) => desc,
     }
   }

@@ -104,7 +104,13 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     library
   )))?;
 
-  let func: Symbol<unsafe extern "C" fn()> = lib.get(func_name.as_str().as_bytes()).unwrap();
+  let func: Symbol<unsafe extern "C" fn()> =
+    lib.get(func_name.as_str().as_bytes()).map_err(|_| {
+      FFIError::FunctionNotFound(format!(
+        "Cannot find {:?} function in share library",
+        func_name.as_str()
+      ))
+    })?;
   let params_type_len = params_type.len();
 
   let (mut arg_types, arg_values) = get_arg_types_values(&env, params_type, params_value)?;
