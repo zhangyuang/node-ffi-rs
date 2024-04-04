@@ -1,8 +1,9 @@
 #[macro_use]
 extern crate napi_derive;
-mod define;
 #[macro_use]
 mod ffi_macro;
+
+mod define;
 mod pointer;
 mod utils;
 use define::*;
@@ -15,7 +16,7 @@ use libffi_sys::{
 };
 use libloading::{Library, Symbol};
 use napi::bindgen_prelude::*;
-use napi::{Env, JsBoolean, JsFunction, JsNumber, JsObject, JsString, JsUnknown};
+use napi::{Env, JsFunction, JsNumber, JsObject, JsString, JsUnknown};
 use pointer::*;
 use std::alloc::{alloc, Layout};
 use std::collections::HashMap;
@@ -147,7 +148,6 @@ unsafe fn load(
               let arg_type = &mut ffi_type_void as *mut ffi_type;
               (arg_type, RsArgsValue::Void(()))
             }
-            _ => panic!(""),
           }
         }
         ValueType::Object => {
@@ -170,10 +170,10 @@ unsafe fn load(
       }
     })
     .unzip();
-
   let mut arg_values_c_void: Vec<*mut c_void> = arg_values
     .into_iter()
-    .map(|val| {
+    .enumerate()
+    .map(|(index, val)| {
       match val {
         RsArgsValue::I32(val) => {
           let c_num = Box::new(val);
@@ -222,35 +222,34 @@ unsafe fn load(
         }
         RsArgsValue::Void(_) => Box::into_raw(Box::new(())) as *mut c_void,
         RsArgsValue::Function(func_desc, js_function) => {
+          use libffi::high::*;
           let func_desc_obj = func_desc
             .call_without_args(None)
             .unwrap()
             .coerce_to_object()
             .unwrap();
-
-          let func_args_type: JsObject = func_desc_obj.get_named_property("paramsType").unwrap();
+          let func_args_type: JsObject = func_desc_obj
+            .get_property(env.create_string("paramsType").unwrap())
+            .unwrap();
           let args_len = func_args_type.get_array_length().unwrap();
-          if args_len == 0 {
-            use libffi::high::Closure0;
-            let lambda = || {
-              js_function.call_without_args(None).unwrap();
-            };
-            let closure = Box::into_raw(Box::new(Closure0::new(&lambda)));
-            return std::mem::transmute((*closure).code_ptr());
+          let func_args_type_ptr = Box::into_raw(Box::new(func_args_type));
+          let js_function_ptr = Box::into_raw(Box::new(js_function));
+          if args_len > 10 {
+            panic!("The number of function parameters needs to be less than or equal to 10")
           }
-
-          match_args_len!(args_len, func_args_type, js_function, env,
-              1 => Closure1, a,
-              2 => Closure2, a,b,
-              3 => Closure3, a,b,c,
-              4 => Closure4, a,b,c,d,
-              5 => Closure5, a,b,c,d,e,
-              6 => Closure6, a,b,c,d,e,f,
-              7 => Closure7, a,b,c,d,e,f,g,
-              8 => Closure8, a,b,c,d,e,f,g,h,
-              9 => Closure9, a,b,c,d,e,f,g,h,i,
-              10 => Closure10, a,b,c,d,e,f,g,h,i,j
-          )
+          let res = match_args_len!(args_len, func_args_type_ptr, js_function_ptr, &env,
+              1 => ClosureOnce1, a
+              ,2 => ClosureOnce2, a,b
+              ,3 => ClosureOnce3, a,b,c
+              ,4 => ClosureOnce4, a,b,c,d
+              ,5 => ClosureOnce5, a,b,c,d,e
+              ,6 => ClosureOnce6, a,b,c,d,e,f
+              ,7 => ClosureOnce7, a,b,c,d,e,f,g
+              ,8 => ClosureOnce8, a,b,c,d,e,f,g,h
+              ,9 => ClosureOnce9, a,b,c,d,e,f,g,h,i
+              ,10 => ClosureOnce10, a,b,c,d,e,f,g,h,i,j
+          );
+          return res;
         }
         RsArgsValue::Object(val) => {
           let (size, _) = calculate_layout(&val);
@@ -345,8 +344,7 @@ unsafe fn load(
             }
           }
           write_data(val, field_ptr);
-          let p = Box::into_raw(Box::new(ptr)) as *mut c_void;
-          return p;
+          return Box::into_raw(Box::new(ptr)) as *mut c_void;
         }
       }
     })
@@ -550,7 +548,7 @@ unsafe fn load(
           &mut result as *mut _ as *mut c_void,
           arg_values_c_void.as_mut_ptr(),
         );
-        let js_object = create_object_from_pointer(env, result, ret_object);
+        let js_object = create_object_from_pointer(&env, result, ret_object);
         Either9::I(js_object)
       }
     }
