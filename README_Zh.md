@@ -33,6 +33,15 @@ $ npm i ffi-rs
 - doubleArray
 - object
 
+## 支持的系统架构
+
+- darwin-x64
+- darwin-arm64
+- linux-x64-gnu
+- win32-x64-msvc
+- linux-arm64-gnu
+- linux-arm64-musl
+
 
 ## 使用示例
 
