@@ -153,8 +153,8 @@ open({
 const r = load({
   library: "libsum", // path to the dynamic library file
   funcName: 'sum', // the name of the function to call
-  retType: RetType.I32, // the return value type
-  paramsType: [ParamsType.I32, ParamsType.I32], // the parameter types
+  retType: DataType.I32, // the return value type
+  paramsType: [DataType.I32, DataType.I32], // the parameter types
   paramsValue: [a, b] // the actual parameter values
 })
 equal(r, a + b)
@@ -162,38 +162,39 @@ equal(r, a + b)
 close('libsum')
 
 const c = "foo"
-const d = "bar"
+const d = c.repeat(200)
 
 equal(c + d, load({
   library: 'libsum',
   funcName: 'concatenateStrings',
-  retType: RetType.String,
-  paramsType: [ParamsType.String, ParamsType.String],
+  retType: DataType.String,
+  paramsType: [DataType.String, DataType.String],
   paramsValue: [c, d]
 }))
 
 equal(undefined, load({
   library: 'libsum',
   funcName: 'noRet',
-  retType: RetType.Void,
+  retType: DataType.Void,
   paramsType: [],
   paramsValue: []
 }))
 
+
 equal(1.1 + 2.2, load({
   library: 'libsum',
   funcName: 'doubleSum',
-  retType: RetType.Double,
-  paramsType: [ParamsType.Double, ParamsType.Double],
+  retType: DataType.Double,
+  paramsType: [DataType.Double, DataType.Double],
   paramsValue: [1.1, 2.2]
 }))
 
-let bigArr = new Array(100000).fill(100)
+let bigArr = new Array(100).fill(100)
 equal(bigArr[0], load({
   library: 'libsum',
   funcName: 'createArrayi32',
-  retType: RetType.I32Array,
-  paramsType: [ParamsType.I32Array, ParamsType.I32],
+  retType: DataType.I32Array,
+  paramsType: [DataType.I32Array, DataType.I32],
   paramsValue: [bigArr, bigArr.length],
   retTypeLen: bigArr.length
 })[0])
@@ -202,30 +203,29 @@ let bigDoubleArr = new Array(100).fill(1.1)
 equal(bigDoubleArr[0], load({
   library: 'libsum',
   funcName: 'createArrayDouble',
-  retType: RetType.DoubleArray,
-  paramsType: [ParamsType.DoubleArray, ParamsType.I32],
+  retType: DataType.DoubleArray,
+  paramsType: [DataType.DoubleArray, DataType.I32],
   paramsValue: [bigDoubleArr, bigDoubleArr.length],
   retTypeLen: bigDoubleArr.length
 })[0])
-
-const boolVal = false
-equal(!boolVal, load({
-  library: 'libsum',
-  funcName: 'return_opposite',
-  retType: RetType.Boolean,
-  paramsType: [ParamsType.Boolean],
-  paramsValue: [bool_val],
-}))
 
 let stringArr = [c, c.repeat(200)]
 equal(stringArr[0], load({
   library: 'libsum',
   funcName: 'createArrayString',
-  retType: RetType.StringArray,
-  paramsType: [ParamsType.StringArray, ParamsType.I32],
+  retType: DataType.StringArray,
+  paramsType: [DataType.StringArray, DataType.I32],
   paramsValue: [stringArr, stringArr.length],
   retTypeLen: stringArr.length
 })[0])
+const bool_val = true
+equal(!bool_val, load({
+  library: 'libsum',
+  funcName: 'return_opposite',
+  retType: DataType.Boolean,
+  paramsType: [DataType.Boolean],
+  paramsValue: [bool_val],
+}))
 
 const person = {
   name: 'tom',
@@ -234,17 +234,17 @@ const person = {
 const personObj = load({
   library: 'libsum',
   funcName: 'getStruct',
-  retType: RetType.Object,
+  retType: {
+    name: DataType.String,
+    age: DataType.I32,
+  },
   paramsType: [{
-    name: ParamsType.String,
-    age: ParamsType.I32,
+    name: DataType.String,
+    age: DataType.I32,
   }],
-  paramsValue: [person],
-  retFields: {
-    name: ParamsType.String,
-    age: ParamsType.I32,
-  }
+  paramsValue: [person]
 })
 equal(person.name, personObj.name)
 equal(person.age, personObj.age)
+
 ```
