@@ -9,7 +9,7 @@ A module written in Rust and N-APi provides interface (FFI) features for Node.js
 
 ## Description
 
-ffi-rs is a module written in Rust and N-API that provides FFI (Foreign Function Interface) features for Node.js. It allows developers to call functions written in other languages such as C++, C, and Rust directly from JavaScript without writing any C++ code.
+[ffi-rs](https://github.com/zhangyuang/node-ffi-rs) is a module written in Rust and N-API that provides FFI (Foreign Function Interface) features for Node.js. It allows developers to call functions written in other languages such as C++, C, and Rust directly from JavaScript without writing any C++ code.
 
 This module aims to provide similar functionality to the node-ffi module, but with a completely rewritten underlying codebase. The node-ffi module has been unmaintained for several years and is no longer usable, which is why ffi-rs was developed.
 
@@ -20,7 +20,7 @@ $ node bench/bench.js
 Running "ffi" suite...
 Progress: 100%
 
-  ffi:
+  ffi-napi:
     2 007 ops/s, ±9.38%     | slowest, 99.24% slower
 
   ffi-rs:
@@ -28,7 +28,7 @@ Progress: 100%
 
 Finished 2 cases!
   Fastest: ffi-rs
-  Slowest: ffi-c++
+  Slowest: ffi-napi
 
 ```
 
@@ -142,6 +142,7 @@ const a = 1
 const b = 100
 const dynamicLib = platform === 'win32' ? './sum.dll' : "./libsum.so"
 // first open dynamic library with key for close
+// It only needs to be opened once.
 open({
   library: 'libsum', // key
   path: dynamicLib // path
