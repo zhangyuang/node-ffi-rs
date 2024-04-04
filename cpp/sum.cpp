@@ -138,7 +138,6 @@ extern "C" void callFunction(FunctionPointer func) {
     double ddd = 100.11;
     char *c = (char *)malloc(14 * sizeof(char));
     strcpy(c, "Hello, World!");
-    printf("Memory address of ddd: %p\n", (void *)&a);
 
     char **stringArray = (char **)malloc(sizeof(char *) * 2);
     stringArray[0] = strdup("Hello");
