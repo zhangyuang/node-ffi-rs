@@ -341,10 +341,10 @@ deepStrictEqual(
 );
 ```
 
-For the code above, we can use `createExternal` function to wrap a pointer data and send it as paramsValue
+For the code above, we can use `createPointer` function to wrap a pointer data and send it as paramsValue
 
 ```js
-const funcExternal: unknown[] = createExternal({
+const funcExternal: unknown[] = createPointer({
   paramsType: [DataType.DoubleArray],
   paramsValue: [[1.1,2.2]]
 })
@@ -363,14 +363,14 @@ load({
 
 The two pieces of code above are equivalent
 
-Similary, you can use `restoreExternal` to restore data from `pointer` which wrap by `createExternal`
+Similary, you can use `storePointer` to restore data from `pointer` which wrap by `createPointer`
 
 ```js
-const external = createExternal({
+const external = createPointer({
   paramsType: [DataType.DoubleArray],
   paramsValue: [[1.1, 2.2]]
 })
-const restoreData = restoreExternal({
+const restoreData = storePointer({
   retType: [arrayConstructor({
     type: DataType.DoubleArray,
     length: 2

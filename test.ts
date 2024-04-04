@@ -6,8 +6,8 @@ import {
   DataType,
   arrayConstructor,
   funcConstructor,
-  createExternal,
-  restoreExternal
+  createPointer,
+  restorePointer
 } from "./index";
 
 const platform = process.platform;
@@ -45,16 +45,16 @@ const unitTest = () => {
       paramsValue: [c, d],
     }),
   );
-  const external = createExternal({
+  const pointer = createPointer({
     paramsType: [DataType.DoubleArray],
     paramsValue: [[1.1, 2.2]]
   })
-  const restoreData = restoreExternal({
+  const restoreData = restorePointer({
     retType: [arrayConstructor({
       type: DataType.DoubleArray,
       length: 2
     })],
-    paramsValue: external
+    paramsValue: pointer
   })
   deepStrictEqual(restoreData, [[1.1, 2.2]])
 
@@ -290,7 +290,7 @@ const unitTest = () => {
       process.exit(0);
     }
   };
-  const funcExternal = createExternal({
+  const funcExternal = createPointer({
     paramsType: [funcConstructor({
       paramsType: [
         DataType.I32,
