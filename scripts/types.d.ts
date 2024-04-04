@@ -92,12 +92,6 @@ export function load<T extends DataType>(
 
 type Func = <T extends DataType>() => FuncConstructorOptions<T>;
 
-export function load<T extends DataType>(
-  params: Omit<FfiParams<T>, "retType"> & {
-    retType: ArrayConstructorOptions<T>;
-  },
-): DataTypeToType<T>;
-
 export type DataFieldType<T extends DataType> =
   | DataType
   | Record<string, DataType>
@@ -117,9 +111,26 @@ export interface FfiParams<T extends DataType> {
   paramsType: Array<DataRecordFieldType<T>>;
   paramsValue: Array<unknown>;
 }
+export interface FfiParams<T extends DataType> {
+  library: string;
+  funcName: string;
+  retType: DataFieldType<T>;
+  paramsType: Array<DataRecordFieldType<T>>;
+  paramsValue: Array<unknown>;
+}
 export interface OpenParams {
   library: string;
   path: string;
 }
 export function open(params: OpenParams): void;
 export function close(library: string): void;
+export function load<T extends DataType>(
+  params: Omit<FfiParams<T>, "retType"> & {
+    retType: ArrayConstructorOptions<T>;
+  },
+): DataTypeToType<T>;
+
+export function createExternal<T extends DataType>(params: {
+  paramsType: Array<DataRecordFieldType<T>>;
+  paramsValue: Array<unknown>;
+}): unknown[]
