@@ -120,167 +120,142 @@ const unitTest = () => {
       paramsValue: [bool_val],
     }),
   );
-  const person = {
+  const parent = {
+    age: 43,
     doubleArray: [1.1, 2.2, 3.3],
-    age: 23,
-    doubleProps: 1.1,
-    name: "tom",
-    stringArray: ["foo", "bar"],
-    i32Array: [1, 2, 3, 4],
-    testnum: 32,
+    parent: {},
+    doubleProps: 3.3,
+    name: "tom father",
+    stringArray: ["tom", "father"],
+    i32Array: [5, 6, 7],
     boolTrue: true,
     boolFalse: false,
-    // parent: {}
   };
-  // person.parent = {
-  //   doubleArray: [1.1, 2.2, 3.3],
-  //   age: 43,
-  //   doubleProps: 1.1,
-  //   name: 'tom father',
-  //   stringArray: ["foo", "bar"],
-  //   i32Array: [1, 2, 3, 4],
-  //   testnum: 62,
-  //   boolTrue: true,
-  //   boolFalse: false,
-  // }
-
+  const person = {
+    age: 23,
+    doubleArray: [1.1, 2.2, 3.3],
+    parent,
+    doubleProps: 1.1,
+    name: "tom",
+    stringArray: ["tom"],
+    i32Array: [1, 2, 3, 4],
+    boolTrue: true,
+    boolFalse: false,
+  };
+  const parentType = {
+    age: DataType.I32,
+    doubleArray: arrayConstructor({
+      type: DataType.DoubleArray,
+      length: parent.doubleArray.length,
+    }),
+    parent: {},
+    doubleProps: DataType.Double,
+    name: DataType.String,
+    stringArray: arrayConstructor({
+      type: DataType.StringArray,
+      length: parent.stringArray.length,
+    }),
+    i32Array: arrayConstructor({
+      type: DataType.I32Array,
+      length: parent.i32Array.length,
+    }),
+    boolTrue: DataType.Boolean,
+    boolFalse: DataType.Boolean,
+  };
+  const personType = {
+    age: DataType.I32,
+    doubleArray: arrayConstructor({
+      type: DataType.DoubleArray,
+      length: person.doubleArray.length,
+    }),
+    parent: parentType,
+    doubleProps: DataType.Double,
+    name: DataType.String,
+    stringArray: arrayConstructor({
+      type: DataType.StringArray,
+      length: person.stringArray.length,
+    }),
+    i32Array: arrayConstructor({
+      type: DataType.I32Array,
+      length: person.i32Array.length,
+    }),
+    boolTrue: DataType.Boolean,
+    boolFalse: DataType.Boolean,
+  };
   const personObj = load({
     library: "libsum",
     funcName: "getStruct",
-    retType: {
-      doubleArray: arrayConstructor({
-        type: DataType.DoubleArray,
-        length: person.doubleArray.length,
-      }),
-      age: DataType.I32,
-      doubleProps: DataType.Double,
-      name: DataType.String,
-      stringArray: arrayConstructor({
-        type: DataType.StringArray,
-        length: person.stringArray.length,
-      }),
-      i32Array: arrayConstructor({
-        type: DataType.I32Array,
-        length: person.i32Array.length,
-      }),
-      testnum: DataType.I32,
-      boolTrue: DataType.Boolean,
-      boolFalse: DataType.Boolean,
-      // parent: {
-      //   doubleArray: arrayConstructor({ type: DataType.DoubleArray, length: person.doubleArray.length }),
-      //   age: DataType.I32,
-      //   doubleProps: DataType.Double,
-      //   name: DataType.String,
-      //   stringArray: arrayConstructor({ type: DataType.StringArray, length: person.stringArray.length }),
-      //   i32Array: arrayConstructor({ type: DataType.I32Array, length: person.i32Array.length }),
-      //   testnum: DataType.I32,
-      //   boolTrue: DataType.Boolean,
-      //   boolFalse: DataType.Boolean,
-      // }
-    },
+    retType: personType,
     paramsType: [
       {
         age: DataType.I32,
+        doubleArray: DataType.DoubleArray,
+        parent: {
+          parent: {},
+          age: DataType.I32,
+          doubleProps: DataType.Double,
+          name: DataType.String,
+          stringArray: DataType.StringArray,
+          doubleArray: DataType.DoubleArray,
+          i32Array: DataType.I32Array,
+          boolTrue: DataType.Boolean,
+          boolFalse: DataType.Boolean,
+        },
         doubleProps: DataType.Double,
         name: DataType.String,
         stringArray: DataType.StringArray,
-        doubleArray: DataType.DoubleArray,
         i32Array: DataType.I32Array,
-        testnum: DataType.I32,
         boolTrue: DataType.Boolean,
         boolFalse: DataType.Boolean,
-        // parent: {
-        //   age: DataType.I32,
-        //   doubleProps: DataType.Double,
-        //   name: DataType.String,
-        //   stringArray: DataType.StringArray,
-        //   doubleArray: DataType.DoubleArray,
-        //   i32Array: DataType.I32Array,
-        //   testnum: DataType.I32,
-        //   boolTrue: DataType.Boolean,
-        //   boolFalse: DataType.Boolean,
-        // }
       },
     ],
     paramsValue: [person],
   });
-  console.log("person", personObj);
   deepStrictEqual(person, personObj);
-  const p = load({
+  const createdPerson = load({
     library: "libsum",
     funcName: "createPerson",
-    retType: {
-      doubleArray: arrayConstructor({ type: DataType.DoubleArray, length: 3 }),
-      age: DataType.I32,
-      doubleProps: DataType.Double,
-      name: DataType.String,
-      stringArray: arrayConstructor({ type: DataType.StringArray, length: 2 }),
-      i32Array: arrayConstructor({ type: DataType.I32Array, length: 3 }),
-      testnum: DataType.I32,
-      boolTrue: DataType.Boolean,
-      boolFalse: DataType.Boolean,
-    },
+    retType: personType,
     paramsType: [],
     paramsValue: [],
   });
-  console.log("createPerson", p);
-  const newP = {
-    doubleArray: [1, 2, 3],
-    age: 30,
-    doubleProps: 1.23,
-    name: "John Doe",
-    stringArray: ["Hello", "World"],
-    i32Array: [1, 2, 3],
-    testnum: 123,
-    boolTrue: true,
-    boolFalse: false,
-  };
-  deepStrictEqual(p, newP);
+
+  deepStrictEqual(createdPerson, person);
+  let count = 0;
   const func = (a, b, c, d, e, f) => {
     equal(a, 100);
     equal(b, false);
     equal(c, "Hello, World!");
     deepStrictEqual(d, ["Hello", "world"]);
     deepStrictEqual(e, [101, 202, 303]);
-    deepStrictEqual(f, newP);
-    console.log("test succeed");
+    deepStrictEqual(f, person);
+    console.log("callback called");
+    count++;
+    if (count === 2) {
+      console.log("test succeed");
+      process.exit(0);
+    }
   };
 
-  // load({
-  //   library: "libsum",
-  //   funcName: "callFunction",
-  //   retType: DataType.Void,
-  //   paramsType: [
-  //     funcConstructor({
-  //       paramsType: [
-  //         DataType.I32,
-  //         DataType.Boolean,
-  //         DataType.String,
-  //         arrayConstructor({ type: DataType.StringArray, length: 2 }),
-  //         arrayConstructor({ type: DataType.I32Array, length: 3 }),
-  //         {
-  //           doubleArray: arrayConstructor({
-  //             type: DataType.DoubleArray,
-  //             length: 3,
-  //           }),
-  //           age: DataType.I32,
-  //           doubleProps: DataType.Double,
-  //           name: DataType.String,
-  //           stringArray: arrayConstructor({
-  //             type: DataType.StringArray,
-  //             length: 2,
-  //           }),
-  //           i32Array: arrayConstructor({ type: DataType.I32Array, length: 3 }),
-  //           testnum: DataType.I32,
-  //           boolTrue: DataType.Boolean,
-  //           boolFalse: DataType.Boolean,
-  //         },
-  //       ],
-  //       retType: DataType.Void,
-  //     }),
-  //   ],
-  //   paramsValue: [func],
-  // });
+  load({
+    library: "libsum",
+    funcName: "callFunction",
+    retType: DataType.Void,
+    paramsType: [
+      funcConstructor({
+        paramsType: [
+          DataType.I32,
+          DataType.Boolean,
+          DataType.String,
+          arrayConstructor({ type: DataType.StringArray, length: 2 }),
+          arrayConstructor({ type: DataType.I32Array, length: 3 }),
+          personType,
+        ],
+        retType: DataType.Void,
+      }),
+    ],
+    paramsValue: [func],
+  });
 };
 
 unitTest();
