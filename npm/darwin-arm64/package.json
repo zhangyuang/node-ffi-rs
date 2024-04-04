@@ -1,6 +1,6 @@
 {
   "name": "ffi-rs-darwin-arm64",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "os": [
     "darwin"
   ],
