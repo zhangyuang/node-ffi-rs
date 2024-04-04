@@ -70,3 +70,10 @@ extern "C" void callFunction(FunctionPointer func) {
   int b = 2;
   func(a, b);
 }
+
+extern "C" void bufferToFill(double bufferToFill[3]) {
+  bufferToFill[0] = -0.5;
+  bufferToFill[1] = 7.5;
+  bufferToFill[2] = 3;
+  printf("%f", bufferToFill[0]);
+}

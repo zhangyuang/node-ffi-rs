@@ -49,7 +49,7 @@ $ npm i ffi-rs
 - i32Array
 - stringArray
 - doubleArray
-- object
+- object(暂时不支持嵌套对象)
 - function(开发中)
 
 

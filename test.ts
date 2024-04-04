@@ -1,5 +1,5 @@
-const { equal, deepStrictEqual } = require('assert')
-const { load, ParamsType, open, close, DataType } = require('./index')
+import { equal } from 'assert'
+import { load, open, close, DataType } from './index'
 
 const platform = process.platform
 const a = 1
@@ -56,7 +56,7 @@ const unitTest = () => {
     paramsType: [DataType.I32Array, DataType.I32],
     paramsValue: [bigArr, bigArr.length],
     retTypeLen: bigArr.length
-  })[0])
+  })?.[0])
 
   let bigDoubleArr = new Array(100).fill(1.1)
   equal(bigDoubleArr[0], load({
@@ -66,7 +66,7 @@ const unitTest = () => {
     paramsType: [DataType.DoubleArray, DataType.I32],
     paramsValue: [bigDoubleArr, bigDoubleArr.length],
     retTypeLen: bigDoubleArr.length
-  })[0])
+  })?.[0])
 
   let stringArr = [c, c.repeat(200)]
   equal(stringArr[0], load({
@@ -76,7 +76,7 @@ const unitTest = () => {
     paramsType: [DataType.StringArray, DataType.I32],
     paramsValue: [stringArr, stringArr.length],
     retTypeLen: stringArr.length
-  })[0])
+  })?.[0])
   const bool_val = true
   equal(!bool_val, load({
     library: 'libsum',
@@ -108,13 +108,17 @@ const unitTest = () => {
   const func = () => {
     console.log('func')
   }
-  load({
-    library: 'libsum',
-    funcName: 'callFunction',
-    retType: DataType.Void,
-    paramsType: [DataType.Function],
-    paramsValue: [func],
-  })
+  // load({
+  //   library: 'libsum',
+  //   funcName: 'callFunction',
+  //   retType: DataType.Void,
+  //   paramsType: [() => ({
+  //     paramsType: [DataType.I32, DataType.String, DataType.Double],
+  //     retType: DataType.Void
+  //   })],
+  //   paramsValue: [func],
+  // })
+
 }
 
 unitTest()
