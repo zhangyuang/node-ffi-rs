@@ -78,47 +78,39 @@ pub fn align_ptr(ptr: *mut c_void, align: usize) -> *mut c_void {
   let aligned = (ptr_int + align_minus_one) & !align_minus_one;
   aligned as *mut c_void
 }
+macro_rules! calculate_layout_for {
+  ($variant:ident, $type:ty) => {
+    fn $variant(size: usize, align: usize) -> (usize, usize) {
+      let align = align.max(std::mem::align_of::<$type>());
+      let size = size + std::mem::size_of::<$type>();
+      (size, align)
+    }
+  };
+}
+
+calculate_layout_for!(calculate_i32, c_int);
+calculate_layout_for!(calculate_double, c_double);
+calculate_layout_for!(calculate_string, *const c_char);
+calculate_layout_for!(calculate_string_array, *const *const c_char);
+calculate_layout_for!(calculate_double_array, *const c_double);
+calculate_layout_for!(calculate_i32_array, *const c_int);
 
 pub fn calculate_layout(map: &IndexMap<String, RsArgsValue>) -> (usize, usize) {
   let (size, align) = map
     .iter()
     .fold((0, 0), |(size, align), (_, field_val)| match field_val {
-      RsArgsValue::I32(_) => {
-        let align = align.max(std::mem::align_of::<c_int>());
-        let size = size + std::mem::size_of::<c_int>();
-        (size, align)
-      }
-      RsArgsValue::Double(_) => {
-        let align = align.max(std::mem::align_of::<c_double>());
-        let size = size + std::mem::size_of::<c_double>();
-        (size, align)
-      }
-      RsArgsValue::String(_) => {
-        let align = align.max(std::mem::align_of::<*const c_char>());
-        let size = size + std::mem::size_of::<*const c_char>();
-        (size, align)
-      }
+      RsArgsValue::I32(_) => calculate_i32(size, align),
+      RsArgsValue::Double(_) => calculate_double(size, align),
+      RsArgsValue::String(_) => calculate_string(size, align),
       RsArgsValue::Object(val) => {
         let (obj_size, obj_align) = calculate_layout(val);
         let align = align.max(obj_align);
         let size = size + obj_size;
         (size, align)
       }
-      RsArgsValue::StringArray(_) => {
-        let align = align.max(std::mem::align_of::<*const *const c_char>());
-        let size = size + std::mem::size_of::<*const *const c_char>();
-        (size, align)
-      }
-      RsArgsValue::DoubleArray(_) => {
-        let align = align.max(std::mem::align_of::<*const c_double>());
-        let size = size + std::mem::size_of::<*const c_double>();
-        (size, align)
-      }
-      RsArgsValue::I32Array(_) => {
-        let align = align.max(std::mem::align_of::<*const c_int>());
-        let size = size + std::mem::size_of::<*const c_int>();
-        (size, align)
-      }
+      RsArgsValue::StringArray(_) => calculate_string_array(size, align),
+      RsArgsValue::DoubleArray(_) => calculate_double_array(size, align),
+      RsArgsValue::I32Array(_) => calculate_i32_array(size, align),
       _ => panic!("calculate_layout"),
     });
   (size, align)
@@ -152,7 +144,6 @@ pub fn get_data_type_size_align(data_type: DataType) -> (usize, usize) {
     }
   };
 }
-
 pub enum ArrayPointerType {
   I32(*mut i32),
   Double(*mut c_double),
@@ -163,43 +154,39 @@ pub enum ArrayType {
   Double(Vec<f64>),
   String(Vec<String>),
 }
-pub fn create_array_from_pointer(pointer: ArrayPointerType, len: usize) -> ArrayType {
-  unsafe {
-    match pointer {
-      ArrayPointerType::I32(mut ptr) => {
-        let result_vec: Vec<i32> = (0..len)
-          .map(|_| {
-            let value = *ptr;
-            ptr = ptr.offset(1);
-            value
-          })
-          .collect();
-        ArrayType::I32(result_vec)
-      }
-      ArrayPointerType::Double(mut ptr) => {
-        let result_vec: Vec<f64> = (0..len)
-          .map(|_| {
-            let value = *ptr;
-            ptr = ptr.offset(1);
-            value
-          })
-          .collect();
-        ArrayType::Double(result_vec)
-      }
-      ArrayPointerType::String(ptr) => {
-        let result_vec = vec![0; len]
-          .iter()
-          .enumerate()
-          .map(|(index, _)| {
-            CString::from_raw(*ptr.offset(index as isize))
-              .into_string()
-              .unwrap()
-          })
-          .collect();
-        ArrayType::String(result_vec)
+pub trait ArrayPointer {
+  type Output;
+  unsafe fn get_and_advance(&mut self) -> Self::Output;
+}
+
+macro_rules! impl_array_pointer {
+  ($type:ty, $output:ty) => {
+    impl ArrayPointer for $type {
+      type Output = $output;
+      unsafe fn get_and_advance(&mut self) -> Self::Output {
+        let value = **self;
+        *self = self.offset(1);
+        value
       }
     }
+  };
+}
+impl_array_pointer!(*mut i32, i32);
+impl_array_pointer!(*mut f64, f64);
+
+impl ArrayPointer for *mut *mut c_char {
+  type Output = String;
+  unsafe fn get_and_advance(&mut self) -> Self::Output {
+    let value = (**self).clone();
+    *self = self.offset(1);
+    CString::from_raw(value).into_string().unwrap()
   }
+}
+pub fn create_array_from_pointer<P>(mut pointer: P, len: usize) -> Vec<P::Output>
+where
+  P: ArrayPointer,
+{
+  unsafe { (0..len).map(|_| pointer.get_and_advance()).collect() }
 }
 
 pub fn js_string_to_string(js_string: JsString) -> String {
