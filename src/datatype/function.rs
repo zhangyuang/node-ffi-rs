@@ -12,13 +12,12 @@ pub unsafe fn get_js_function_call_value(
   func_val_ptr: *mut c_void,
   need_thread_safe: bool,
 ) -> RsArgsValue {
-  return match func_arg_type {
+  match func_arg_type {
     RsArgsValue::I32(number) => {
       let data_type = number_to_basic_data_type(*number);
       let data = match data_type {
         BasicDataType::U8 => RsArgsValue::U8(func_val_ptr as u8),
         BasicDataType::I32 => {
-          println!("i32{:?}", func_val_ptr);
           return RsArgsValue::I32(func_val_ptr as i32);
         }
         BasicDataType::I64 => RsArgsValue::I64(func_val_ptr as i64),
@@ -61,27 +60,27 @@ pub unsafe fn get_js_function_call_value(
         match array_type {
           RefDataType::StringArray => {
             let arr = create_array_from_pointer(func_val_ptr as *mut *mut c_char, array_len);
-            return RsArgsValue::StringArray(arr);
+            RsArgsValue::StringArray(arr)
           }
           RefDataType::I32Array => {
             let arr = create_array_from_pointer(func_val_ptr as *mut c_int, array_len);
-            return RsArgsValue::I32Array(arr);
+            RsArgsValue::I32Array(arr)
           }
           RefDataType::U8Array => {
             let arr = create_array_from_pointer(func_val_ptr as *mut c_uchar, array_len);
-            return get_safe_buffer(env, arr, need_thread_safe);
+            get_safe_buffer(env, arr, need_thread_safe)
           }
           RefDataType::DoubleArray => {
             let arr = create_array_from_pointer(func_val_ptr as *mut c_double, array_len);
-            return RsArgsValue::DoubleArray(arr);
+            RsArgsValue::DoubleArray(arr)
           }
         }
       } else {
         // function | raw object
-        return RsArgsValue::Object(create_rs_struct_from_pointer(env, func_val_ptr, obj, true));
+        RsArgsValue::Object(create_rs_struct_from_pointer(env, func_val_ptr, obj, true))
       }
     }
 
     _ => panic!("get_js_function_call_value{:?}", func_arg_type),
-  };
+  }
 }
