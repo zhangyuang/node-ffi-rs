@@ -13,19 +13,19 @@ use libffi_sys::{
   ffi_type_void,
 };
 use libloading::{Library, Symbol};
-use napi::{Env, JsExternal, JsUnknown};
+use napi::{Env, JsExternal, JsUnknown, Result};
 
 use std::collections::HashMap;
 use std::ffi::c_void;
 use utils::dataprocess::{
-  get_arg_types_values, get_js_external_wrap_Data, get_js_unknown_from_pointer, get_value_pointer,
+  get_arg_types_values, get_js_external_wrap_data, get_js_unknown_from_pointer, get_value_pointer,
   type_define_to_rs_args,
 };
 
 static mut LIBRARY_MAP: Option<HashMap<String, Library>> = None;
 
 #[napi]
-unsafe fn create_pointer(env: Env, params: createPointerParams) -> napi::Result<Vec<JsExternal>> {
+unsafe fn create_pointer(env: Env, params: createPointerParams) -> Result<Vec<JsExternal>> {
   let createPointerParams {
     params_type,
     params_value,
@@ -41,24 +41,25 @@ unsafe fn create_pointer(env: Env, params: createPointerParams) -> napi::Result<
 }
 
 #[napi]
-unsafe fn restore_pointer(env: Env, params: storePointerParams) -> Vec<JsUnknown> {
+unsafe fn restore_pointer(env: Env, params: storePointerParams) -> Result<Vec<JsUnknown>> {
   let storePointerParams {
     ret_type,
     params_value,
   } = params;
+
   ret_type
     .into_iter()
     .zip(params_value.into_iter())
     .map(|(ret_type_item, js_external)| {
-      let mut ptr = get_js_external_wrap_Data(&env, js_external);
-      let ret_type_rs = type_define_to_rs_args(ret_type_item);
+      let mut ptr = get_js_external_wrap_data(&env, js_external);
+      let ret_type_rs = type_define_to_rs_args(ret_type_item)?;
       get_js_unknown_from_pointer(
         &env,
         ret_type_rs,
         &mut ptr as *mut *mut c_void as *mut c_void,
       )
     })
-    .collect()
+    .collect::<Result<Vec<JsUnknown>>>()
 }
 
 #[napi]
@@ -109,7 +110,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
   let (mut arg_types, arg_values) = get_arg_types_values(&env, params_type, params_value)?;
   let mut arg_values_c_void = get_value_pointer(&env, arg_values);
 
-  let ret_type_rs = type_define_to_rs_args(ret_type);
+  let ret_type_rs = type_define_to_rs_args(ret_type)?;
   let r_type: *mut ffi_type = match ret_type_rs {
     RsArgsValue::I32(number) => {
       let ret_data_type = number_to_basic_data_type(number);
@@ -154,5 +155,5 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     result,
     arg_values_c_void.as_mut_ptr(),
   );
-  Ok(get_js_unknown_from_pointer(&env, ret_type_rs, result))
+  get_js_unknown_from_pointer(&env, ret_type_rs, result)
 }

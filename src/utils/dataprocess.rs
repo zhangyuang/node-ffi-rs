@@ -17,12 +17,13 @@ use napi::{
 };
 use std::ffi::{CStr, CString};
 
-pub unsafe fn get_js_external_wrap_Data(env: &Env, js_external: JsExternal) -> *mut c_void {
+pub unsafe fn get_js_external_wrap_data(env: &Env, js_external: JsExternal) -> *mut c_void {
   let js_external_raw = JsExternal::to_napi_value(env.raw(), js_external).unwrap();
   let external: External<*mut c_void> =
     External::from_napi_value(env.raw(), js_external_raw).unwrap();
   *external
 }
+
 pub fn get_array_desc(obj: &IndexMap<String, RsArgsValue>) -> Option<(usize, RefDataType)> {
   if obj.get(ARRAY_LENGTH_TAG).is_none() {
     return None;
@@ -210,7 +211,7 @@ pub unsafe fn get_value_pointer(env: &Env, arg_values: Vec<RsArgsValue>) -> Vec<
     .into_iter()
     .map(|val| match val {
       RsArgsValue::External(val) => {
-        Box::into_raw(Box::new(get_js_external_wrap_Data(&env, val))) as *mut c_void
+        Box::into_raw(Box::new(get_js_external_wrap_data(&env, val))) as *mut c_void
       }
       RsArgsValue::U8(val) => {
         let c_num = Box::new(val);
@@ -334,7 +335,7 @@ pub fn get_params_value_rs_struct(
     .into_iter()
     .try_for_each(|field| {
       let field_type: JsUnknown = params_type_object.get_named_property(&field)?;
-      let _: Result<()> = match field_type.get_type()? {
+      match field_type.get_type()? {
         ValueType::Number => {
           let data_type: DataType = number_to_data_type(field_type.coerce_to_number()?.try_into()?);
           let val = match data_type {
@@ -399,7 +400,6 @@ pub fn get_params_value_rs_struct(
             DataType::Void => RsArgsValue::Void(()),
           };
           index_map.insert(field, val);
-          Ok(())
         }
 
         ValueType::Object => {
@@ -407,15 +407,16 @@ pub fn get_params_value_rs_struct(
           let params_value: JsObject = params_value_object.get_named_property(&field)?;
           let map = get_params_value_rs_struct(env, &params_type, &params_value);
           index_map.insert(field, RsArgsValue::Object(map?));
-          Ok(())
         }
-        _ => Err(
-          FFIError::UnsupportedValueType(format!(
-            "Received {:?} but params type only supported number or object ",
-            field_type.get_type().unwrap()
-          ))
-          .into(),
-        ),
+        _ => {
+          return Err(
+            FFIError::UnsupportedValueType(format!(
+              "Received {:?} but params type only supported number or object ",
+              field_type.get_type().unwrap()
+            ))
+            .into(),
+          )
+        }
       };
       Ok(())
     });
@@ -457,29 +458,32 @@ pub fn type_object_to_rs_struct(params_type: &JsObject) -> IndexMap<String, RsAr
 }
 
 // describe paramsType or retType, field can only be number or object
-pub fn type_define_to_rs_args(type_define: JsUnknown) -> RsArgsValue {
+pub fn type_define_to_rs_args(type_define: JsUnknown) -> Result<RsArgsValue> {
   let ret_value_type = type_define.get_type().unwrap();
   let ret_value = match ret_value_type {
-    ValueType::Number => {
-      RsArgsValue::I32(js_number_to_i32(type_define.coerce_to_number().unwrap()))
+    ValueType::Number => RsArgsValue::I32(js_number_to_i32(type_define.coerce_to_number()?)),
+    ValueType::Object => {
+      RsArgsValue::Object(type_object_to_rs_struct(&type_define.coerce_to_object()?))
     }
-    ValueType::Object => RsArgsValue::Object(type_object_to_rs_struct(
-      &type_define.coerce_to_object().unwrap(),
-    )),
-    _ => panic!(
-      "ret_value_type can only be number or object but receive {}",
-      ret_value_type
-    ),
+    _ => {
+      return Err(
+        FFIError::UnsupportedValueType(format!(
+          "ret_value_type can only be number or object but receive {}",
+          ret_value_type
+        ))
+        .into(),
+      )
+    }
   };
-  return ret_value;
+  Ok(ret_value)
 }
 
 pub unsafe fn get_js_unknown_from_pointer(
   env: &Env,
   ret_type_rs: RsArgsValue,
   ptr: *mut c_void,
-) -> JsUnknown {
-  match ret_type_rs {
+) -> Result<JsUnknown> {
+  let res = match ret_type_rs {
     RsArgsValue::I32(number) => {
       let ret_data_type = number_to_basic_data_type(number);
       match ret_data_type {
@@ -501,9 +505,7 @@ pub unsafe fn get_js_unknown_from_pointer(
           rs_value_to_js_unknown(env, RsArgsValue::Boolean(*(ptr as *mut bool)))
         }
         BasicDataType::External => {
-          let js_external = env
-            .create_external(*(ptr as *mut *mut c_void), None)
-            .unwrap();
+          let js_external = env.create_external(*(ptr as *mut *mut c_void), None)?;
           rs_value_to_js_unknown(env, RsArgsValue::External(js_external))
         }
       }
@@ -512,7 +514,7 @@ pub unsafe fn get_js_unknown_from_pointer(
       let array_desc = get_array_desc(&obj);
       if array_desc.is_some() {
         // array
-        let (array_len, array_type) = array_desc.unwrap();
+        let (array_len, array_type) = array_desc.ok_or(FFIError::UnexpectedError)?;
         match array_type {
           RefDataType::U8Array => {
             let arr = create_array_from_pointer(*(ptr as *mut *mut c_uchar), array_len);
@@ -538,5 +540,6 @@ pub unsafe fn get_js_unknown_from_pointer(
       }
     }
     _ => panic!("ret_type err {:?}", ret_type_rs),
-  }
+  };
+  Ok(res)
 }
