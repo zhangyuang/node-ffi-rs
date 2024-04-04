@@ -122,7 +122,35 @@ const unitTest = () => {
   })
   console.log('person', personObj)
   deepStrictEqual(person, personObj)
-  // deepStrictEqual(person.stringArrProps, personObj.stringArrProps)
+  const p = load({
+    library: 'libsum',
+    funcName: 'createPerson',
+    retType: {
+      doubleArray: arrayConstructor({ type: DataType.DoubleArray, length: 3 }),
+      age: DataType.I32,
+      doubleProps: DataType.Double,
+      name: DataType.String,
+      stringArray: arrayConstructor({ type: DataType.StringArray, length: 2 }),
+      i32Array: arrayConstructor({ type: DataType.I32Array, length: 3 }),
+      testnum: DataType.I32,
+      boolTrue: DataType.Boolean,
+      boolFalse: DataType.Boolean,
+    },
+    paramsType: [],
+    paramsValue: []
+  })
+  console.log('createPerson', p)
+  deepStrictEqual(p, {
+    doubleArray: [1, 2, 3],
+    age: 30,
+    doubleProps: 1.23,
+    name: 'John Doe',
+    stringArray: ['Hello', 'World'],
+    i32Array: [1, 2, 3],
+    testnum: 123,
+    boolTrue: true,
+    boolFalse: false
+  })
   // const func = () => {
   //   console.log('func')
   // }
