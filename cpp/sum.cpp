@@ -49,28 +49,21 @@ typedef struct Parent {
 } Parent;
 
 typedef struct Person {
-  const char *name;
+  double *doubleArray;
   int age;
   double doubleProps;
+  const char *name;
   char **stringArray;
-  double *doubleArray;
   int *i32Array;
+  int testnum;
+  bool boolTrue;
+  bool boolFalse;
   // Parent parent;
 } Person;
 
-extern "C" const Person *getStruct(const Person *person) {
-  printf("Name: %s\n", person->name);
-  printf("Age: %d\n", person->age);
-  printf("doubleProps: %f \n", person->doubleProps);
-  printf("stringArray: %s\n", person->stringArray[0]);
-  printf("stringArray: %s\n", person->stringArray[1]);
-  printf("doubleArray: %f\n", person->doubleArray[0]);
-  printf("doubleArray: %f\n", person->doubleArray[1]);
-  printf("i32Array: %d\n", person->i32Array[0]);
-  // printf("Parent Age: %d\n", person->parent.age);
-  // printf("Parent Name: %s\n", person->parent.name);
-  return person;
-}
+extern "C" Person *getStruct(Person *person) { return person; }
+
+extern "C" const Person *createStruct(const Person *person) { return person; }
 
 typedef int (*FunctionPointer)(int a, int b);
 
