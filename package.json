@@ -1,6 +1,6 @@
 {
   "name": "ffi-rs",
-  "version": "1.0.41",
+  "version": "1.0.42",
   "main": "index.js",
   "types": "index.d.ts",
   "description": "A module written in Rust and N-API provides interface (FFI) features for Node.js",
@@ -33,14 +33,16 @@
     "README.md"
   ],
   "license": "MIT",
+  "dependencies": {
+    "@napi-rs/cli": "^2.15.2",
+    "esno": "^4.0.0",
+    "shelljs": "^0.8.5"
+  },
   "devDependencies": {
     "@types/node": "^20.8.7",
     "benny": "^3.7.1",
     "ffi-napi": "^4.0.3",
-    "koa": "^2.14.2",
-    "@napi-rs/cli": "^2.15.2",
-    "esno": "^4.0.0",
-    "shelljs": "^0.8.5"
+    "koa": "^2.14.2"
   },
   "engines": {
     "node": ">= 16"
