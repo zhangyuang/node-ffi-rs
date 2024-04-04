@@ -73,3 +73,16 @@ pub fn number_to_data_type(value: i32) -> DataType {
     _ => panic!("unknow DataType"),
   }
 }
+
+pub enum RsArgsValue {
+  String(String),
+  I32(i32),
+  Double(f64),
+  I32Array(Vec<i32>),
+  StringArray(Vec<String>),
+  DoubleArray(Vec<f64>),
+  Object(IndexMap<String, RsArgsValue>),
+  Boolean(bool),
+  Void(()),
+  Function(JsFunction, JsFunction),
+}
