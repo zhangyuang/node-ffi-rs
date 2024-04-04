@@ -55,12 +55,10 @@ typedef struct Person {
   bool boolFalse;
   int64_t longVal;
   char byte;
+  char *byteArray;
 } Person;
 
-extern "C" Person *getStruct(Person *person) {
-  // printf("person %d", person->longVal);
-  return person;
-}
+extern "C" Person *getStruct(Person *person) { return person; }
 
 extern "C" Person *createPerson() {
   Person *person = (Person *)malloc(sizeof(Person));
@@ -80,6 +78,10 @@ extern "C" Person *createPerson() {
 
   person->stringArray = (char **)malloc(sizeof(char *) * 1);
   person->stringArray[0] = strdup("tom");
+
+  person->byteArray = (char *)malloc(sizeof(char) * 2);
+  person->byteArray[0] = 101;
+  person->byteArray[1] = 102;
 
   person->i32Array = (int *)malloc(sizeof(int) * 4);
   person->i32Array[0] = 1;
@@ -109,6 +111,10 @@ extern "C" Person *createPerson() {
   person->parent->boolFalse = false;
   person->parent->longVal = 5294967296;
   person->parent->byte = 'B';
+
+  person->parent->byteArray = (char *)malloc(sizeof(char) * 2);
+  person->parent->byteArray[0] = 103;
+  person->parent->byteArray[1] = 104;
   return person;
 }
 typedef void (*FunctionPointer)(int a, bool b, char *c, char **d, int *e,
