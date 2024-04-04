@@ -31,6 +31,7 @@ $ npm i ffi-rs
 - i32Array
 - stringArray
 - doubleArray
+- object
 
 
 ## 使用示例
@@ -83,7 +84,16 @@ extern "C" char **createArrayString(char **arr, int size) {
   }
   return vec;
 }
+typedef struct Person {
+  const char *name;
+  int age;
+} Person;
 
+extern "C" const Person *getStruct(const Person *person) {
+  printf("Name: %s\n", person->name);
+  printf("Age: %d\n", person->age);
+  return person;
+}
 ```
 
 ```bash
@@ -177,4 +187,25 @@ equal(stringArr[0], load({
   paramsValue: [stringArr, stringArr.length],
   retTypeLen: stringArr.length
 })[0])
+
+const person = {
+  name: 'tom',
+  age: 23,
+}
+const personObj = load({
+  library: dynamicLib,
+  funcName: 'getStruct',
+  retType: RetType.Object,
+  paramsType: [{
+    name: ParamsType.String,
+    age: ParamsType.I32,
+  }],
+  paramsValue: [person],
+  retFields: {
+    name: ParamsType.String,
+    age: ParamsType.I32,
+  }
+})
+equal(person.name, personObj.name)
+equal(person.age, personObj.age)
 ```
