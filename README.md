@@ -53,6 +53,7 @@ Currently, ffi-rs only supports there types of parameters and return values. How
 
 ### Reference Type
 
+- [pointer](#pointer)
 - [u8Array](#array)
 - [i32Array](#array)
 - [stringArray](#array)
@@ -246,6 +247,42 @@ deepStrictEqual(stringArr, load({
   paramsValue: [stringArr, stringArr.length],
 }))
 
+```
+
+### Pointer
+
+In `ffi-rs`, we use [DataType.External](https://nodejs.org/api/n-api.html#napi_create_external) for wrap the `pointer` which makes it can be passed between `Node.js` and `C`.
+
+```cpp
+extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
+  std::string result = std::string(str1) + std::string(str2);
+  char *cstr = new char[result.length() + 1];
+  strcpy(cstr, result.c_str());
+  return cstr;
+}
+
+extern "C" char *getStringFromPtr(void *ptr) { return (char *)ptr; };
+```
+
+
+```js
+// get pointer
+const ptr = load({
+  library: "libsum",
+  funcName: "concatenateStrings",
+  retType: DataType.External,
+  paramsType: [DataType.String, DataType.String],
+  paramsValue: [c, d],
+})
+
+// send pointer
+const string = load({
+  library: "libsum",
+  funcName: "getStringFromPtr",
+  retType: DataType.String,
+  paramsType: [DataType.External],
+  paramsValue: [ptr],
+})
 ```
 
 ### Struct
