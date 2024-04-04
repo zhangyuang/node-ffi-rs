@@ -16,6 +16,10 @@ const libm = ffi.Library('./libsum', {
   'sum': ['int', ['int', 'int']],
   concatenateStrings: ['string', ['string', 'string']],
 });
+const koffi_libm = {
+  sum: koffilib.func('int sum(int a, int b)'),
+  concatenateStrings: koffilib.func('const char *concatenateStrings(const char *str1, const char *str2)')
+};
 
 async function run() {
   await b.suite(
@@ -25,10 +29,8 @@ async function run() {
       libm.concatenateStrings("foo", "bar");
     }),
     b.add('koffi', () => {
-      const sum = koffilib.func('int sum(int a, int b)');
-      const concatenateStrings = koffilib.func('const char *concatenateStrings(const char *str1, const char *str2)');
-      sum(1, 2)
-      concatenateStrings("foo", "bar")
+      koffi_libm.sum(1, 2)
+      koffi_libm.concatenateStrings("foo", "bar")
     }),
     b.add('ffi-rs', () => {
       load({
