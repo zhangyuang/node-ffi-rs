@@ -12,8 +12,10 @@ const { resolve } = require('path');
       ffiTypeTag: 'array'
     })
     module.exports.funcConstructor = (options) => (() => ({
+      permanent: false,
+      ffiTypeTag: 'function',
+      uuid: require('uuid').v4(),
       ...options,
-      ffiTypeTag: 'function'
     }))
     `)
   const typesContent = (await readFile(resolve(process.cwd(), './scripts/types.d.ts'))).toString()
