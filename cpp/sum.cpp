@@ -63,7 +63,33 @@ typedef struct Person {
 
 extern "C" Person *getStruct(Person *person) { return person; }
 
-extern "C" const Person *createStruct(const Person *person) { return person; }
+extern "C" Person createStruct() {
+  Person person;
+
+  // 初始化字段的含义
+  person.doubleArray = NULL; // 双精度浮点数数组为空
+  person.age = 0;            // 年龄为0
+  person.doubleProps = 0.0;  // 双精度浮点数属性为0.0
+  person.name = "Unknown";   // 姓名为"Unknown"
+
+  // 初始化字符串数组
+  person.stringArray = new char *[3];
+  person.stringArray[0] = strdup("Hello");   // 第一个字符串为"Hello"
+  person.stringArray[1] = strdup("World");   // 第二个字符串为"World"
+  person.stringArray[2] = strdup("ChatGPT"); // 第三个字符串为"ChatGPT"
+
+  // 初始化整数数组
+  person.i32Array = new int[4]; // 整数数组，长度为4
+  person.i32Array[0] = 10;      // 第一个整数为10
+  person.i32Array[1] = 20;      // 第二个整数为20
+  person.i32Array[2] = 30;      // 第三个整数为30
+  person.i32Array[3] = 40;      // 第四个整数为40
+
+  person.testnum = 0;  // 测试数值为0
+  person.boolTrue = 1; // 布尔值为真（1）
+  person.boolFalse = 0;
+  return person;
+}
 
 typedef int (*FunctionPointer)(int a, int b);
 
