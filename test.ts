@@ -325,6 +325,27 @@ const unitTest = () => {
   //   ],
   //   paramsValue: [func],
   // });
+
+  // cpp
+  const classPointer = load({
+    library: "libsum",
+    funcName: "createMyClassFromC",
+    retType: DataType.External,
+    paramsType: [
+      DataType.String,
+      DataType.I32
+    ],
+    paramsValue: ["classString", 26],
+  });
+  load({
+    library: "libsum",
+    funcName: "printMyClass",
+    retType: DataType.External,
+    paramsType: [
+      DataType.External,
+    ],
+    paramsValue: [classPointer],
+  })
 };
 
 unitTest();
