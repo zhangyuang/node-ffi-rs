@@ -5,7 +5,7 @@
   "types": "index.d.ts",
   "description": "A module written in Rust and N-API provides interface (FFI) features for Node.js",
   "napi": {
-    "name": "ffi-rs",
+    "name": "@yuuang/ffi-rs",
     "triples": {
       "additional": [
         "aarch64-apple-darwin",
@@ -45,7 +45,7 @@
     "build:c": "node scripts/cpp.js",
     "build": "yarn build:c && napi build --platform --release",
     "build:debug": "napi build --platform",
-    "prepublishOnly": "napi prepublish -t npm",
+    "prepublishOnly": "node scripts/publish.js && napi prepublish -t npm",
     "test": "node ./test.js",
     "universal": "napi universal",
     "version": "napi version"
