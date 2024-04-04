@@ -1,9 +1,10 @@
 use super::array::*;
+use super::buffer::*;
 use super::pointer::*;
 use crate::define::*;
 use indexmap::IndexMap;
-use napi::JsExternal;
-use napi::{Env, JsBoolean, JsNumber, JsObject, JsString, JsUnknown, ValueType};
+use napi::JsBuffer;
+use napi::{Env, JsBoolean, JsExternal, JsNumber, JsObject, JsString, JsUnknown, ValueType};
 use std::ffi::c_void;
 use std::ffi::{c_char, c_double, c_int, c_longlong, c_uchar, CStr};
 
@@ -170,7 +171,7 @@ pub unsafe fn create_rs_struct_from_pointer(
             field_ptr = field_ptr.offset(padding as isize);
             let type_field_ptr = field_ptr as *mut *mut c_uchar;
             let arr = create_array_from_pointer(*type_field_ptr, array_len);
-            rs_struct.insert(field, RsArgsValue::U8Array(arr));
+            rs_struct.insert(field, RsArgsValue::U8Array(create_buffer_val(&env, arr)));
             offset += size + padding;
             field_size = size
           }
@@ -260,9 +261,8 @@ pub fn get_params_value_rs_struct(
               RsArgsValue::I32Array(arg_val)
             }
             DataType::U8Array => {
-              let js_array: JsObject = params_value_object.get_named_property(&field).unwrap();
-              let arg_val: Vec<u32> = js_array_to_number_array(js_array);
-              RsArgsValue::U8Array(arg_val.into_iter().map(|item| item as u8).collect())
+              let js_buffer: JsBuffer = params_value_object.get_named_property(&field).unwrap();
+              RsArgsValue::U8Array(js_buffer.into_value().unwrap())
             }
             DataType::External => {
               let val: JsExternal = params_value_object.get_named_property(&field).unwrap();
@@ -360,7 +360,7 @@ pub fn rs_value_to_js_unknown(env: &Env, data: RsArgsValue) -> JsUnknown {
     RsArgsValue::Boolean(val) => env.get_boolean(val).unwrap().into_unknown(),
     RsArgsValue::String(val) => env.create_string(&val).unwrap().into_unknown(),
     RsArgsValue::Double(val) => env.create_double(val).unwrap().into_unknown(),
-    RsArgsValue::U8Array(val) => rs_array_to_js_array(env, ArrayType::U8(val)).into_unknown(),
+    RsArgsValue::U8Array(val) => val.into_unknown(),
     RsArgsValue::I32Array(val) => rs_array_to_js_array(env, ArrayType::I32(val)).into_unknown(),
     RsArgsValue::StringArray(val) => {
       rs_array_to_js_array(env, ArrayType::String(val)).into_unknown()

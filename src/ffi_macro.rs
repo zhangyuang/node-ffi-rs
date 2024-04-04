@@ -1,3 +1,4 @@
+#[macro_export]
 macro_rules! match_args_len {
  ($env:ident, $args_len:ident, $tsfn_ptr:expr, $func_args_type_rs_ptr:expr,  $($num:literal => $closure:ident, $($arg:ident),*),*) => {
         match $args_len {

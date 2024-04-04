@@ -1,5 +1,5 @@
 use indexmap::IndexMap;
-use napi::bindgen_prelude::*;
+use napi::{bindgen_prelude::*, JsBuffer, JsBufferValue};
 use napi::{Env, JsExternal, JsObject, JsUnknown};
 use std::ffi::c_void;
 use std::hash::Hash;
@@ -130,7 +130,7 @@ pub enum RsArgsValue {
   I32(i32),
   I64(i64),
   Double(f64),
-  U8Array(Vec<u8>),
+  U8Array(JsBufferValue),
   I32Array(Vec<i32>),
   StringArray(Vec<String>),
   DoubleArray(Vec<f64>),
@@ -148,7 +148,7 @@ impl std::fmt::Debug for RsArgsValue {
       RsArgsValue::I32(i) => write!(f, "I32({})", i),
       RsArgsValue::I64(i) => write!(f, "I64({})", i),
       RsArgsValue::Double(d) => write!(f, "Double({})", d),
-      RsArgsValue::U8Array(arr) => write!(f, "U8Array({:?})", arr),
+      RsArgsValue::U8Array(arr) => write!(f, "U8Array"),
       RsArgsValue::I32Array(arr) => write!(f, "I32Array({:?})", arr),
       RsArgsValue::StringArray(arr) => write!(f, "StringArray({:?})", arr),
       RsArgsValue::DoubleArray(arr) => write!(f, "DoubleArray({:?})", arr),

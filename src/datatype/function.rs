@@ -63,7 +63,7 @@ pub unsafe fn get_js_function_call_value(
           }
           RefDataType::U8Array => {
             let arr = create_array_from_pointer(func_val_ptr as *mut c_uchar, array_len);
-            return RsArgsValue::U8Array(arr);
+            return RsArgsValue::U8Array(env.create_buffer_with_data(arr).unwrap());
           }
           RefDataType::DoubleArray => {
             let arr = create_array_from_pointer(func_val_ptr as *mut c_double, array_len);

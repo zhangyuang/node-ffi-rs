@@ -1,4 +1,4 @@
-use super::pointer::get_js_external_wrap_Data;
+use crate::datatype::pointer::get_js_external_wrap_Data;
 use crate::define::RsArgsValue;
 use indexmap::IndexMap;
 use libc::c_void;
