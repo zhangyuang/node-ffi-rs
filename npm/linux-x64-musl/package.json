@@ -1,0 +1,21 @@
+{
+  "name": "@yuuang/ffi-rs-linux-x64-musl",
+  "version": "1.0.50",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "main": "ffi-rs.linux-x64-musl.node",
+  "files": [
+    "ffi-rs.linux-x64-musl.node"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">= 12"
+  },
+  "libc": [
+    "glibc"
+  ]
+}
