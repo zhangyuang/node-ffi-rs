@@ -72,12 +72,6 @@ where
     .collect::<Vec<T>>()
 }
 
-pub fn align_ptr(ptr: *mut c_void, align: usize) -> *mut c_void {
-  let align_minus_one = align - 1;
-  let ptr_int = ptr as usize;
-  let aligned = (ptr_int + align_minus_one) & !align_minus_one;
-  aligned as *mut c_void
-}
 macro_rules! calculate_layout_for {
   ($variant:ident, $type:ty) => {
     fn $variant(size: usize, align: usize) -> (usize, usize) {
@@ -90,6 +84,7 @@ macro_rules! calculate_layout_for {
 
 calculate_layout_for!(calculate_i32, c_int);
 calculate_layout_for!(calculate_double, c_double);
+calculate_layout_for!(calculate_boolean, bool);
 calculate_layout_for!(calculate_string, *const c_char);
 calculate_layout_for!(calculate_string_array, *const *const c_char);
 calculate_layout_for!(calculate_double_array, *const c_double);
@@ -102,6 +97,7 @@ pub fn calculate_layout(map: &IndexMap<String, RsArgsValue>) -> (usize, usize) {
       RsArgsValue::I32(_) => calculate_i32(size, align),
       RsArgsValue::Double(_) => calculate_double(size, align),
       RsArgsValue::String(_) => calculate_string(size, align),
+      RsArgsValue::Boolean(_) => calculate_boolean(size, align),
       RsArgsValue::Object(val) => {
         let (obj_size, obj_align) = calculate_layout(val);
         let align = align.max(obj_align);
@@ -116,9 +112,39 @@ pub fn calculate_layout(map: &IndexMap<String, RsArgsValue>) -> (usize, usize) {
   (size, align)
 }
 
+pub fn get_rs_value_size_align(val: &RsArgsValue) -> (usize, usize) {
+  return match val {
+    RsArgsValue::I32(_) => (std::mem::size_of::<i32>(), std::mem::align_of::<i32>()),
+    RsArgsValue::Boolean(_) => (std::mem::size_of::<bool>(), std::mem::align_of::<bool>()),
+    RsArgsValue::String(_) => (
+      std::mem::size_of::<*const c_char>(),
+      std::mem::align_of::<*const c_char>(),
+    ),
+    RsArgsValue::Double(_) => (
+      std::mem::size_of::<c_double>(),
+      std::mem::align_of::<c_double>(),
+    ),
+    RsArgsValue::StringArray(_) => (
+      std::mem::size_of::<*const *const c_char>(),
+      std::mem::align_of::<*const *const c_char>(),
+    ),
+    RsArgsValue::DoubleArray(_) => (
+      std::mem::size_of::<*const c_double>(),
+      std::mem::align_of::<*const c_double>(),
+    ),
+    RsArgsValue::I32Array(_) => (
+      std::mem::size_of::<*const c_int>(),
+      std::mem::align_of::<*const c_int>(),
+    ),
+    _ => {
+      panic!("get_rs_value_size_align error")
+    }
+  };
+}
 pub fn get_data_type_size_align(data_type: DataType) -> (usize, usize) {
   return match data_type {
-    DataType::I32 => (std::mem::size_of::<c_int>(), std::mem::align_of::<c_int>()),
+    DataType::I32 => (std::mem::size_of::<i32>(), std::mem::align_of::<i32>()),
+    DataType::Boolean => (std::mem::size_of::<bool>(), std::mem::align_of::<bool>()),
     DataType::String => (
       std::mem::size_of::<*const c_char>(),
       std::mem::align_of::<*const c_char>(),
