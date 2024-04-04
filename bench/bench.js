@@ -1,7 +1,7 @@
 const b = require('benny')
 const ffi = require('ffi-napi');
 const koffi = require('koffi');
-const { load, RetType, ParamsType, open } = require('../index')
+const { load, DataType, open } = require('../index')
 
 
 const platform = process.platform
@@ -14,8 +14,9 @@ open({
 })
 const libm = ffi.Library('libsum', {
   'sum': ['int', ['int', 'int']],
-  concatenateStrings: ['string', ['string', 'string']]
+  concatenateStrings: ['string', ['string', 'string']],
 });
+
 async function run() {
   await b.suite(
     'ffi',
@@ -33,15 +34,15 @@ async function run() {
       load({
         library: 'libsum',
         funcName: 'sum',
-        retType: RetType.I32,
-        paramsType: [ParamsType.I32, ParamsType.I32],
+        retType: DataType.I32,
+        paramsType: [DataType.I32, DataType.I32],
         paramsValue: [1, 2]
       })
       load({
         library: 'libsum',
         funcName: 'concatenateStrings',
-        retType: RetType.String,
-        paramsType: [ParamsType.String, ParamsType.String],
+        retType: DataType.String,
+        paramsType: [DataType.String, DataType.String],
         paramsValue: ["foo", "bar"]
       })
     }),

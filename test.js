@@ -1,5 +1,5 @@
 const { equal, deepStrictEqual } = require('assert')
-const { load, RetType, ParamsType, open, close } = require('./index')
+const { load, ParamsType, open, close, DataType } = require('./index')
 
 const platform = process.platform
 const a = 1
@@ -15,8 +15,8 @@ const unitTest = () => {
   equal(load({
     library: 'libsum',
     funcName: 'sum',
-    retType: RetType.I32,
-    paramsType: [ParamsType.I32, ParamsType.I32],
+    retType: DataType.I32,
+    paramsType: [DataType.I32, DataType.I32],
     paramsValue: [a, b]
   }), a + b)
 
@@ -26,15 +26,15 @@ const unitTest = () => {
   equal(c + d, load({
     library: 'libsum',
     funcName: 'concatenateStrings',
-    retType: RetType.String,
-    paramsType: [ParamsType.String, ParamsType.String],
+    retType: DataType.String,
+    paramsType: [DataType.String, DataType.String],
     paramsValue: [c, d]
   }))
 
   equal(undefined, load({
     library: 'libsum',
     funcName: 'noRet',
-    retType: RetType.Void,
+    retType: DataType.Void,
     paramsType: [],
     paramsValue: []
   }))
@@ -43,8 +43,8 @@ const unitTest = () => {
   equal(1.1 + 2.2, load({
     library: 'libsum',
     funcName: 'doubleSum',
-    retType: RetType.Double,
-    paramsType: [ParamsType.Double, ParamsType.Double],
+    retType: DataType.Double,
+    paramsType: [DataType.Double, DataType.Double],
     paramsValue: [1.1, 2.2]
   }))
 
@@ -52,8 +52,8 @@ const unitTest = () => {
   equal(bigArr[0], load({
     library: 'libsum',
     funcName: 'createArrayi32',
-    retType: RetType.I32Array,
-    paramsType: [ParamsType.I32Array, ParamsType.I32],
+    retType: DataType.I32Array,
+    paramsType: [DataType.I32Array, DataType.I32],
     paramsValue: [bigArr, bigArr.length],
     retTypeLen: bigArr.length
   })[0])
@@ -62,8 +62,8 @@ const unitTest = () => {
   equal(bigDoubleArr[0], load({
     library: 'libsum',
     funcName: 'createArrayDouble',
-    retType: RetType.DoubleArray,
-    paramsType: [ParamsType.DoubleArray, ParamsType.I32],
+    retType: DataType.DoubleArray,
+    paramsType: [DataType.DoubleArray, DataType.I32],
     paramsValue: [bigDoubleArr, bigDoubleArr.length],
     retTypeLen: bigDoubleArr.length
   })[0])
@@ -72,8 +72,8 @@ const unitTest = () => {
   equal(stringArr[0], load({
     library: 'libsum',
     funcName: 'createArrayString',
-    retType: RetType.StringArray,
-    paramsType: [ParamsType.StringArray, ParamsType.I32],
+    retType: DataType.StringArray,
+    paramsType: [DataType.StringArray, DataType.I32],
     paramsValue: [stringArr, stringArr.length],
     retTypeLen: stringArr.length
   })[0])
@@ -81,8 +81,8 @@ const unitTest = () => {
   equal(!bool_val, load({
     library: 'libsum',
     funcName: 'return_opposite',
-    retType: RetType.Boolean,
-    paramsType: [ParamsType.Boolean],
+    retType: DataType.Boolean,
+    paramsType: [DataType.Boolean],
     paramsValue: [bool_val],
   }))
 
@@ -93,20 +93,28 @@ const unitTest = () => {
   const personObj = load({
     library: 'libsum',
     funcName: 'getStruct',
-    retType: RetType.Object,
+    retType: {
+      name: DataType.String,
+      age: DataType.I32,
+    },
     paramsType: [{
-      name: ParamsType.String,
-      age: ParamsType.I32,
+      name: DataType.String,
+      age: DataType.I32,
     }],
-    paramsValue: [person],
-    retFields: {
-      name: ParamsType.String,
-      age: ParamsType.I32,
-    }
+    paramsValue: [person]
   })
   equal(person.name, personObj.name)
   equal(person.age, personObj.age)
-
+  // const func = () => {
+  //   console.log('func')
+  // }
+  // load({
+  //   library: 'libsum',
+  //   funcName: 'callFunction',
+  //   retType: DataType.Void,
+  //   paramsType: [DataType.Function],
+  //   paramsValue: [func],
+  // })
 }
 
 unitTest()
