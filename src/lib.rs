@@ -30,10 +30,6 @@ use utils::struct_utils::*;
 use utils::transform::*;
 
 static mut LIBRARY_MAP: Option<HashMap<String, Library>> = None;
-static mut FUNC_DESC: Option<HashMap<usize, IndexMap<String, RsArgsValue>>> = None;
-static mut TS_FN: Option<
-  HashMap<usize, ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal>>,
-> = None;
 
 #[napi]
 fn open(params: OpenParams) {
@@ -266,18 +262,16 @@ unsafe fn load(
         );
       }
       RsArgsValue::Object(val) => {
-        let (size, _) = calculate_layout(&val);
-        let layout = if size > 0 {
-          let (_, first_field) = val.get_index(0).unwrap();
-          let (_, align) = get_rs_value_size_align(first_field);
-          Layout::from_size_align(size, align).unwrap()
-        } else {
-          Layout::new::<i32>()
-        };
-
-        let ptr = alloc(layout) as *mut c_void;
-        let field_ptr = ptr;
-        unsafe fn write_data(map: IndexMap<String, RsArgsValue>, mut field_ptr: *mut c_void) {
+        unsafe fn write_object_data(map: IndexMap<String, RsArgsValue>) -> *mut c_void {
+          let (size, align) = calculate_layout(&map);
+          let layout = if size > 0 {
+            // need check size correctly
+            Layout::from_size_align(size, align).unwrap()
+          } else {
+            Layout::new::<i32>()
+          };
+          let ptr = alloc(layout) as *mut c_void;
+          let mut field_ptr = ptr;
           let mut offset = 0;
           for (_, field_val) in map {
             match field_val {
@@ -345,19 +339,20 @@ unsafe fn load(
                 offset = std::mem::size_of::<*const c_int>();
               }
               RsArgsValue::Object(val) => {
-                let (mut size, align) = calculate_layout(&val);
+                let align = std::mem::align_of::<*const c_void>();
                 let padding = (align - (offset % align)) % align;
                 field_ptr = field_ptr.offset(padding as isize);
-                write_data(val, field_ptr);
-                offset = size;
+                let obj_ptr = write_object_data(val);
+                (field_ptr as *mut *const c_void).write(obj_ptr);
+                offset = std::mem::size_of::<*const c_void>();
               }
               _ => panic!("write_data error {:?}", field_val),
             }
             field_ptr = field_ptr.offset(offset as isize);
           }
+          return ptr;
         }
-        write_data(val, field_ptr);
-        return Box::into_raw(Box::new(ptr)) as *mut c_void;
+        return Box::into_raw(Box::new(write_object_data(val))) as *mut c_void;
       }
     })
     .collect();
@@ -520,13 +515,7 @@ unsafe fn load(
         }
       } else {
         // raw object
-        let ret_fields_size = obj.keys().into_iter().fold(0, |pre, current| {
-          let size = pre;
-          let val = obj.get(current).unwrap();
-          let (field_size, _) = get_rs_struct_size_align(val);
-          size + field_size
-        });
-
+        let ret_fields_size = calculate_layout(&obj).0;
         let mut result: *mut c_void = malloc(ret_fields_size);
         ffi_call(
           &mut cif,

@@ -42,16 +42,20 @@ $ npm i ffi-rs
 
 Currently, ffi-rs only supports there types of parameters and return values. However, support for more types will be added in the future based on actual usage scenarios.
 
-- string
-- i32(number)
-- void(undefined)
-- double
-- boolean
-- i32Array
-- stringArray
-- doubleArray
-- object(Nested object is not supported at this time)
-- function
+### Basic Type
+- [string](#basic-types)
+- [i32](#basic-types)(number)
+- [void](#basic-types)(undefined)
+- [double](#basic-types)
+- [boolean](#basic-types)
+
+### Reference Type
+
+- [i32Array](#array)
+- [stringArray](#array)
+- [doubleArray](#array)
+- [object](#struct)(Nested object is also supported at the latest version)
+- [function](#function)
 
 ## Support Platform
 
@@ -136,7 +140,7 @@ close('libsum')
 
 ```
 
-### Basic Types
+### Use Basic Types
 
 `number|string|boolean|double|void` are basic types
 
@@ -247,17 +251,21 @@ For create a c struct or get a c struct as a return type, you need to define the
 
 ```cpp
 typedef struct Person {
-  const char *name;
   int age;
-  double doubleProps;
-  char **stringArray;
   double *doubleArray;
+  Person *parent;
+  double doubleProps;
+  const char *name;
+  char **stringArray;
   int *i32Array;
+  bool boolTrue;
+  bool boolFalse;
 } Person;
 
-extern "C" const Person *getStruct(const Person *person) {
+extern "C" Person *getStruct(Person *person) {
   return person;
 }
+
 extern "C" Person *createPerson() {
   Person *person = (Person *)malloc(sizeof(Person));
 
@@ -282,9 +290,27 @@ extern "C" Person *createPerson() {
   person->i32Array[0] = 1;
   person->i32Array[1] = 2;
   person->i32Array[2] = 3;
-  person->testnum = 123;
   person->boolTrue = true;
   person->boolFalse = false;
+
+  // Allocate and initialize parent
+  person->parent = (Person *)malloc(sizeof(Person));
+  person->parent->doubleArray = (double *)malloc(sizeof(double) * 3);
+  person->parent->doubleArray[0] = 4.0;
+  person->parent->doubleArray[1] = 5.0;
+  person->parent->doubleArray[2] = 6.0;
+  person->parent->age = 50;
+  person->parent->doubleProps = 4.56;
+  person->parent->name = strdup("Jane Doe");
+  person->parent->stringArray = (char **)malloc(sizeof(char *) * 2);
+  person->parent->stringArray[0] = strdup("Parent");
+  person->parent->stringArray[1] = strdup("String");
+  person->parent->i32Array = (int *)malloc(sizeof(int) * 3);
+  person->parent->i32Array[0] = 4;
+  person->parent->i32Array[1] = 5;
+  person->parent->i32Array[2] = 6;
+  person->parent->boolTrue = true;
+  person->parent->boolFalse = false;
 
   return person;
 }
@@ -292,73 +318,136 @@ extern "C" Person *createPerson() {
 
 ```js
 const person = {
-  doubleArray: [1.1, 2.2, 3.3],
   age: 23,
+  doubleArray: [1.1, 2.2, 3.3],
+  parent: {
+    age: 43,
+    doubleArray: [1.1, 2.2, 3.3],
+    parent: {},
+    doubleProps: 3.3,
+    name: "tom father",
+    stringArray: ["foo", "bar"],
+    i32Array: [1, 2, 3, 4],
+    boolTrue: true,
+    boolFalse: false,
+  },
   doubleProps: 1.1,
-  name: 'tom',
+  name: "tom",
   stringArray: ["foo", "bar"],
   i32Array: [1, 2, 3, 4],
-  testnum: 32,
   boolTrue: true,
-  boolFalse: false
-}
+  boolFalse: false,
+};
+const parentType = {
+  age: DataType.I32,
+  doubleArray: arrayConstructor({
+    type: DataType.DoubleArray,
+    length: person.doubleArray.length,
+  }),
+  parent: {},
+  doubleProps: DataType.Double,
+  name: DataType.String,
+  stringArray: arrayConstructor({
+    type: DataType.StringArray,
+    length: person.stringArray.length,
+  }),
+  i32Array: arrayConstructor({
+    type: DataType.I32Array,
+    length: person.i32Array.length,
+  }),
+  boolTrue: DataType.Boolean,
+  boolFalse: DataType.Boolean,
+};
+
 const personObj = load({
-  library: 'libsum',
-  funcName: 'getStruct',
+  library: "libsum",
+  funcName: "getStruct",
   retType: {
-    doubleArray: arrayConstructor({ type: DataType.DoubleArray, length: person.doubleArray.length }),
     age: DataType.I32,
+    doubleArray: arrayConstructor({
+      type: DataType.DoubleArray,
+      length: person.doubleArray.length,
+    }),
+    parent: parentType,
     doubleProps: DataType.Double,
     name: DataType.String,
-    stringArray: arrayConstructor({ type: DataType.StringArray, length: person.stringArray.length }),
-    i32Array: arrayConstructor({ type: DataType.I32Array, length: person.i32Array.length }),
-    testnum: DataType.I32,
+    stringArray: arrayConstructor({
+      type: DataType.StringArray,
+      length: person.stringArray.length,
+    }),
+    i32Array: arrayConstructor({
+      type: DataType.I32Array,
+      length: person.i32Array.length,
+    }),
     boolTrue: DataType.Boolean,
     boolFalse: DataType.Boolean,
   },
-  paramsType: [{
-    age: DataType.I32,
-    doubleProps: DataType.Double,
-    name: DataType.String,
-    stringArray: DataType.StringArray,
-    doubleArray: DataType.DoubleArray,
-    i32Array: DataType.I32Array,
-    testnum: DataType.I32,
-    boolTrue: DataType.Boolean,
-    boolFalse: DataType.Boolean,
-  }],
-  paramsValue: [person]
-})
-deepStrictEqual(person, personObj)
+  paramsType: [
+    {
+      age: DataType.I32,
+      doubleArray: DataType.DoubleArray,
+      parent: {
+        parent: {},
+        age: DataType.I32,
+        doubleProps: DataType.Double,
+        name: DataType.String,
+        stringArray: DataType.StringArray,
+        doubleArray: DataType.DoubleArray,
+        i32Array: DataType.I32Array,
+        boolTrue: DataType.Boolean,
+        boolFalse: DataType.Boolean,
+      },
+      doubleProps: DataType.Double,
+      name: DataType.String,
+      stringArray: DataType.StringArray,
+
+      i32Array: DataType.I32Array,
+      boolTrue: DataType.Boolean,
+      boolFalse: DataType.Boolean,
+    },
+  ],
+  paramsValue: [person],
+});
+deepStrictEqual(person, personObj);
 const p = load({
-  library: 'libsum',
-  funcName: 'createPerson',
+  library: "libsum",
+  funcName: "createPerson",
   retType: {
-    doubleArray: arrayConstructor({ type: DataType.DoubleArray, length: 3 }),
     age: DataType.I32,
+    doubleArray: arrayConstructor({ type: DataType.DoubleArray, length: 3 }),
+    parent: parentType,
     doubleProps: DataType.Double,
     name: DataType.String,
     stringArray: arrayConstructor({ type: DataType.StringArray, length: 2 }),
     i32Array: arrayConstructor({ type: DataType.I32Array, length: 3 }),
-    testnum: DataType.I32,
     boolTrue: DataType.Boolean,
     boolFalse: DataType.Boolean,
   },
   paramsType: [],
-  paramsValue: []
-})
-console.log('createPerson', p)
-deepStrictEqual(p, {
-  doubleArray: [1, 2, 3],
+  paramsValue: [],
+});
+const newP = {
   age: 30,
+  doubleArray: [1, 2, 3],
+  parent: {
+    age: 50,
+    doubleArray: [4, 5, 6],
+    parent: {},
+    doubleProps: 4.56,
+    name: "Jane Doe",
+    stringArray: ["Parent", "String"],
+    i32Array: [4, 5, 6, 0],
+    boolTrue: true,
+    boolFalse: false,
+  },
   doubleProps: 1.23,
-  name: 'John Doe',
-  stringArray: ['Hello', 'World'],
+  name: "John Doe",
+  stringArray: ["Hello", "World"],
   i32Array: [1, 2, 3],
-  testnum: 123,
   boolTrue: true,
-  boolFalse: false
-})
+  boolFalse: false,
+};
+deepStrictEqual(p, newP);
 
 ```
 
@@ -428,4 +517,6 @@ load({
 })
 ```
 
-The function parameters supports type are all in the example above, we will support more types in the future
+The function parameters supports type are all in the example above (double type is unsupported at this time), we will support more types in the future
+
+Attention，since the vast majority of scenaros developers pass js function to c as a callback, so `ffi-rs` will create [threadsafe_function](https://nodejs.org/api/n-api.html#napi_threadsafe_function) from jsfunction which means the jsfunction will be called asynchronous, and Node.js process will not be exited automatically
