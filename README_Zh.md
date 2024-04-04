@@ -13,6 +13,13 @@ A module written in Rust and N-APi provides interface (FFI) features for Node.js
 
 开发者无需编写 `C++` 代码便可以直接在 `js` 中调用其他语言的能力。此模块在功能上尽量对标[node-ffi](https://github.com/node-ffi/node-ffi)模块，但底层代码已彻底重写。因 `node-ffi` 模块已经多年无人维护处于一个不可用的状态因此开发了`ffi-rs`模块。
 
+## 功能
+
+- 更高的性能
+- 更简洁的类型描述和接口描述
+- 支持在 `Node.js` 和 `C` 之间传递更多类型的数据
+- 支持原地修改数据
+
 ## 基准测试
 
 ```bash
@@ -177,6 +184,32 @@ equal(!bool_val, load({
   paramsType: [DataType.Boolean],
   paramsValue: [bool_val],
 }))
+```
+
+### Buffer
+
+In the lateset version, `ffi-rs` support modify data in place.
+
+The sample code is as follows
+
+```c
+extern int modifyData(char* buffer) {
+    // modify buffer data in place
+}
+```
+
+```js
+const arr = Buffer.alloc(200) // create buffer
+const res = load({
+  library: "libsum",
+  funcName: "modifyData",
+  retType: DataType.I32,
+  paramsType: [
+    DataType.U8Array
+  ],
+  paramsValue: [arr]
+})
+console.log(arr) // buffer data can be updated
 ```
 
 ### Array
