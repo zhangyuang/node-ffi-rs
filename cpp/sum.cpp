@@ -153,14 +153,16 @@ extern "C" void callFunction(FunctionPointer func) {
   }
 }
 
-typedef void (*FunctionPointerDouble)(double a);
+typedef void (*FunctionPointerDouble)(int a, double b);
 
 extern "C" void callFunctionDouble(FunctionPointerDouble func) {
-
+  int aaa = 100;
   double ddd = 100.11;
+  printf("Memory address of aaa: %p\n", (void *)&aaa);
+
   printf("Memory address of ddd: %p\n", (void *)&ddd);
 
-  func(ddd);
+  func(aaa, ddd);
 }
 
 // 定义 C++ 类
