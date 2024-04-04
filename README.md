@@ -367,7 +367,8 @@ deepStrictEqual(p, {
 `ffi-rs` supports passing js function to c, like this
 
 ```cpp
-typedef void (*FunctionPointer)(int a, bool b, char *c, char **d, int *e);
+typedef void (*FunctionPointer)(int a, bool b, char *c, char **d, int *e,
+                                Person *p);
 
 extern "C" void callFunction(FunctionPointer func) {
   printf("callFunction\n");
@@ -375,6 +376,7 @@ extern "C" void callFunction(FunctionPointer func) {
   bool b = false;
   char *c = (char *)malloc(14 * sizeof(char));
   strcpy(c, "Hello, World!");
+  // double a = 100.11;
   char **stringArray = (char **)malloc(sizeof(char *) * 2);
   stringArray[0] = strdup("Hello");
   stringArray[1] = strdup("world");
@@ -382,20 +384,22 @@ extern "C" void callFunction(FunctionPointer func) {
   i32Array[0] = 101;
   i32Array[1] = 202;
   i32Array[2] = 303;
-  func(a, b, c, stringArray, i32Array);
+  Person *p = createPerson();
+  func(a, b, c, stringArray, i32Array, p);
 }
 ```
 
 Corresponds to the code above，you can use `ffi-rs` like
 
 ```js
-const func = (a, b, c, d, e) => {
-  console.log('func params', a, b, c, d, e)
+const func = (a, b, c, d, e, f) => {
+  console.log('func params', a, b, c, d, e, f)
   equal(a, 100)
   equal(b, false)
   equal(c, 'Hello, World!')
   deepStrictEqual(d, ['Hello', 'world'])
   deepStrictEqual(e, [101, 202, 303])
+  deepStrictEqual(f, newP)
 }
 
 load({
@@ -406,6 +410,17 @@ load({
     paramsType: [DataType.I32, DataType.Boolean, DataType.String,
     arrayConstructor({ type: DataType.StringArray, length: 2 }),
     arrayConstructor({ type: DataType.I32Array, length: 3 }),
+    {
+      doubleArray: arrayConstructor({ type: DataType.DoubleArray, length: 3 }),
+      age: DataType.I32,
+      doubleProps: DataType.Double,
+      name: DataType.String,
+      stringArray: arrayConstructor({ type: DataType.StringArray, length: 2 }),
+      i32Array: arrayConstructor({ type: DataType.I32Array, length: 3 }),
+      testnum: DataType.I32,
+      boolTrue: DataType.Boolean,
+      boolFalse: DataType.Boolean,
+    }
     ],
     retType: DataType.Void
   })],
