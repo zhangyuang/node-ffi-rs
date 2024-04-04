@@ -18,7 +18,6 @@ use libloading::{Library, Symbol};
 use napi::bindgen_prelude::*;
 use napi::{Env, JsFunction, JsNumber, JsObject, JsUnknown};
 
-use std::alloc::{alloc, Layout};
 use std::collections::HashMap;
 use std::ffi::c_void;
 use std::ffi::{CStr, CString};
@@ -261,99 +260,7 @@ unsafe fn load(
             ,10 => Closure10, a,b,c,d,e,f,g,h,i,j
         );
       }
-      RsArgsValue::Object(val) => {
-        unsafe fn write_object_data(map: IndexMap<String, RsArgsValue>) -> *mut c_void {
-          let (size, align) = calculate_layout(&map);
-          let layout = if size > 0 {
-            // need check size correctly
-            Layout::from_size_align(size, align).unwrap()
-          } else {
-            Layout::new::<i32>()
-          };
-          let ptr = alloc(layout) as *mut c_void;
-          let mut field_ptr = ptr;
-          let mut offset = 0;
-          for (_, field_val) in map {
-            match field_val {
-              RsArgsValue::I32(number) => {
-                let align = std::mem::align_of::<c_int>();
-                let padding = (align - (offset % align)) % align;
-                field_ptr = field_ptr.offset(padding as isize);
-                (field_ptr as *mut c_int).write(number);
-                offset = std::mem::size_of::<c_int>();
-              }
-              RsArgsValue::Double(double_number) => {
-                let align = std::mem::align_of::<c_double>();
-                let padding = (align - (offset % align)) % align;
-                field_ptr = field_ptr.offset(padding as isize);
-                (field_ptr as *mut c_double).write(double_number);
-                offset = std::mem::size_of::<c_double>();
-              }
-              RsArgsValue::Boolean(val) => {
-                let align = std::mem::align_of::<bool>();
-                let padding = (align - (offset % align)) % align;
-                field_ptr = field_ptr.offset(padding as isize);
-                (field_ptr as *mut bool).write(val);
-                offset = std::mem::size_of::<bool>();
-              }
-              RsArgsValue::String(str) => {
-                let align = std::mem::align_of::<*const c_char>();
-                let padding = (align - (offset % align)) % align;
-                field_ptr = field_ptr.offset(padding as isize);
-                let c_string = CString::new(str).unwrap();
-                (field_ptr as *mut *const c_char).write(c_string.as_ptr());
-                std::mem::forget(c_string);
-                offset = std::mem::size_of::<*const c_char>();
-              }
-              RsArgsValue::StringArray(str_arr) => {
-                let align = std::mem::align_of::<*const *const c_char>();
-                let padding = (align - (offset % align)) % align;
-                field_ptr = field_ptr.offset(padding as isize);
-                let c_char_vec: Vec<*const c_char> = str_arr
-                  .into_iter()
-                  .map(|str| {
-                    let c_string = CString::new(str).unwrap();
-                    let ptr = c_string.as_ptr();
-                    std::mem::forget(c_string);
-                    return ptr;
-                  })
-                  .collect();
-                (field_ptr as *mut *const *const c_char).write(c_char_vec.as_ptr());
-                std::mem::forget(c_char_vec);
-                offset = std::mem::size_of::<*const *const c_char>();
-              }
-              RsArgsValue::DoubleArray(arr) => {
-                let align = std::mem::align_of::<*const c_double>();
-                let padding = (align - (offset % align)) % align;
-                field_ptr = field_ptr.offset(padding as isize);
-                (field_ptr as *mut *const c_double).write(arr.as_ptr());
-                std::mem::forget(arr);
-                offset = std::mem::size_of::<*const c_double>();
-              }
-              RsArgsValue::I32Array(arr) => {
-                let align = std::mem::align_of::<*const c_int>();
-                let padding = (align - (offset % align)) % align;
-                field_ptr = field_ptr.offset(padding as isize);
-                (field_ptr as *mut *const c_int).write(arr.as_ptr());
-                std::mem::forget(arr);
-                offset = std::mem::size_of::<*const c_int>();
-              }
-              RsArgsValue::Object(val) => {
-                let align = std::mem::align_of::<*const c_void>();
-                let padding = (align - (offset % align)) % align;
-                field_ptr = field_ptr.offset(padding as isize);
-                let obj_ptr = write_object_data(val);
-                (field_ptr as *mut *const c_void).write(obj_ptr);
-                offset = std::mem::size_of::<*const c_void>();
-              }
-              _ => panic!("write_data error {:?}", field_val),
-            }
-            field_ptr = field_ptr.offset(offset as isize);
-          }
-          return ptr;
-        }
-        return Box::into_raw(Box::new(write_object_data(val))) as *mut c_void;
-      }
+      RsArgsValue::Object(val) => Box::into_raw(Box::new(write_object_data(val))) as *mut c_void,
     })
     .collect();
   let ret_value_type = ret_type.get_type().unwrap();
@@ -515,8 +422,7 @@ unsafe fn load(
         }
       } else {
         // raw object
-        let ret_fields_size = calculate_layout(&obj).0;
-        let mut result: *mut c_void = malloc(ret_fields_size);
+        let mut result: *mut c_void = malloc(std::mem::size_of::<*mut *mut c_void>());
         ffi_call(
           &mut cif,
           Some(*func),

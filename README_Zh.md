@@ -238,7 +238,6 @@ deepStrictEqual(stringArr, load({
 创建一个 c 的结构体或者将 c 结构体类型作为返回值，你需要严格按照 c 结构体中声明的字段顺序来定义 js 侧参数的顺序。
 
 ```cpp
-```cpp
 typedef struct Person {
   int age;
   double *doubleArray;
@@ -260,44 +259,44 @@ extern "C" Person *createPerson() {
 
   // Allocate and initialize doubleArray
   person->doubleArray = (double *)malloc(sizeof(double) * 3);
-  person->doubleArray[0] = 1.0;
-  person->doubleArray[1] = 2.0;
-  person->doubleArray[2] = 3.0;
+  person->doubleArray[0] = 1.1;
+  person->doubleArray[1] = 2.2;
+  person->doubleArray[2] = 3.3;
 
   // Initialize age and doubleProps
-  person->age = 30;
-  person->doubleProps = 1.23;
+  person->age = 23;
+  person->doubleProps = 1.1;
 
   // Allocate and initialize name
-  person->name = strdup("John Doe");
+  person->name = strdup("tom");
 
-  person->stringArray = (char **)malloc(sizeof(char *) * 2);
-  person->stringArray[0] = strdup("Hello");
-  person->stringArray[1] = strdup("World");
+  person->stringArray = (char **)malloc(sizeof(char *) * 1);
+  person->stringArray[0] = strdup("tom");
 
-  person->i32Array = (int *)malloc(sizeof(int) * 3);
+  person->i32Array = (int *)malloc(sizeof(int) * 4);
   person->i32Array[0] = 1;
   person->i32Array[1] = 2;
   person->i32Array[2] = 3;
+  person->i32Array[3] = 4;
   person->boolTrue = true;
   person->boolFalse = false;
 
   // Allocate and initialize parent
   person->parent = (Person *)malloc(sizeof(Person));
   person->parent->doubleArray = (double *)malloc(sizeof(double) * 3);
-  person->parent->doubleArray[0] = 4.0;
-  person->parent->doubleArray[1] = 5.0;
-  person->parent->doubleArray[2] = 6.0;
-  person->parent->age = 50;
-  person->parent->doubleProps = 4.56;
-  person->parent->name = strdup("Jane Doe");
+  person->parent->doubleArray[0] = 1.1;
+  person->parent->doubleArray[1] = 2.2;
+  person->parent->doubleArray[2] = 3.3;
+  person->parent->age = 43;
+  person->parent->doubleProps = 3.3;
+  person->parent->name = strdup("tom father");
   person->parent->stringArray = (char **)malloc(sizeof(char *) * 2);
-  person->parent->stringArray[0] = strdup("Parent");
-  person->parent->stringArray[1] = strdup("String");
+  person->parent->stringArray[0] = strdup("tom");
+  person->parent->stringArray[1] = strdup("father");
   person->parent->i32Array = (int *)malloc(sizeof(int) * 3);
-  person->parent->i32Array[0] = 4;
-  person->parent->i32Array[1] = 5;
-  person->parent->i32Array[2] = 6;
+  person->parent->i32Array[0] = 5;
+  person->parent->i32Array[1] = 6;
+  person->parent->i32Array[2] = 7;
   person->parent->boolTrue = true;
   person->parent->boolFalse = false;
 
@@ -306,23 +305,24 @@ extern "C" Person *createPerson() {
 ```
 
 ```js
+const parent = {
+  age: 43,
+  doubleArray: [1.1, 2.2, 3.3],
+  parent: {},
+  doubleProps: 3.3,
+  name: "tom father",
+  stringArray: ["tom", "father"],
+  i32Array: [5, 6, 7],
+  boolTrue: true,
+  boolFalse: false,
+};
 const person = {
   age: 23,
   doubleArray: [1.1, 2.2, 3.3],
-  parent: {
-    age: 43,
-    doubleArray: [1.1, 2.2, 3.3],
-    parent: {},
-    doubleProps: 3.3,
-    name: "tom father",
-    stringArray: ["foo", "bar"],
-    i32Array: [1, 2, 3, 4],
-    boolTrue: true,
-    boolFalse: false,
-  },
+  parent,
   doubleProps: 1.1,
   name: "tom",
-  stringArray: ["foo", "bar"],
+  stringArray: ["tom"],
   i32Array: [1, 2, 3, 4],
   boolTrue: true,
   boolFalse: false,
@@ -331,9 +331,29 @@ const parentType = {
   age: DataType.I32,
   doubleArray: arrayConstructor({
     type: DataType.DoubleArray,
-    length: person.doubleArray.length,
+    length: parent.doubleArray.length,
   }),
   parent: {},
+  doubleProps: DataType.Double,
+  name: DataType.String,
+  stringArray: arrayConstructor({
+    type: DataType.StringArray,
+    length: parent.stringArray.length,
+  }),
+  i32Array: arrayConstructor({
+    type: DataType.I32Array,
+    length: parent.i32Array.length,
+  }),
+  boolTrue: DataType.Boolean,
+  boolFalse: DataType.Boolean,
+};
+const personType = {
+  age: DataType.I32,
+  doubleArray: arrayConstructor({
+    type: DataType.DoubleArray,
+    length: person.doubleArray.length,
+  }),
+  parent: parentType,
   doubleProps: DataType.Double,
   name: DataType.String,
   stringArray: arrayConstructor({
@@ -347,30 +367,10 @@ const parentType = {
   boolTrue: DataType.Boolean,
   boolFalse: DataType.Boolean,
 };
-
 const personObj = load({
   library: "libsum",
   funcName: "getStruct",
-  retType: {
-    age: DataType.I32,
-    doubleArray: arrayConstructor({
-      type: DataType.DoubleArray,
-      length: person.doubleArray.length,
-    }),
-    parent: parentType,
-    doubleProps: DataType.Double,
-    name: DataType.String,
-    stringArray: arrayConstructor({
-      type: DataType.StringArray,
-      length: person.stringArray.length,
-    }),
-    i32Array: arrayConstructor({
-      type: DataType.I32Array,
-      length: person.i32Array.length,
-    }),
-    boolTrue: DataType.Boolean,
-    boolFalse: DataType.Boolean,
-  },
+  retType: personType,
   paramsType: [
     {
       age: DataType.I32,
@@ -389,7 +389,6 @@ const personObj = load({
       doubleProps: DataType.Double,
       name: DataType.String,
       stringArray: DataType.StringArray,
-
       i32Array: DataType.I32Array,
       boolTrue: DataType.Boolean,
       boolFalse: DataType.Boolean,
@@ -398,45 +397,15 @@ const personObj = load({
   paramsValue: [person],
 });
 deepStrictEqual(person, personObj);
-const p = load({
+const createdPerson = load({
   library: "libsum",
   funcName: "createPerson",
-  retType: {
-    age: DataType.I32,
-    doubleArray: arrayConstructor({ type: DataType.DoubleArray, length: 3 }),
-    parent: parentType,
-    doubleProps: DataType.Double,
-    name: DataType.String,
-    stringArray: arrayConstructor({ type: DataType.StringArray, length: 2 }),
-    i32Array: arrayConstructor({ type: DataType.I32Array, length: 3 }),
-    boolTrue: DataType.Boolean,
-    boolFalse: DataType.Boolean,
-  },
+  retType: personType,
   paramsType: [],
   paramsValue: [],
 });
-const newP = {
-  age: 30,
-  doubleArray: [1, 2, 3],
-  parent: {
-    age: 50,
-    doubleArray: [4, 5, 6],
-    parent: {},
-    doubleProps: 4.56,
-    name: "Jane Doe",
-    stringArray: ["Parent", "String"],
-    i32Array: [4, 5, 6, 0],
-    boolTrue: true,
-    boolFalse: false,
-  },
-  doubleProps: 1.23,
-  name: "John Doe",
-  stringArray: ["Hello", "World"],
-  i32Array: [1, 2, 3],
-  boolTrue: true,
-  boolFalse: false,
-};
-deepStrictEqual(p, newP);
+
+deepStrictEqual(createdPerson, person);
 
 ```
 
@@ -445,62 +414,72 @@ deepStrictEqual(p, newP);
 `ffi-rs` 支持传递 js 函数给 c 语言侧，就像这样
 
 ```cpp
-typedef void (*FunctionPointer)(int a, bool b, char *c, char **d, int *e);
+typedef void (*FunctionPointer)(int a, bool b, char *c, char **d, int *e,
+                                Person *p);
 
 extern "C" void callFunction(FunctionPointer func) {
   printf("callFunction\n");
-  int a = 100;
-  bool b = false;
-  char *c = (char *)malloc(14 * sizeof(char));
-  strcpy(c, "Hello, World!");
-  char **stringArray = (char **)malloc(sizeof(char *) * 2);
-  stringArray[0] = strdup("Hello");
-  stringArray[1] = strdup("world");
-  int *i32Array = (int *)malloc(sizeof(int) * 3);
-  i32Array[0] = 101;
-  i32Array[1] = 202;
-  i32Array[2] = 303;
-  func(a, b, c, stringArray, i32Array);
+
+  for (int i = 0; i < 2; i++) {
+    int a = 100;
+    bool b = false;
+    double ddd = 100.11;
+    char *c = (char *)malloc(14 * sizeof(char));
+    strcpy(c, "Hello, World!");
+
+    char **stringArray = (char **)malloc(sizeof(char *) * 2);
+    stringArray[0] = strdup("Hello");
+    stringArray[1] = strdup("world");
+
+    int *i32Array = (int *)malloc(sizeof(int) * 3);
+    i32Array[0] = 101;
+    i32Array[1] = 202;
+    i32Array[2] = 303;
+
+    Person *p = createPerson();
+    func(a, b, c, stringArray, i32Array, p);
+  }
 }
 ```
 
-与上面的代码相对应，你可以这样使用 `ffi-rs` 来传递
+Corresponds to the code above，you can use `ffi-rs` like
 
 ```js
+let count = 0;
 const func = (a, b, c, d, e, f) => {
-  console.log('func params', a, b, c, d, e, f)
-  equal(a, 100)
-  equal(b, false)
-  equal(c, 'Hello, World!')
-  deepStrictEqual(d, ['Hello', 'world'])
-  deepStrictEqual(e, [101, 202, 303])
-  deepStrictEqual(f, newP)
-}
+  equal(a, 100);
+  equal(b, false);
+  equal(c, "Hello, World!");
+  deepStrictEqual(d, ["Hello", "world"]);
+  deepStrictEqual(e, [101, 202, 303]);
+  deepStrictEqual(f, person);
+  console.log("callback called");
+  count++;
+  if (count === 2) {
+    console.log("test succeed");
+    process.exit(0);
+  }
+};
 
 load({
-  library: 'libsum',
-  funcName: 'callFunction',
+  library: "libsum",
+  funcName: "callFunction",
   retType: DataType.Void,
-  paramsType: [funcConstructor({
-    paramsType: [DataType.I32, DataType.Boolean, DataType.String,
-    arrayConstructor({ type: DataType.StringArray, length: 2 }),
-    arrayConstructor({ type: DataType.I32Array, length: 3 }),
-    {
-      doubleArray: arrayConstructor({ type: DataType.DoubleArray, length: 3 }),
-      age: DataType.I32,
-      doubleProps: DataType.Double,
-      name: DataType.String,
-      stringArray: arrayConstructor({ type: DataType.StringArray, length: 2 }),
-      i32Array: arrayConstructor({ type: DataType.I32Array, length: 3 }),
-      testnum: DataType.I32,
-      boolTrue: DataType.Boolean,
-      boolFalse: DataType.Boolean,
-    }
-    ],
-    retType: DataType.Void
-  })],
+  paramsType: [
+    funcConstructor({
+      paramsType: [
+        DataType.I32,
+        DataType.Boolean,
+        DataType.String,
+        arrayConstructor({ type: DataType.StringArray, length: 2 }),
+        arrayConstructor({ type: DataType.I32Array, length: 3 }),
+        personType,
+      ],
+      retType: DataType.Void,
+    }),
+  ],
   paramsValue: [func],
-})
+});
 ```
 
 目前函数支持的参数类型都在上面的例子里，我们将会在未来支持更多的参数类型
