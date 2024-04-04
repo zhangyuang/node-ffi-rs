@@ -25,6 +25,14 @@ extern "C" int *createArrayi32(const int *arr, int size) {
   return vec;
 }
 
+extern "C" double *createArrayDouble(const double *arr, int size) {
+  double *vec = (double *)malloc((size) * sizeof(double));
+  for (int i = 0; i < size; i++) {
+    vec[i] = arr[i];
+  }
+  return vec;
+}
+
 extern "C" char **createArrayString(char **arr, int size) {
   char **vec = (char **)malloc((size) * sizeof(char *));
   for (int i = 0; i < size; i++) {

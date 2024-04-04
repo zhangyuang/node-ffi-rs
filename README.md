@@ -29,6 +29,7 @@ Currently, ffi-rs only supports there types of parameters and return values. How
 - double
 - i32Array
 - stringArray
+- doubleArray
 
 ## Usage
 
@@ -64,7 +65,13 @@ extern "C" int *createArrayi32(const int *arr, int size) {
   }
   return vec;
 }
-
+extern "C" double *createArrayDouble(const double *arr, int size) {
+  double *vec = (double *)malloc((size) * sizeof(double));
+  for (int i = 0; i < size; i++) {
+    vec[i] = arr[i];
+  }
+  return vec;
+}
 extern "C" char **createArrayString(char **arr, int size) {
   char **vec = (char **)malloc((size) * sizeof(char *));
   for (int i = 0; i < size; i++) {
@@ -136,6 +143,18 @@ equal(bigArr[0], load({
   paramsValue: [bigArr, bigArr.length],
   retTypeLen: bigArr.length
 })[0])
+
+let bigDoubleArr = new Array(100).fill(1.1)
+equal(bigDoubleArr[0], load({
+  library: dynamicLib,
+  funcName: 'createArrayDouble',
+  retType: RetType.DoubleArray,
+  paramsType: [ParamsType.DoubleArray, ParamsType.I32],
+  paramsValue: [bigDoubleArr, bigDoubleArr.length],
+  retTypeLen: bigDoubleArr.length
+})[0])
+
+
 let stringArr = [c, c.repeat(200)]
 equal(stringArr[0], load({
   library: dynamicLib,

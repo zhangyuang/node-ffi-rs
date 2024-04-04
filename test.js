@@ -53,6 +53,16 @@ const unitTest = () => {
     retTypeLen: bigArr.length
   })[0])
 
+  let bigDoubleArr = new Array(100).fill(1.1)
+  equal(bigDoubleArr[0], load({
+    library: dynamicLib,
+    funcName: 'createArrayDouble',
+    retType: RetType.DoubleArray,
+    paramsType: [ParamsType.DoubleArray, ParamsType.I32],
+    paramsValue: [bigDoubleArr, bigDoubleArr.length],
+    retTypeLen: bigDoubleArr.length
+  })[0])
+
   let stringArr = [c, c.repeat(200)]
   equal(stringArr[0], load({
     library: dynamicLib,
