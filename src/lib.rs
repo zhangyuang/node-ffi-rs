@@ -23,8 +23,8 @@ use utils::dataprocess::{get_js_unknown_from_pointer, type_define_to_rs_args};
 static mut LIBRARY_MAP: Option<HashMap<String, Library>> = None;
 
 #[napi]
-unsafe fn create_external(env: Env, params: CreateExternalParams) -> Vec<JsExternal> {
-  let CreateExternalParams {
+unsafe fn create_pointer(env: Env, params: createPointerParams) -> Vec<JsExternal> {
+  let createPointerParams {
     params_type,
     params_value,
   } = params;
@@ -37,8 +37,8 @@ unsafe fn create_external(env: Env, params: CreateExternalParams) -> Vec<JsExter
 }
 
 #[napi]
-unsafe fn restore_external(env: Env, params: ReStoreExternalParams) -> Vec<JsUnknown> {
-  let ReStoreExternalParams {
+unsafe fn restore_pointer(env: Env, params: storePointerParams) -> Vec<JsUnknown> {
+  let storePointerParams {
     ret_type,
     params_value,
   } = params;
