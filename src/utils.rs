@@ -1,6 +1,6 @@
 use crate::define::{number_to_data_type, DataType};
 use napi::bindgen_prelude::*;
-use napi::JsUnknown;
+use napi::{JsObject, JsString, JsUnknown};
 use std::ffi::c_void;
 use std::ffi::{c_char, CString};
 
@@ -43,4 +43,22 @@ pub fn get_js_function_call_value(
     }
     _ => panic!(""),
   };
+}
+
+pub fn js_array_to_string_array(js_array: JsObject) -> Vec<String> {
+  vec![0; js_array.get_array_length().unwrap() as usize]
+    .iter()
+    .enumerate()
+    .map(|(index, _)| {
+      let js_element: JsString = js_array.get_element(index as u32).unwrap();
+      return js_element.into_utf8().unwrap().try_into().unwrap();
+    })
+    .collect::<Vec<String>>()
+}
+
+pub fn align_ptr(ptr: *mut c_void, align: usize) -> *mut c_void {
+  let align_minus_one = align - 1;
+  let ptr_int = ptr as usize;
+  let aligned = (ptr_int + align_minus_one) & !align_minus_one;
+  aligned as *mut c_void
 }
