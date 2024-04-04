@@ -185,6 +185,12 @@ pub struct CreateExternalParams {
 }
 
 #[napi(object)]
+pub struct ReStoreExternalParams {
+  pub ret_type: Vec<JsUnknown>,
+  pub params_value: Vec<JsUnknown>,
+}
+
+#[napi(object)]
 pub struct OpenParams {
   pub library: String,
   pub path: String,
