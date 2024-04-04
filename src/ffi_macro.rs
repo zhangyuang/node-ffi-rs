@@ -1,13 +1,10 @@
 macro_rules! match_args_len {
-    ($args_len:ident, $tsfn:expr, $func_args_type_rs:expr,  $js_function:expr,  $($num:literal => $closure:ident, $($arg:ident),*),*) => {
+ ($args_len:ident, $tsfn_ptr:expr, $func_args_type_rs_ptr:expr,  $($num:literal => $closure:ident, $($arg:ident),*),*) => {
         match $args_len {
             $(
                 $num => {
-                    fn lambda($($arg: *mut c_void),*) {
-                        let lambda_id = &lambda as *const _ as usize;
-                        unsafe {
-                            let tsfn = TS_FN.as_ref().unwrap().get(&lambda_id).unwrap();
-                            let func_args_type_rs = FUNC_DESC.as_ref().unwrap().get(&lambda_id).unwrap();
+                   let lambda = move |$($arg: *mut c_void),*| {
+                            let func_args_type_rs = &*$func_args_type_rs_ptr;
                             let arg_arr = [$($arg),*];
                             let value: Vec<RsArgsValue> = (0..$num)
                                 .map(|index| {
@@ -17,20 +14,13 @@ macro_rules! match_args_len {
                                     param
                                 })
                               .collect();
+                            (&*$tsfn_ptr).call(value, ThreadsafeFunctionCallMode::NonBlocking);
 
-                            tsfn.call(value, ThreadsafeFunctionCallMode::NonBlocking);
-                        };
 
-                    }
-                    let lambda_id = &lambda as *const _ as usize;
-                    FUNC_DESC
-                      .as_mut()
-                      .unwrap()
-                      .insert(lambda_id, $func_args_type_rs);
-                      TS_FN.as_mut().unwrap().insert(lambda_id, $tsfn);
-                    let closure = Box::into_raw(Box::new($closure::new(&lambda)));
+                    };
+                    let lambda_ptr = Box::into_raw(Box::new(lambda));
+                    let closure = Box::into_raw(Box::new($closure::new(&*lambda_ptr)));
                     return std::mem::transmute((*closure).code_ptr());
-
                 }
             )*
             _ => {
