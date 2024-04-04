@@ -1,28 +1,56 @@
 use napi::bindgen_prelude::*;
-use napi::{JsNumber, JsObject, JsString};
+use napi::{Error, JsNumber, JsObject, JsString, JsUnknown, NapiValue};
 
-pub fn js_array_to_string_array(js_array: JsObject) -> Vec<String> {
-  (0..js_array.get_array_length().unwrap())
-    .enumerate()
-    .map(|(index, _)| {
-      let js_element: JsString = js_array.get_element(index as u32).unwrap();
-      return js_element.into_utf8().unwrap().try_into().unwrap();
-    })
-    .collect::<Vec<String>>()
+pub trait ToRsArray<T, U> {
+  fn to_rs_array(self) -> Result<Vec<T>>
+  where
+    U: TryFrom<JsUnknown> + NapiValue;
 }
 
-pub fn js_array_to_number_array<T>(js_array: JsObject) -> Vec<T>
+impl ToRsArray<String, JsString> for JsObject {
+  fn to_rs_array(self) -> Result<Vec<String>>
+  where
+    JsString: TryFrom<JsUnknown> + NapiValue,
+  {
+    (0..self.get_array_length()?)
+      .enumerate()
+      .map(|(index, _)| {
+        let js_unknown: JsUnknown = self.get_element(index as u32)?;
+        Ok(JsString::try_from(js_unknown)?.into_utf8()?.try_into()?)
+      })
+      .collect()
+  }
+}
+fn convert_number_array<T, U>(obj: JsObject) -> Result<Vec<T>>
 where
-  T: TryFrom<JsNumber>,
-  <T as TryFrom<JsNumber>>::Error: std::fmt::Debug,
+  U: TryFrom<JsUnknown, Error = Error> + NapiValue,
+  T: TryFrom<U, Error = Error>,
 {
-  (0..js_array.get_array_length().unwrap())
+  (0..obj.get_array_length()?)
     .enumerate()
     .map(|(index, _)| {
-      let js_element: JsNumber = js_array.get_element(index as u32).unwrap();
-      return js_element.try_into().unwrap();
+      let js_unknown: JsUnknown = obj.get_element(index as u32)?;
+      let js_number: U = js_unknown.try_into()?;
+      Ok(js_number.try_into()?)
     })
-    .collect::<Vec<T>>()
+    .collect()
+}
+impl ToRsArray<f64, JsNumber> for JsObject {
+  fn to_rs_array(self) -> Result<Vec<f64>>
+  where
+    JsNumber: TryFrom<JsUnknown> + NapiValue,
+  {
+    convert_number_array::<f64, JsNumber>(self)
+  }
+}
+
+impl ToRsArray<i32, JsNumber> for JsObject {
+  fn to_rs_array(self) -> Result<Vec<i32>>
+  where
+    JsNumber: TryFrom<JsUnknown> + NapiValue,
+  {
+    convert_number_array::<i32, JsNumber>(self)
+  }
 }
 
 pub trait ToJsArray {
