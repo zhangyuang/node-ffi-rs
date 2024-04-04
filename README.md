@@ -322,6 +322,47 @@ const string = load({
 })
 ```
 
+#### CreatePointer
+
+```js
+let bigDoubleArr = new Array(5).fill(1.1);
+deepStrictEqual(
+  bigDoubleArr,
+  load({
+    library: "libsum",
+    funcName: "createArrayDouble",
+    retType: arrayConstructor({
+      type: DataType.DoubleArray,
+      length: bigDoubleArr.length,
+    }),
+    paramsType: [DataType.DoubleArray, DataType.I32],
+    paramsValue: [bigDoubleArr, bigDoubleArr.length],
+  }),
+);
+```
+
+For the code above, we can use `createExternal` function to wrap a pointer data and send it as paramsValue
+
+```js
+const funcExternal: unknown[] = createExternal({
+  paramsType: [DataType.DoubleArray],
+  paramsValue: [[1.1,2.2]]
+})
+const ptr = funcExternal[0]
+load({
+  library: "libsum",
+  funcName: "createArrayDouble",
+  retType: arrayConstructor({
+    type: DataType.DoubleArray,
+    length: bigDoubleArr.length,
+  }),
+  paramsType: [DataType.External, DataType.I32],
+  paramsValue: [ptr, bigDoubleArr.length],
+})
+```
+
+The two pieces of code above are equivalent
+
 ### Struct
 
 For create a c struct or get a c struct as a return type, you need to define the types of the parameters strictly in the order in which the fields of the c structure are defined.

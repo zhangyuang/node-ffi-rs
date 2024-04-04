@@ -6,6 +6,7 @@ import {
   DataType,
   arrayConstructor,
   funcConstructor,
+  createExternal
 } from "./index";
 
 const platform = process.platform;
@@ -275,25 +276,28 @@ const unitTest = () => {
       process.exit(0);
     }
   };
-
+  const funcExternal = createExternal({
+    paramsType: [funcConstructor({
+      paramsType: [
+        DataType.I32,
+        DataType.Boolean,
+        DataType.String,
+        arrayConstructor({ type: DataType.StringArray, length: 2 }),
+        arrayConstructor({ type: DataType.I32Array, length: 3 }),
+        personType,
+      ],
+      retType: DataType.Void,
+    })],
+    paramsValue: [func]
+  })
   load({
     library: "libsum",
     funcName: "callFunction",
     retType: DataType.Void,
     paramsType: [
-      funcConstructor({
-        paramsType: [
-          DataType.I32,
-          DataType.Boolean,
-          DataType.String,
-          arrayConstructor({ type: DataType.StringArray, length: 2 }),
-          arrayConstructor({ type: DataType.I32Array, length: 3 }),
-          personType,
-        ],
-        retType: DataType.Void,
-      }),
+      DataType.External,
     ],
-    paramsValue: [func],
+    paramsValue: [funcExternal[0]],
   });
   // load({
   //   library: "libsum",
