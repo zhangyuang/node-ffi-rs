@@ -123,7 +123,7 @@ jobs:
         run: yarn config set supportedArchitectures.cpu "ia32"
         shell: bash
       - name: Install dependencies
-        run: yarn
+        run: yarn install --prod && yarn add esno@^4.0.0 shelljs@^0.8.5 @napi-rs/cli@^2.15.2 --prod
       - name: Setup node x86
         uses: actions/setup-node@v3
         if: matrix.settings.target == 'i686-pc-windows-msvc'
@@ -176,7 +176,7 @@ jobs:
           check-latest: true
           cache: yarn
       - name: Install dependencies
-        run: yarn
+        run: yarn install --prod && yarn add esno@^4.0.0 shelljs@^0.8.5 @napi-rs/cli@^2.15.2 --prod
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
@@ -227,7 +227,7 @@ jobs:
         shell: bash
 
       - name: Install dependencies
-        run: yarn
+        run: yarn install --prod && yarn add esno@^4.0.0 shelljs@^0.8.5 @napi-rs/cli@^2.15.2 --prod
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
@@ -257,7 +257,7 @@ jobs:
           check-latest: true
           cache: yarn
       - name: Install dependencies
-        run: yarn
+        run: yarn install --prod && yarn add esno@^4.0.0 shelljs@^0.8.5 @napi-rs/cli@^2.15.2 --prod
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
@@ -285,7 +285,7 @@ jobs:
           check-latest: true
           cache: yarn
       - name: Install dependencies
-        run: yarn
+        run: yarn install --prod && yarn add esno@^4.0.0 shelljs@^0.8.5 @napi-rs/cli@^2.15.2 --prod
       - name: Download all artifacts
         uses: actions/download-artifact@v3
         with:
