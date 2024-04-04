@@ -15,20 +15,36 @@ A module written in Rust and N-APi provides interface (FFI) features for Node.js
 
 ## 使用示例
 
-暂时支持 `string/number/void` 类型的出参入参类型。根据实际使用场景后续会支持更多的类型。
+暂时支持 `string/number/void/double` 类型的出参入参类型。根据实际使用场景后续会支持更多的类型。
 
 下面是使用 `ffi-rs` 的一个基本示例。
 
 针对下面的 `c++` 代码，我们将其编译为动态链接库文件
 
 ```cpp
+#include <cstdio>
+#include <cstring>
+#include <iostream>
+#include <string>
+#include <vector>
+
 extern "C" int sum(int a, int b) { return a + b; }
+
+extern "C" double doubleSum(double a, double b) { return a + b; }
 
 extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
   std::string result = std::string(str1) + std::string(str2);
   char *cstr = new char[result.length() + 1];
   strcpy(cstr, result.c_str());
   return cstr;
+}
+
+extern "C" void noRet() { printf("%s", "hello world"); }
+
+extern "C" std::vector<int> appendElement(const int *arr, int size) {
+  std::vector<int> vec(arr, arr + size);
+  vec.push_back(1);
+  return vec;
 }
 
 ```
@@ -77,5 +93,12 @@ equal(undefined, load({
   paramsValue: []
 }))
 
+equal(1.1 + 2.2, load({
+  library: dynamicLib,
+  funcName: 'doubleSum',
+  retType: RetType.Double,
+  paramsType: [ParamsType.Double, ParamsType.Double],
+  paramsValue: [1.1, 2.2]
+}))
 
 ```

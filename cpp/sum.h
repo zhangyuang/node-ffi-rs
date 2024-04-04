@@ -6,6 +6,8 @@ extern "C" {
 #endif
 
 int sum(int a, int b);
+double doubleSum(double a, double b);
+
 const char *concatenateStrings(const char *str1, const char *str2);
 void noRet();
 

@@ -15,14 +15,22 @@ This module aims to provide similar functionality to the node-ffi module, but wi
 
 ## Usage
 
-Currently, ffi-rs only supports there types of parameters and return values: strings|numbers|void. However, support for more types will be added in the future based on actual usage scenarios.
+Currently, ffi-rs only supports there types of parameters and return values: `string|numbers|void|double`. However, support for more types will be added in the future based on actual usage scenarios.
 
 Here is an example of how to use ffi-rs:
 
 For below c++ code, we compile this file into a dynamic library
 
 ```cpp
+#include <cstdio>
+#include <cstring>
+#include <iostream>
+#include <string>
+#include <vector>
+
 extern "C" int sum(int a, int b) { return a + b; }
+
+extern "C" double doubleSum(double a, double b) { return a + b; }
 
 extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
   std::string result = std::string(str1) + std::string(str2);
@@ -30,6 +38,15 @@ extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
   strcpy(cstr, result.c_str());
   return cstr;
 }
+
+extern "C" void noRet() { printf("%s", "hello world"); }
+
+extern "C" std::vector<int> appendElement(const int *arr, int size) {
+  std::vector<int> vec(arr, arr + size);
+  vec.push_back(1);
+  return vec;
+}
+
 
 ```
 
@@ -76,5 +93,12 @@ equal(undefined, load({
   paramsValue: []
 }))
 
+equal(1.1 + 2.2, load({
+  library: dynamicLib,
+  funcName: 'doubleSum',
+  retType: RetType.Double,
+  paramsType: [ParamsType.Double, ParamsType.Double],
+  paramsValue: [1.1, 2.2]
+}))
 
 ```
