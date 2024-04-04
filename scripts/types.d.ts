@@ -134,3 +134,9 @@ export function createExternal<T extends DataType>(params: {
   paramsType: Array<DataRecordFieldType<T>>;
   paramsValue: Array<unknown>;
 }): unknown[]
+
+
+export function restoreExternal<T extends DataType>(params: {
+  retType: Array<DataRecordFieldType<T>>;
+  paramsValue: Array<unknown>;
+}): Array<DataTypeToType<T>>

@@ -171,22 +171,22 @@ pub unsafe fn get_js_unknown_from_pointer(
             .to_string();
           rs_value_to_js_unknown(&env, RsArgsValue::String(ptr_str))
         }
-        BasicDataType::U8 => rs_value_to_js_unknown(&env, RsArgsValue::U8(*(ptr as *mut u8))),
-        BasicDataType::I32 => rs_value_to_js_unknown(&env, RsArgsValue::I32(*(ptr as *mut i32))),
-        BasicDataType::I64 => rs_value_to_js_unknown(&env, RsArgsValue::I64(*(ptr as *mut i64))),
-        BasicDataType::U64 => rs_value_to_js_unknown(&env, RsArgsValue::U64(*(ptr as *mut u64))),
+        BasicDataType::U8 => rs_value_to_js_unknown(env, RsArgsValue::U8(*(ptr as *mut u8))),
+        BasicDataType::I32 => rs_value_to_js_unknown(env, RsArgsValue::I32(*(ptr as *mut i32))),
+        BasicDataType::I64 => rs_value_to_js_unknown(env, RsArgsValue::I64(*(ptr as *mut i64))),
+        BasicDataType::U64 => rs_value_to_js_unknown(env, RsArgsValue::U64(*(ptr as *mut u64))),
         BasicDataType::Void => env.get_undefined().unwrap().into_unknown(),
         BasicDataType::Double => {
-          rs_value_to_js_unknown(&env, RsArgsValue::Double(*(ptr as *mut f64)))
+          rs_value_to_js_unknown(env, RsArgsValue::Double(*(ptr as *mut f64)))
         }
         BasicDataType::Boolean => {
-          rs_value_to_js_unknown(&env, RsArgsValue::Boolean(*(ptr as *mut bool)))
+          rs_value_to_js_unknown(env, RsArgsValue::Boolean(*(ptr as *mut bool)))
         }
         BasicDataType::External => {
           let js_external = env
             .create_external(*(ptr as *mut *mut c_void), None)
             .unwrap();
-          rs_value_to_js_unknown(&env, RsArgsValue::External(js_external))
+          rs_value_to_js_unknown(env, RsArgsValue::External(js_external))
         }
       }
     }
@@ -198,38 +198,25 @@ pub unsafe fn get_js_unknown_from_pointer(
         match array_type {
           RefDataType::U8Array => {
             let arr = create_array_from_pointer(*(ptr as *mut *mut c_uchar), array_len);
-            if !ptr.is_null() {
-              libc::free(ptr);
-            }
-            rs_value_to_js_unknown(&env, get_safe_buffer(&env, arr, false))
+            rs_value_to_js_unknown(env, get_safe_buffer(env, arr, false))
           }
           RefDataType::I32Array => {
             let arr = create_array_from_pointer(*(ptr as *mut *mut c_int), array_len);
-            if !ptr.is_null() {
-              libc::free(ptr);
-            }
-            rs_value_to_js_unknown(&env, RsArgsValue::I32Array(arr))
+            rs_value_to_js_unknown(env, RsArgsValue::I32Array(arr))
           }
           RefDataType::DoubleArray => {
             let arr = create_array_from_pointer(*(ptr as *mut *mut c_double), array_len);
-            if !ptr.is_null() {
-              libc::free(ptr);
-            }
-            rs_value_to_js_unknown(&env, RsArgsValue::DoubleArray(arr))
+            rs_value_to_js_unknown(env, RsArgsValue::DoubleArray(arr))
           }
           RefDataType::StringArray => {
             let arr = create_array_from_pointer(*(ptr as *mut *mut *mut c_char), array_len);
-            if !ptr.is_null() {
-              libc::free(ptr as *mut c_void);
-            }
-            rs_value_to_js_unknown(&env, RsArgsValue::StringArray(arr))
+            rs_value_to_js_unknown(env, RsArgsValue::StringArray(arr))
           }
         }
       } else {
         // raw object
-        let rs_struct =
-          create_rs_struct_from_pointer(&env, *(ptr as *mut *mut c_void), &obj, false);
-        rs_value_to_js_unknown(&env, RsArgsValue::Object(rs_struct))
+        let rs_struct = create_rs_struct_from_pointer(env, *(ptr as *mut *mut c_void), &obj, false);
+        rs_value_to_js_unknown(env, RsArgsValue::Object(rs_struct))
       }
     }
     _ => panic!("ret_type err {:?}", ret_type_rs),
