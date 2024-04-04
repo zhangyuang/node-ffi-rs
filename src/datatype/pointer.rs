@@ -1,4 +1,7 @@
+use libc::c_void;
+use napi::{bindgen_prelude::*, Env, JsExternal};
 use std::ffi::{c_char, CString};
+
 pub trait ArrayPointer {
   type Output;
   unsafe fn get_and_advance(&mut self) -> Self::Output;
@@ -33,4 +36,11 @@ where
   P: ArrayPointer,
 {
   unsafe { (0..len).map(|_| pointer.get_and_advance()).collect() }
+}
+
+pub unsafe fn get_js_external_wrap_Data(env: &Env, js_external: JsExternal) -> *mut c_void {
+  let js_external_raw = JsExternal::to_napi_value(env.raw(), js_external).unwrap();
+  let external: External<*mut c_void> =
+    External::from_napi_value(env.raw(), js_external_raw).unwrap();
+  *external
 }

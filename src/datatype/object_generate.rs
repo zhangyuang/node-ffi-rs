@@ -2,11 +2,13 @@ use super::array::*;
 use super::pointer::*;
 use crate::define::*;
 use indexmap::IndexMap;
+use napi::JsExternal;
 use napi::{Env, JsBoolean, JsNumber, JsObject, JsString, JsUnknown, ValueType};
 use std::ffi::c_void;
 use std::ffi::{c_char, c_double, c_int, c_longlong, c_uchar, CStr};
 
 pub unsafe fn create_rs_struct_from_pointer(
+  env: &Env,
   ptr: *mut c_void,
   ret_object: &IndexMap<String, RsArgsValue>,
 ) -> IndexMap<String, RsArgsValue> {
@@ -96,6 +98,21 @@ pub unsafe fn create_rs_struct_from_pointer(
           offset += size + padding;
           field_size = size
         }
+        BasicDataType::External => {
+          let (size, align) = (
+            std::mem::size_of::<*const c_void>(),
+            std::mem::align_of::<*const c_void>(),
+          );
+          let padding = (align - (offset % align)) % align;
+          field_ptr = field_ptr.offset(padding as isize);
+          let type_field_ptr = field_ptr as *mut *mut c_void;
+          rs_struct.insert(
+            field,
+            RsArgsValue::External(env.create_external(*type_field_ptr, None).unwrap()),
+          );
+          offset += size + padding;
+          field_size = size
+        }
       };
     }
     if let RsArgsValue::Object(obj) = val {
@@ -170,7 +187,7 @@ pub unsafe fn create_rs_struct_from_pointer(
         let type_field_ptr = field_ptr as *mut *mut c_void;
         rs_struct.insert(
           field,
-          RsArgsValue::Object(create_rs_struct_from_pointer(*type_field_ptr, obj)),
+          RsArgsValue::Object(create_rs_struct_from_pointer(env, *type_field_ptr, obj)),
         );
         offset += size + padding;
         field_size = size
@@ -182,6 +199,7 @@ pub unsafe fn create_rs_struct_from_pointer(
 }
 
 pub fn get_params_value_rs_struct(
+  env: &Env,
   params_type_object: &JsObject,
   params_value_object: &JsObject,
 ) -> IndexMap<String, RsArgsValue> {
@@ -246,6 +264,10 @@ pub fn get_params_value_rs_struct(
               let arg_val: Vec<u32> = js_array_to_number_array(js_array);
               RsArgsValue::U8Array(arg_val.into_iter().map(|item| item as u8).collect())
             }
+            DataType::External => {
+              let val: JsExternal = params_value_object.get_named_property(&field).unwrap();
+              RsArgsValue::External(val)
+            }
             DataType::Void => RsArgsValue::Void(()),
           };
           index_map.insert(field, val);
@@ -254,7 +276,7 @@ pub fn get_params_value_rs_struct(
         ValueType::Object => {
           let params_type = field_type.coerce_to_object().unwrap();
           let params_value: JsObject = params_value_object.get_named_property(&field).unwrap();
-          let map = get_params_value_rs_struct(&params_type, &params_value);
+          let map = get_params_value_rs_struct(env, &params_type, &params_value);
           index_map.insert(field, RsArgsValue::Object(map));
         }
         _ => panic!(
@@ -315,6 +337,21 @@ pub fn get_array_desc(obj: &IndexMap<String, RsArgsValue>) -> Option<(usize, Ref
   let array_type = number_to_ref_data_type(array_type);
   Some((array_len, array_type))
 }
+pub fn create_js_object_from_rs_map(
+  env: &Env,
+  rs_struct: IndexMap<String, RsArgsValue>,
+) -> JsObject {
+  let mut js_object = env.create_object().unwrap();
+  for (field, value) in rs_struct {
+    js_object
+      .set_property(
+        env.create_string(&field).unwrap(),
+        rs_value_to_js_unknown(&env, value),
+      )
+      .unwrap();
+  }
+  js_object
+}
 pub fn rs_value_to_js_unknown(env: &Env, data: RsArgsValue) -> JsUnknown {
   return match data {
     RsArgsValue::U8(number) => env.create_uint32(number as u32).unwrap().into_unknown(),
@@ -331,18 +368,8 @@ pub fn rs_value_to_js_unknown(env: &Env, data: RsArgsValue) -> JsUnknown {
     RsArgsValue::DoubleArray(val) => {
       rs_array_to_js_array(env, ArrayType::Double(val)).into_unknown()
     }
-    RsArgsValue::Object(obj) => {
-      let mut js_object = env.create_object().unwrap();
-      for (field, value) in obj {
-        js_object
-          .set_property(
-            env.create_string(&field).unwrap(),
-            rs_value_to_js_unknown(env, value),
-          )
-          .unwrap();
-      }
-      js_object.into_unknown()
-    }
+    RsArgsValue::Object(obj) => create_js_object_from_rs_map(env, obj).into_unknown(),
+    RsArgsValue::External(val) => val.into_unknown(),
     RsArgsValue::Void(_) => panic!("void cannot be as a call param type"),
     RsArgsValue::Function(_, _) => panic!("function need to be improved"),
   };

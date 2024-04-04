@@ -43,7 +43,22 @@ const unitTest = () => {
       paramsValue: [c, d],
     }),
   );
+  const ptr = load({
+    library: "libsum",
+    funcName: "concatenateStrings",
+    retType: DataType.External,
+    paramsType: [DataType.String, DataType.String],
+    paramsValue: [c, d],
+  })
 
+  const string = load({
+    library: "libsum",
+    funcName: "getStringFromPtr",
+    retType: DataType.String,
+    paramsType: [DataType.External],
+    paramsValue: [ptr],
+  })
+  equal(string, c + d)
   equal(
     undefined,
     load({
