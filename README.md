@@ -4,20 +4,20 @@
 <a href="https://github.com/zhangyuang/node-ffi-rs/blob/master/README.md">English</a> | <a href="https://github.com/zhangyuang/node-ffi-rs/blob/master/README_Zh.md">简体中文</a>
 </div>
 
-A module written in Rust and N-APi provides interface (FFI) features for Node.js
+A module written in Rust and N-API provides interface (FFI) features for Node.js
 
 
 ## Description
 
-[ffi-rs](https://github.com/zhangyuang/node-ffi-rs) is a high performance module written in Rust and N-API that provides FFI (Foreign Function Interface) features for Node.js. It allows developers to call functions written in other languages such as C++, C, and Rust directly from JavaScript without writing any C++ code.
+[ffi-rs](https://github.com/zhangyuang/node-ffi-rs) is a high-performance module written in Rust and N-API that provides FFI (Foreign Function Interface) features for Node.js. It allows developers to call functions written in other languages such as C++, C, and Rust directly from JavaScript without writing any C++ code.
 
-This module aims to provide similar functionality to the node-ffi module, but with a completely rewritten underlying codebase. The node-ffi module has been unmaintained for several years and is no longer usable, which is why ffi-rs was developed.
+This module aims to provide similar functionality to the node-ffi module but with a completely rewritten underlying codebase. The node-ffi module has been unmaintained for several years and is no longer usable, so ffi-rs was developed to fill that void.
 
 ## features
 
 - High performance ✨
-- Simpler data describe and api interface 💗
-- Support more data type between `Node.js` and `c type` 😊
+- Simpler data description and API interface 💗
+- Support more data types between `Node.js` and `c type` 😊
 - Support modify data in place 🥸
 
 ## benchmark
@@ -47,7 +47,7 @@ $ npm i ffi-rs
 
 ## Support type
 
-Currently, ffi-rs only supports there types of parameters and return values. However, support for more types will be added in the future based on actual usage scenarios.
+Currently, ffi-rs only supports these types of parameters and return values. However, support for more types may be added in the future based on actual usage scenarios.
 
 ### Basic Type
 - [string](#basic-types)
@@ -71,7 +71,7 @@ Currently, ffi-rs only supports there types of parameters and return values. How
 
 ### C++ Class
 
-If you want to call c++ function, see [turorial](#c++)
+If you want to call C++ function, see [tutorial](#C++)
 
 ## Support Platform
 
@@ -91,9 +91,9 @@ View [test.ts](./test.ts) get the latest usage
 
 Here is an example of how to use ffi-rs:
 
-For below c++ code, we compile this file into a dynamic library
+For the following C++ code, we compile this file into a dynamic library
 
-### write c/c++ code
+### write C/C++ code
 
 Note: The return value type of a function must be of type c
 
@@ -120,7 +120,7 @@ extern "C" bool return_opposite(bool input) { return !input; }
 
 ```
 
-### compile c code to dynamic library
+### compile C code into a dynamic library
 
 ```bash
 $ g++ -dynamiclib -o libsum.so cpp/sum.cpp # macos
@@ -130,7 +130,7 @@ $ g++ -shared -o sum.dll cpp/sum.cpp # win
 
 ### call dynamic library by ffi-rs
 
-Then can use `ffi-rs` invoke the dynamic library file contains functions.
+Then you can use `ffi-rs` to invoke the dynamic library file that contains functions.
 
 ### initialization
 
@@ -203,7 +203,7 @@ equal(!bool_val, load({
 
 ### Buffer
 
-In the lateset version, `ffi-rs` support modify data in place.
+In the latest version, `ffi-rs` supports modifying data in place.
 
 The sample code is as follows
 
@@ -229,9 +229,9 @@ console.log(arr) // buffer data can be updated
 
 ### Array
 
-When use `array` as `retType` should use `arrayConstructor` to specify array type with legal length which is important.
+When using `array` as `retType`, you should use `arrayConstructor` to specify the array type with a legal length which is important.
 
-If the length is incorrect, program maybe exit abnormally
+If the length is incorrect, the program may exit abnormally
 
 ```cpp
 extern "C" int *createArrayi32(const int *arr, int size) {
@@ -292,7 +292,7 @@ deepStrictEqual(stringArr, load({
 
 ### Pointer
 
-In `ffi-rs`, we use [DataType.External](https://nodejs.org/api/n-api.html#napi_create_external) for wrap the `pointer` which makes it can be passed between `Node.js` and `C`.
+In `ffi-rs`, we use [DataType.External](https://nodejs.org/api/n-api.html#napi_create_external) for wrapping the `pointer` which enables it to be passed between `Node.js` and `C`.
 
 ```cpp
 extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
@@ -367,7 +367,7 @@ load({
 
 The two pieces of code above are equivalent
 
-Similary, you can use `restorePointer` to restore data from `pointer` which wrap by `createPointer`
+Similarly, you can use `restorePointer` to restore data from `pointer` which is wrapped by `createPointer`
 
 ```js
 const pointerArr = createPointer({
@@ -386,7 +386,7 @@ deepStrictEqual(restoreData, [[1.1, 2.2]])
 
 ### Struct
 
-For create a c struct or get a c struct as a return type, you need to define the types of the parameters strictly in the order in which the fields of the c structure are defined.
+To create a c struct or get a c struct as a return type, you need to define the types of the parameters strictly in the order in which the fields of the c structure are defined.
 
 ```cpp
 typedef struct Person {
@@ -677,16 +677,16 @@ load({
 
 The function parameters supports type are all in the example above (double type is unsupported at this time), we will support more types in the future
 
-Attention，since the vast majority of scenaros developers pass js function to c as a callback, so `ffi-rs` will create [threadsafe_function](https://nodejs.org/api/n-api.html#napi_threadsafe_function) from jsfunction which means the jsfunction will be called asynchronous, and Node.js process will not be exited automatically
+Attention，since the vast majority of scenarios developers pass js function to c as a callback, so `ffi-rs` will create [threadsafe_function](https://nodejs.org/api/n-api.html#napi_threadsafe_function) from jsfunction which means the jsfunction will be called asynchronous, and Node.js process will not be exited automatically
 
 
 ## C++
 
-We'll provide more examples from real-worl scenarios, if you have any ideas, please submit an issue
+We'll provide more examples from real-world scenarios, if you have any ideas, please submit an issue
 
 ### class type
 
-In C++ scene, we can use `DataType.External` to get class type pointer
+In C++ scene, we can use `DataType.External` to get a class type pointer
 
 In the code below, we use C types to wrap C++ types such as convert `char *` to `std::string` and return class pointer
 
@@ -702,7 +702,7 @@ extern "C" MyClass *createMyClassFromC(const char *name, int age) {
 extern "C" void printMyClass(MyClass *instance) { instance->print(); }
 ```
 
-And then, we can call it by above code
+And then, it can called by the following code
 
 ```js
 const classPointer = load({
