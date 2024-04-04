@@ -15,10 +15,21 @@ extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
   return cstr;
 }
 
-extern "C" void noRet() { printf("%s", "hello world"); }
+extern "C" void noRet() { printf("%s", "hello world\n"); }
 
-extern "C" std::vector<int> appendElement(const int *arr, int size) {
-  std::vector<int> vec(arr, arr + size);
-  vec.push_back(1);
+extern "C" int *createArrayi32(const int *arr, int size) {
+  int *vec = (int *)malloc((size) * sizeof(int));
+  for (int i = 0; i < size; i++) {
+    vec[i] = arr[i];
+  }
+  return vec;
+}
+
+extern "C" char *createArrayString(const char *arr, int size) {
+  char *vec = (char *)malloc((size) * sizeof(char));
+
+  for (int i = 0; i < size; i++) {
+    vec[i] = arr[i];
+  }
   return vec;
 }

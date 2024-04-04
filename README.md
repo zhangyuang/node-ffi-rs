@@ -13,9 +13,17 @@ ffi-rs is a module written in Rust and N-API that provides FFI (Foreign Function
 
 This module aims to provide similar functionality to the node-ffi module, but with a completely rewritten underlying codebase. The node-ffi module has been unmaintained for several years and is no longer usable, which is why ffi-rs was developed.
 
-## Usage
+## Support type
 
-Currently, ffi-rs only supports there types of parameters and return values: `string|numbers|void|double`. However, support for more types will be added in the future based on actual usage scenarios.
+Currently, ffi-rs only supports there types of parameters and return values. However, support for more types will be added in the future based on actual usage scenarios.
+
+- string
+- number(i32)
+- void
+- double
+- i32Array
+
+## Usage
 
 Here is an example of how to use ffi-rs:
 
@@ -26,7 +34,6 @@ For below c++ code, we compile this file into a dynamic library
 #include <cstring>
 #include <iostream>
 #include <string>
-#include <vector>
 
 extern "C" int sum(int a, int b) { return a + b; }
 
@@ -41,9 +48,13 @@ extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
 
 extern "C" void noRet() { printf("%s", "hello world"); }
 
-extern "C" std::vector<int> appendElement(const int *arr, int size) {
-  std::vector<int> vec(arr, arr + size);
-  vec.push_back(1);
+
+extern "C" int *createArrayi32(const int *arr, int size) {
+  int *vec = (int *)malloc((size) * sizeof(int));
+
+  for (int i = 0; i < size; i++) {
+    vec[i] = arr[i];
+  }
   return vec;
 }
 
@@ -63,6 +74,7 @@ const { equal } = require('assert')
 const { load, RetType, ParamsType } = require('ffi-rs')
 const a = 1
 const b = 100
+const dynamicLib = platform === 'win32' ? './sum.dll' : "./libsum.so"
 
 const r = load({
   library: "./libsum.so", // path to the dynamic library file
@@ -100,5 +112,15 @@ equal(1.1 + 2.2, load({
   paramsType: [ParamsType.Double, ParamsType.Double],
   paramsValue: [1.1, 2.2]
 }))
+
+let bigArr = new Array(100000).fill(100)
+equal(Math.max(bigArr), Math.max(load({
+  library: dynamicLib,
+  funcName: 'createArrayi32',
+  retType: RetType.I32Array,
+  paramsType: [ParamsType.I32Array, ParamsType.I32],
+  paramsValue: [bigArr, bigArr.length],
+  retTypeLen: bigArr.length
+})))
 
 ```
