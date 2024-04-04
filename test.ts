@@ -55,13 +55,7 @@ const unitTest = () => {
     paramsType: [DataType.I32Array, DataType.I32],
     paramsValue: [bigArr, bigArr.length],
   }))
-  // let foo = load({
-  //   library: 'libsum',
-  //   funcName: 'createArrayi32',
-  //   retType: arrayConstructor({ type: DataType.I32Array, length: bigArr.length }),
-  //   paramsType: [DataType.I32Array, DataType.I32],
-  //   paramsValue: [bigArr, bigArr.length],
-  // })
+
   let bigDoubleArr = new Array(5).fill(1.1)
   deepStrictEqual(bigDoubleArr, load({
     library: 'libsum',
@@ -92,7 +86,8 @@ const unitTest = () => {
     age: 23,
     doubleProps: 1.1,
     stringArray: ["foo", "bar"],
-    doubleArray: [1.1, 2.2, 3.3]
+    doubleArray: [1.1, 2.2, 3.3],
+    i32Array: [1, 2, 3, 4]
   }
   const personObj = load({
     library: 'libsum',
@@ -102,7 +97,8 @@ const unitTest = () => {
       age: DataType.I32,
       doubleProps: DataType.Double,
       stringArray: arrayConstructor({ type: DataType.StringArray, length: person.stringArray.length }),
-      doubleArray: arrayConstructor({ type: DataType.DoubleArray, length: person.doubleArray.length })
+      doubleArray: arrayConstructor({ type: DataType.DoubleArray, length: person.doubleArray.length }),
+      i32Array: arrayConstructor({ type: DataType.I32Array, length: person.i32Array.length }),
     },
     paramsType: [{
       name: DataType.String,
@@ -110,6 +106,7 @@ const unitTest = () => {
       doubleProps: DataType.Double,
       stringArray: DataType.StringArray,
       doubleArray: DataType.DoubleArray,
+      i32Array: DataType.I32Array,
     }],
     paramsValue: [person]
   })
