@@ -1,12 +1,16 @@
 {
   "name": "@yuuang/ffi-rs-linux-x64-musl",
-  "version": "1.0.50",
+  "version": "1.0.51",
   "os": [
     "linux"
   ],
   "cpu": [
     "x64"
   ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "main": "ffi-rs.linux-x64-musl.node",
   "files": [
     "ffi-rs.linux-x64-musl.node"
