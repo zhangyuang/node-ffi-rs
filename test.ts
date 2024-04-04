@@ -1,4 +1,4 @@
-import { equal } from 'assert'
+import { equal, deepStrictEqual } from 'assert'
 import { load, open, close, DataType } from './index'
 
 const platform = process.platform
@@ -89,6 +89,8 @@ const unitTest = () => {
   const person = {
     name: 'tom',
     age: 23,
+    doubleProps: 1.1,
+    // stringArrProps: ["foo", "bar"]
   }
   const personObj = load({
     library: 'libsum',
@@ -96,18 +98,24 @@ const unitTest = () => {
     retType: {
       name: DataType.String,
       age: DataType.I32,
+      doubleProps: DataType.Double,
+      // stringArrProps: DataType.StringArray
     },
     paramsType: [{
       name: DataType.String,
       age: DataType.I32,
+      doubleProps: DataType.Double,
+      // stringArrProps: DataType.StringArray
     }],
     paramsValue: [person]
   })
   equal(person.name, personObj.name)
   equal(person.age, personObj.age)
-  const func = () => {
-    console.log('func')
-  }
+  equal(person.doubleProps, personObj.doubleProps)
+  // deepStrictEqual(person.stringArrProps, personObj.stringArrProps)
+  // const func = () => {
+  //   console.log('func')
+  // }
   // load({
   //   library: 'libsum',
   //   funcName: 'callFunction',

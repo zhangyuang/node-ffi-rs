@@ -45,18 +45,22 @@ extern "C" bool return_opposite(bool input) { return !input; }
 
 typedef struct Parent {
   int age;
-  const char *name;
+  // const char *name;
 } Parent;
 
 typedef struct Person {
   const char *name;
   int age;
+  double doubleProps;
+  // char **stringArrProps;
   // Parent parent;
 } Person;
 
 extern "C" const Person *getStruct(const Person *person) {
   printf("Name: %s\n", person->name);
   printf("Age: %d\n", person->age);
+  printf("doubleProps: %f \n", person->doubleProps);
+  // printf("stringArrProps: %s\n", person->stringArrProps[0]);
   // printf("Parent Age: %d\n", person->parent.age);
   // printf("Parent Name: %s\n", person->parent.name);
   return person;
