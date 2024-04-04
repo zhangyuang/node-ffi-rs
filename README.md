@@ -15,7 +15,7 @@ This module aims to provide similar functionality to the node-ffi module, but wi
 
 ## Usage
 
-Currently, ffi-rs only supports two types of parameters and return values: strings and numbers. However, support for more types will be added in the future based on actual usage scenarios.
+Currently, ffi-rs only supports there types of parameters and return values: strings|numbers|void. However, support for more types will be added in the future based on actual usage scenarios.
 
 Here is an example of how to use ffi-rs:
 
@@ -61,11 +61,19 @@ const c = "foo"
 const d = "bar"
 
 equal(c + d, load({
-  library: "./libsum.so",
+  library: dynamicLib,
   funcName: 'concatenateStrings',
-  retType: ParamsType.String,
+  retType: RetType.String,
   paramsType: [ParamsType.String, ParamsType.String],
   paramsValue: [c, d]
+}))
+
+equal(undefined, load({
+  library: dynamicLib,
+  funcName: 'noRet',
+  retType: RetType.Void,
+  paramsType: [],
+  paramsValue: []
 }))
 
 
