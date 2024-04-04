@@ -45,17 +45,17 @@
     "build:c": "node scripts/cpp.js",
     "build": "yarn build:c && napi build --platform --release",
     "build:debug": "napi build --platform",
-    "prepublishOnly": "node scripts/publish.js && napi prepublish -t npm",
+    "publish": "node scripts/publish.js && napi prepublish -t npm",
     "test": "node ./test.js",
     "universal": "napi universal",
     "version": "napi version"
   },
   "optionalDependencies": {
-    "@yuuang/ffi-rs-win32-x64-msvc": "^1.0.3",
-    "@yuuang/ffi-rs-darwin-x64": "^1.0.3",
-    "@yuuang/ffi-rs-linux-x64-gnu": "^1.0.3",
-    "@yuuang/ffi-rs-darwin-arm64": "^1.0.3",
-    "@yuuang/ffi-rs-linux-arm64-gnu": "^1.0.3",
-    "@yuuang/ffi-rs-linux-arm64-musl": "^1.0.3"
+    "ffi-rs-win32-x64-msvc": "1.0.6",
+    "ffi-rs-darwin-x64": "1.0.6",
+    "ffi-rs-linux-x64-gnu": "1.0.6",
+    "ffi-rs-darwin-arm64": "1.0.6",
+    "ffi-rs-linux-arm64-gnu": "1.0.6",
+    "ffi-rs-linux-arm64-musl": "1.0.6"
   }
 }
