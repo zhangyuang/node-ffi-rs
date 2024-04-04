@@ -1,10 +1,7 @@
 #include <cstdio>
 #include <cstring>
 #include <future>
-#include <iostream>
 #include <string>
-#include <thread>
-#include <vector>
 
 extern "C" int sum(int a, int b) { return a + b; }
 
@@ -131,7 +128,7 @@ typedef void (*CallbackType)(const char *);
 //   });
 //   // dispatch_main();
 // }
-int call_callback_async(CallbackType callback) {
-  std::async(std::launch::async, [=]() { callback("Hello from async task"); });
-  return 0;
-}
+// int call_callback_async(CallbackType callback) {
+//   std::async(std::launch::async, [=]() { callback("Hello from async task");
+//   }); return 0;
+// }
