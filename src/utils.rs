@@ -38,11 +38,11 @@ pub fn get_js_function_call_value(
         //   .create_double(func_arg_val as f64)
         //   .unwrap()
         //   .into_unknown(),
-        _ => panic!(""),
+        _ => panic!("get_js_function_call_value err"),
       };
       data
     }
-    _ => panic!(""),
+    _ => panic!("get_js_function_call_value err "),
   };
 }
 
