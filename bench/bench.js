@@ -12,7 +12,7 @@ open({
   library: 'libsum',
   path: dynamicLib
 })
-const libm = ffi.Library('libsum', {
+const libm = ffi.Library('./libsum', {
   'sum': ['int', ['int', 'int']],
   concatenateStrings: ['string', ['string', 'string']],
 });
