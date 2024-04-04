@@ -132,6 +132,7 @@ const unitTest = () => {
     boolFalse: false,
     longVal: 5294967296,
     byte: 66,
+    byteArray: [103, 104],
   };
   const person = {
     age: 23,
@@ -145,6 +146,7 @@ const unitTest = () => {
     boolFalse: false,
     longVal: 4294967296,
     byte: 65,
+    byteArray: [101, 102],
   };
   const parentType = {
     age: DataType.I32,
@@ -167,6 +169,10 @@ const unitTest = () => {
     boolFalse: DataType.Boolean,
     longVal: DataType.I64,
     byte: DataType.U8,
+    byteArray: arrayConstructor({
+      type: DataType.U8Array,
+      length: parent.byteArray.length,
+    }),
   };
   const personType = {
     age: DataType.I32,
@@ -189,6 +195,10 @@ const unitTest = () => {
     boolFalse: DataType.Boolean,
     longVal: DataType.I64,
     byte: DataType.U8,
+    byteArray: arrayConstructor({
+      type: DataType.U8Array,
+      length: person.byteArray.length,
+    }),
   };
   const personObj = load({
     library: "libsum",
@@ -210,6 +220,7 @@ const unitTest = () => {
           boolFalse: DataType.Boolean,
           longVal: DataType.I64,
           byte: DataType.U8,
+          byteArray: DataType.U8Array,
         },
         doubleProps: DataType.Double,
         name: DataType.String,
@@ -219,11 +230,13 @@ const unitTest = () => {
         boolFalse: DataType.Boolean,
         longVal: DataType.I64,
         byte: DataType.U8,
+        byteArray: DataType.U8Array,
       },
     ],
     paramsValue: [person],
   });
   deepStrictEqual(person, personObj);
+
   const createdPerson = load({
     library: "libsum",
     funcName: "createPerson",
