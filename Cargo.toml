@@ -5,7 +5,6 @@ version = "0.0.0"
 
 [lib]
 crate-type = ["cdylib"]
-# crate-type = ["rlib"]
 
 [dependencies]
 
@@ -15,9 +14,7 @@ napi-derive = "2.12.2"
 libloading = "0.8"
 libffi = { version = "3.2.0" }
 libffi-sys = { version = "^2.3.0" }
-
-
-
+libc="0.2"
 [build-dependencies]
 napi-build = "2.0.1"
 

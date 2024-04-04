@@ -17,25 +17,57 @@ A module written in Rust and N-APi provides interface (FFI) features for Node.js
 
 暂时只支持 `string/number` 两种类型的出参入参类型。根据实际使用场景后续会支持更多的类型。
 
+下面是使用 `ffi-rs` 的一个基本示例。
+
+针对下面的 `c++` 代码，我们将其编译为动态链接库文件
+
+```cpp
+extern "C" int sum(int a, int b) { return a + b; }
+
+extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
+  std::string result = std::string(str1) + std::string(str2);
+  char *cstr = new char[result.length() + 1];
+  strcpy(cstr, result.c_str());
+  return cstr;
+}
+
+```
+
+```bash
+$ g++ -dynamiclib -o libsum.so cpp/sum.cpp # macos
+$ g++ -shared -o libsum.so cpp/sum.cpp # linux
+$ g++ -shared -o sum.dll cpp/sum.cpp # win
+```
+
+使用 `ffi-rs` 来调用该动态链接库文件中包含的函数
+
 ```js
-export const enum RetType {
-  String = 0,
-  I32 = 1
-}
-export const enum ParamsType {
-  String = 0,
-  I32 = 1
-}
+const { equal } = require('assert')
+const { load, RetType, ParamsType } = require('ffi-rs')
+const a = 1
+const b = 100
 
 const p = require('ffi-rs')
 const r = p.load({
-  library: "/usr/libsum.so", // 动态链接库文件
+  library: "./libsum.so", // 动态链接库文件
   funcName: 'sum', // 要调用的 method
-  retType: 1, // 返回值的类型
-  paramsType: [1, 1], // 参数的类型
-  paramsValue: [-99, 2] // 实际的参数值
+  retType: RetType.I32, // 返回值的类型
+  paramsType: [ParamsType.I32, ParamsType.I32], // 参数的类型
+  paramsValue: [a, b] // 实际的参数值
 })
 
-console.log('result', r)
+expect(r, a + b)
+
+const c = "foo"
+const d = "bar"
+
+equal(c + d, load({
+  library: "./libsum.so",
+  funcName: 'concatenateStrings',
+  retType: ParamsType.String,
+  paramsType: [ParamsType.String, ParamsType.String],
+  paramsValue: [c, d]
+}))
+
 
 ```
