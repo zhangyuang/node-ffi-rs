@@ -52,7 +52,8 @@ typedef struct Person {
   const char *name;
   int age;
   double doubleProps;
-  char **stringArrProps;
+  char **stringArray;
+  double *doubleArray;
   // Parent parent;
 } Person;
 
@@ -60,8 +61,10 @@ extern "C" const Person *getStruct(const Person *person) {
   printf("Name: %s\n", person->name);
   printf("Age: %d\n", person->age);
   printf("doubleProps: %f \n", person->doubleProps);
-  printf("stringArrProps: %s\n", person->stringArrProps[0]);
-  printf("stringArrProps: %s\n", person->stringArrProps[1]);
+  printf("stringArray: %s\n", person->stringArray[0]);
+  printf("stringArray: %s\n", person->stringArray[1]);
+  printf("doubleArray: %f\n", person->doubleArray[0]);
+  printf("doubleArray: %f\n", person->doubleArray[1]);
   // printf("Parent Age: %d\n", person->parent.age);
   // printf("Parent Name: %s\n", person->parent.name);
   return person;
