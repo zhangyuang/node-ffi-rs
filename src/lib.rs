@@ -4,7 +4,6 @@ extern crate napi_derive;
 mod ffi_macro;
 
 mod define;
-mod pointer;
 mod utils;
 use define::*;
 use indexmap::IndexMap;
@@ -17,18 +16,16 @@ use libffi_sys::{
 use libloading::{Library, Symbol};
 use napi::bindgen_prelude::*;
 use napi::{Env, JsFunction, JsNumber, JsObject, JsString, JsUnknown};
-use pointer::*;
+
 use std::alloc::{alloc, Layout};
 use std::collections::HashMap;
 use std::ffi::c_void;
 use std::ffi::{CStr, CString};
-use utils::*;
 
-enum FFIJsValue {
-  I32(i32),
-  JsObject(JsObject),
-  Unknown,
-}
+use utils::calculate::*;
+use utils::pointer::*;
+use utils::struct_utils::*;
+use utils::transform::*;
 
 static mut LibraryMap: Option<HashMap<String, Library>> = None;
 
@@ -154,7 +151,7 @@ unsafe fn load(
           let params_type_object: JsObject = param.coerce_to_object().unwrap();
           let arg_type = &mut ffi_type_pointer as *mut ffi_type;
           let params_value_object = value.coerce_to_object().unwrap();
-          let index_map = jsobject_to_rs_struct(params_type_object, params_value_object);
+          let index_map = get_params_value_rs_struct(&params_type_object, &params_value_object);
           (arg_type, RsArgsValue::Object(index_map))
         }
         ValueType::Function => {
@@ -230,10 +227,8 @@ unsafe fn load(
           let func_args_type: JsObject = func_desc_obj
             .get_property(env.create_string("paramsType").unwrap())
             .unwrap();
-          use std::sync::{Arc, Mutex};
           let args_len = func_args_type.get_array_length().unwrap();
-          let func_args_type_ptr = Box::into_raw(Box::new(func_args_type));
-          let js_function_ptr = Box::into_raw(Box::new(js_function));
+          let func_args_type_rs = type_define_to_rs_struct(&func_args_type);
 
           if args_len > 10 {
             panic!("The number of function parameters needs to be less than or equal to 10")
@@ -241,56 +236,19 @@ unsafe fn load(
           use napi::threadsafe_function::{
             ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode,
           };
-          if args_len == 4 {
-            println!("xx");
-            let mut func_args_type_rs = vec![];
-            for i in 0..4 {
-              let ele: i32 = (*func_args_type_ptr)
-                .get_element::<JsNumber>(i)
-                .unwrap()
-                .try_into()
-                .unwrap();
-              func_args_type_rs.push(ele);
-            }
-
-            let tsfn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::CalleeHandled> =
-              (&*js_function_ptr)
-                .create_threadsafe_function(0, |ctx| {
-                  let val: Vec<RsArgsValue> = ctx.value;
-                  let mut res = vec![];
-                  for i in 0..val.len() {
-                    let item = &val[i];
-                    let ele = match item {
-                      RsArgsValue::I32(val) => ctx.env.create_int32(*val).unwrap().into_unknown(),
-                      RsArgsValue::String(val) => {
-                        ctx.env.create_string(&val).unwrap().into_unknown()
-                      }
-                      _ => panic!("ThreadsafeFunction err"),
-                    };
-                    res.push(ele);
-                  }
-                  Ok(res as Vec<JsUnknown>)
-                })
-                .unwrap();
-
-            let lambda = move |a: *mut c_void, b: *mut c_void, c: *mut c_void, d: *mut c_void| {
-              let arg_arr = vec![a, b, c, d];
-              let value: Vec<RsArgsValue> = (0..4)
-                .map(|index| {
-                  let c_param = arg_arr[index as usize];
-                  let arg_type = func_args_type_rs[index];
-
-                  let param = get_js_function_call_value_number(arg_type, c_param);
-                  param
-                })
+          let tsfn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal> = (&js_function)
+            .create_threadsafe_function(0, |ctx| {
+              let value: Vec<RsArgsValue> = ctx.value;
+              let js_call_params: Vec<JsUnknown> = value
+                .into_iter()
+                .map(|rs_args| return rs_value_to_js_unknown(&ctx.env, rs_args))
                 .collect();
-              tsfn.call(Ok(value), ThreadsafeFunctionCallMode::NonBlocking);
-            };
-            let closure = Box::into_raw(Box::new(ClosureOnce4::new(lambda)));
-            return std::mem::transmute((*closure).code_ptr());
-          }
 
-          match_args_len!(args_len, func_args_type_ptr, js_function_ptr, &env,
+              Ok(js_call_params)
+            })
+            .unwrap();
+
+          return match_args_len!(args_len, tsfn, func_args_type_rs, js_function,
               1 => ClosureOnce1, a
               ,2 => ClosureOnce2, a,b
               ,3 => ClosureOnce3, a,b,c
@@ -301,7 +259,7 @@ unsafe fn load(
               ,8 => ClosureOnce8, a,b,c,d,e,f,g,h
               ,9 => ClosureOnce9, a,b,c,d,e,f,g,h,i
               ,10 => ClosureOnce10, a,b,c,d,e,f,g,h,i,j
-          )
+          );
         }
         RsArgsValue::Object(val) => {
           let (size, _) = calculate_layout(&val);
@@ -401,15 +359,16 @@ unsafe fn load(
       }
     })
     .collect();
-
   let ret_value_type = ret_type.get_type().unwrap();
-  let ret_value: FFIJsValue = match ret_value_type {
-    ValueType::Number => FFIJsValue::I32(ret_type.coerce_to_number().unwrap().try_into().unwrap()),
-    ValueType::Object => FFIJsValue::JsObject(ret_type.coerce_to_object().unwrap()),
-    _ => FFIJsValue::Unknown,
+  let ret_value = match ret_value_type {
+    ValueType::Number => RsArgsValue::I32(ret_type.coerce_to_number().unwrap().try_into().unwrap()),
+    ValueType::Object => RsArgsValue::Object(type_define_to_rs_struct(
+      &ret_type.coerce_to_object().unwrap(),
+    )),
+    _ => panic!("ret_value_type{}", ret_value_type),
   };
   let r_type: *mut ffi_type = match ret_value {
-    FFIJsValue::I32(number) => {
+    RsArgsValue::I32(number) => {
       let ret_data_type = number_to_data_type(number);
       match ret_data_type {
         DataType::I32 => &mut ffi_type_sint32 as *mut ffi_type,
@@ -422,8 +381,8 @@ unsafe fn load(
         DataType::Boolean => &mut ffi_type_uint8 as *mut ffi_type,
       }
     }
-    FFIJsValue::JsObject(_) => &mut ffi_type_pointer as *mut ffi_type,
-    FFIJsValue::Unknown => &mut ffi_type_void as *mut ffi_type,
+    RsArgsValue::Object(_) => &mut ffi_type_pointer as *mut ffi_type,
+    _ => &mut ffi_type_void as *mut ffi_type,
   };
 
   let mut cif = ffi_cif {
@@ -446,7 +405,7 @@ unsafe fn load(
   );
 
   match ret_value {
-    FFIJsValue::I32(number) => {
+    RsArgsValue::I32(number) => {
       let ret_data_type = number_to_data_type(number);
       match ret_data_type {
         DataType::String => {
@@ -511,87 +470,77 @@ unsafe fn load(
         }
       }
     }
-    FFIJsValue::JsObject(ret_object) => {
-      let ffi_tag = ret_object.has_named_property("ffiTypeTag").unwrap();
-      if ffi_tag {
-        let ffi_tag: &str = &js_string_to_string(
-          ret_object
-            .get_named_property::<JsString>("ffiTypeTag")
-            .unwrap(),
-        );
-        match ffi_tag {
-          "array" => {
-            let array_len: usize =
-              js_nunmber_to_i32(ret_object.get_named_property::<JsNumber>("length").unwrap())
-                as usize;
-
-            let array_type: i32 =
-              js_nunmber_to_i32(ret_object.get_named_property::<JsNumber>("type").unwrap());
-            let array_type = number_to_data_type(array_type);
-            match array_type {
-              DataType::I32Array => {
-                let mut result: *mut c_int =
-                  malloc(std::mem::size_of::<*mut c_int>()) as *mut c_int;
-                ffi_call(
-                  &mut cif,
-                  Some(*func),
-                  &mut result as *mut _ as *mut c_void,
-                  arg_values_c_void.as_mut_ptr(),
-                );
-                let arr = create_array_from_pointer(result, array_len);
-                if !result.is_null() {
-                  libc::free(result as *mut c_void);
-                }
-                Either9::E(arr)
-              }
-              DataType::DoubleArray => {
-                let mut result: *mut c_double =
-                  malloc(std::mem::size_of::<*mut c_double>()) as *mut c_double;
-                ffi_call(
-                  &mut cif,
-                  Some(*func),
-                  &mut result as *mut _ as *mut c_void,
-                  arg_values_c_void.as_mut_ptr(),
-                );
-                let arr = create_array_from_pointer(result, array_len);
-                if !result.is_null() {
-                  libc::free(result as *mut c_void);
-                }
-                Either9::G(arr)
-              }
-              DataType::StringArray => {
-                let mut result: *mut *mut c_char =
-                  malloc(std::mem::size_of::<*mut *mut c_char>()) as *mut *mut c_char;
-
-                ffi_call(
-                  &mut cif,
-                  Some(*func),
-                  &mut result as *mut _ as *mut c_void,
-                  arg_values_c_void.as_mut_ptr(),
-                );
-                let arr = create_array_from_pointer(result, array_len);
-                if !result.is_null() {
-                  libc::free(result as *mut c_void);
-                }
-                Either9::F(arr)
-              }
-              _ => panic!("some error"),
+    RsArgsValue::Object(obj) => {
+      if obj.get(ARRAY_LENGTH_TAG).is_some() {
+        // array
+        let array_len = if let RsArgsValue::I32(number) = obj.get(ARRAY_LENGTH_TAG).unwrap() {
+          *number as usize
+        } else {
+          0 as usize
+        };
+        let array_type = if let RsArgsValue::I32(number) = obj.get(ARRAY_TYPE_TAG).unwrap() {
+          *number
+        } else {
+          -1
+        };
+        let array_type = number_to_data_type(array_type);
+        match array_type {
+          DataType::I32Array => {
+            let mut result: *mut c_int = malloc(std::mem::size_of::<*mut c_int>()) as *mut c_int;
+            ffi_call(
+              &mut cif,
+              Some(*func),
+              &mut result as *mut _ as *mut c_void,
+              arg_values_c_void.as_mut_ptr(),
+            );
+            let arr = create_array_from_pointer(result, array_len);
+            if !result.is_null() {
+              libc::free(result as *mut c_void);
             }
+            Either9::E(arr)
+          }
+          DataType::DoubleArray => {
+            let mut result: *mut c_double =
+              malloc(std::mem::size_of::<*mut c_double>()) as *mut c_double;
+            ffi_call(
+              &mut cif,
+              Some(*func),
+              &mut result as *mut _ as *mut c_void,
+              arg_values_c_void.as_mut_ptr(),
+            );
+            let arr = create_array_from_pointer(result, array_len);
+            if !result.is_null() {
+              libc::free(result as *mut c_void);
+            }
+            Either9::G(arr)
+          }
+          DataType::StringArray => {
+            let mut result: *mut *mut c_char =
+              malloc(std::mem::size_of::<*mut *mut c_char>()) as *mut *mut c_char;
+
+            ffi_call(
+              &mut cif,
+              Some(*func),
+              &mut result as *mut _ as *mut c_void,
+              arg_values_c_void.as_mut_ptr(),
+            );
+            let arr = create_array_from_pointer(result, array_len);
+            if !result.is_null() {
+              libc::free(result as *mut c_void);
+            }
+            Either9::F(arr)
           }
           _ => panic!("some error"),
         }
       } else {
-        let ret_fields_size =
-          JsObject::keys(&ret_object)
-            .unwrap()
-            .into_iter()
-            .fold(0, |pre, current| {
-              let size = pre;
-              let val: JsUnknown = ret_object.get_named_property(&current).unwrap();
-              let data_type = js_unknown_to_data_type(val);
-              let (field_size, _) = get_data_type_size_align(data_type);
-              size + field_size
-            });
+        // raw object
+        let ret_fields_size = obj.keys().into_iter().fold(0, |pre, current| {
+          let size = pre;
+          let val = obj.get(current).unwrap();
+          let (field_size, _) = get_rs_struct_size_align(val);
+          size + field_size
+        });
+
         let mut result: *mut c_void = malloc(ret_fields_size);
         ffi_call(
           &mut cif,
@@ -599,11 +548,19 @@ unsafe fn load(
           &mut result as *mut _ as *mut c_void,
           arg_values_c_void.as_mut_ptr(),
         );
-        let js_object = create_object_from_pointer(&env, result, ret_object);
+        let rs_struct = create_rs_struct_from_pointer(result, &obj);
+        let mut js_object = env.create_object().unwrap();
+        for (field, value) in rs_struct {
+          js_object
+            .set_property(
+              env.create_string(&field).unwrap(),
+              rs_value_to_js_unknown(&env, value),
+            )
+            .unwrap();
+        }
         Either9::I(js_object)
       }
     }
-
-    FFIJsValue::Unknown => Either9::C(()),
+    _ => panic!("ret_type err {:?}", ret_value),
   }
 }
