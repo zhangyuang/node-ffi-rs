@@ -197,7 +197,7 @@ macro_rules! match_args_len {
                             (&*$tsfn_ptr).call(value, ThreadsafeFunctionCallMode::NonBlocking);
                     };
                     let closure = Box::into_raw(Box::new($closure::new(&*Box::into_raw(Box::new(lambda)))));
-                    return std::mem::transmute((*closure).code_ptr());
+                    std::mem::transmute((*closure).code_ptr())
                 }
             )*
             _ => {
@@ -206,54 +206,57 @@ macro_rules! match_args_len {
         }
     };
 }
-pub unsafe fn get_value_pointer(env: &Env, arg_values: Vec<RsArgsValue>) -> Vec<*mut c_void> {
-  return arg_values
+pub unsafe fn get_value_pointer(
+  env: &Env,
+  arg_values: Vec<RsArgsValue>,
+) -> Result<Vec<*mut c_void>> {
+  arg_values
     .into_iter()
     .map(|val| match val {
       RsArgsValue::External(val) => {
-        Box::into_raw(Box::new(get_js_external_wrap_data(&env, val))) as *mut c_void
+        Ok(Box::into_raw(Box::new(get_js_external_wrap_data(&env, val))) as *mut c_void)
       }
       RsArgsValue::U8(val) => {
         let c_num = Box::new(val);
-        Box::into_raw(c_num) as *mut c_void
+        Ok(Box::into_raw(c_num) as *mut c_void)
       }
       RsArgsValue::I32(val) => {
         let c_num = Box::new(val);
-        Box::into_raw(c_num) as *mut c_void
+        Ok(Box::into_raw(c_num) as *mut c_void)
       }
       RsArgsValue::I64(val) => {
         let c_num = Box::new(val);
-        Box::into_raw(c_num) as *mut c_void
+        Ok(Box::into_raw(c_num) as *mut c_void)
       }
       RsArgsValue::U64(val) => {
         let c_num = Box::new(val);
-        Box::into_raw(c_num) as *mut c_void
+        Ok(Box::into_raw(c_num) as *mut c_void)
       }
       RsArgsValue::String(val) => {
         let c_string = CString::new(val).unwrap();
         let ptr = c_string.as_ptr();
         std::mem::forget(c_string);
-        return Box::into_raw(Box::new(ptr)) as *mut c_void;
+        Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
       }
       RsArgsValue::Double(val) => {
         let c_double = Box::new(val);
-        Box::into_raw(c_double) as *mut c_void
+        Ok(Box::into_raw(c_double) as *mut c_void)
       }
       RsArgsValue::U8Array(buffer, v) => {
         let buffer = buffer.unwrap();
         let ptr = buffer.as_ptr();
         std::mem::forget(buffer);
-        return Box::into_raw(Box::new(ptr)) as *mut c_void;
+        Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
       }
       RsArgsValue::I32Array(val) => {
         let ptr = val.as_ptr();
         std::mem::forget(val);
-        return Box::into_raw(Box::new(ptr)) as *mut c_void;
+        Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
       }
       RsArgsValue::DoubleArray(val) => {
         let ptr = val.as_ptr();
         std::mem::forget(val);
-        return Box::into_raw(Box::new(ptr)) as *mut c_void;
+        Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
       }
       RsArgsValue::StringArray(val) => {
         let c_char_vec: Vec<*const c_char> = val
@@ -268,13 +271,13 @@ pub unsafe fn get_value_pointer(env: &Env, arg_values: Vec<RsArgsValue>) -> Vec<
 
         let ptr = c_char_vec.as_ptr();
         std::mem::forget(c_char_vec);
-        Box::into_raw(Box::new(ptr)) as *mut c_void
+        Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
       }
       RsArgsValue::Boolean(val) => {
         let c_bool = Box::new(val);
-        Box::into_raw(c_bool) as *mut c_void
+        Ok(Box::into_raw(c_bool) as *mut c_void)
       }
-      RsArgsValue::Void(_) => Box::into_raw(Box::new(())) as *mut c_void,
+      RsArgsValue::Void(_) => Ok(Box::into_raw(Box::new(())) as *mut c_void),
       RsArgsValue::Function(func_desc, js_function) => {
         use libffi::high::*;
         let func_desc_obj = func_desc
@@ -289,7 +292,12 @@ pub unsafe fn get_value_pointer(env: &Env, arg_values: Vec<RsArgsValue>) -> Vec<
         let func_args_type_rs = type_object_to_rs_struct(&func_args_type);
         let func_args_type_rs_ptr = Box::into_raw(Box::new(func_args_type_rs));
         if args_len > 10 {
-          panic!("The number of function parameters needs to be less than or equal to 10")
+          return Err(
+            FFIError::Panic(
+              "The number of function parameters needs to be less than or equal to 10",
+            )
+            .into(),
+          );
         }
 
         let tsfn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal> = (&js_function)
@@ -305,24 +313,26 @@ pub unsafe fn get_value_pointer(env: &Env, arg_values: Vec<RsArgsValue>) -> Vec<
           .unwrap();
 
         let tsfn_ptr = Box::into_raw(Box::new(tsfn));
-        return match_args_len!(env, args_len, tsfn_ptr, func_args_type_rs_ptr,
-            1 => Closure1, a
-            ,2 => Closure2, a,b
-            ,3 => Closure3, a,b,c
-            ,4 => Closure4, a,b,c,d
-            ,5 => Closure5, a,b,c,d,e
-            ,6 => Closure6, a,b,c,d,e,f
-            ,7 => Closure7, a,b,c,d,e,f,g
-            ,8 => Closure8, a,b,c,d,e,f,g,h
-            ,9 => Closure9, a,b,c,d,e,f,g,h,i
-            ,10 => Closure10, a,b,c,d,e,f,g,h,i,j
-        );
+        Ok(
+          match_args_len!(env, args_len, tsfn_ptr, func_args_type_rs_ptr,
+              1 => Closure1, a
+              ,2 => Closure2, a,b
+              ,3 => Closure3, a,b,c
+              ,4 => Closure4, a,b,c,d
+              ,5 => Closure5, a,b,c,d,e
+              ,6 => Closure6, a,b,c,d,e,f
+              ,7 => Closure7, a,b,c,d,e,f,g
+              ,8 => Closure8, a,b,c,d,e,f,g,h
+              ,9 => Closure9, a,b,c,d,e,f,g,h,i
+              ,10 => Closure10, a,b,c,d,e,f,g,h,i,j
+          ),
+        )
       }
       RsArgsValue::Object(val) => {
-        Box::into_raw(Box::new(generate_c_struct(&env, val))) as *mut c_void
+        Ok(Box::into_raw(Box::new(generate_c_struct(&env, val))) as *mut c_void)
       }
     })
-    .collect();
+    .collect::<Result<Vec<*mut c_void>>>()
 }
 
 pub fn get_params_value_rs_struct(
@@ -425,10 +435,10 @@ pub fn get_params_value_rs_struct(
 
 pub fn type_object_to_rs_struct(params_type: &JsObject) -> IndexMap<String, RsArgsValue> {
   let mut index_map = IndexMap::new();
-  JsObject::keys(params_type)
+  let _: Result<()> = JsObject::keys(params_type)
     .unwrap()
     .into_iter()
-    .for_each(|field| {
+    .try_for_each(|field| {
       let field_type: JsUnknown = params_type.get_named_property(&field).unwrap();
       match field_type.get_type().unwrap() {
         ValueType::Number => {
@@ -448,11 +458,17 @@ pub fn type_object_to_rs_struct(params_type: &JsObject) -> IndexMap<String, RsAr
           let str = js_string_to_string(str);
           index_map.insert(field, RsArgsValue::String(str));
         }
-        _ => panic!(
-          "receive {:?} but params type can only be number or object ",
-          field_type.get_type().unwrap()
-        ),
+        _ => {
+          return Err(
+            FFIError::UnsupportedValueType(format!(
+              "Receive {:?} but params type can only be number or object ",
+              field_type.get_type().unwrap()
+            ))
+            .into(),
+          )
+        }
       };
+      Ok(())
     });
   index_map
 }
