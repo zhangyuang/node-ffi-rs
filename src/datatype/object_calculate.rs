@@ -1,5 +1,5 @@
-use crate::datatype::pointer::get_js_external_wrap_Data;
 use crate::define::RsArgsValue;
+use crate::utils::dataprocess::get_js_external_wrap_Data;
 use indexmap::IndexMap;
 use libc::{c_ulonglong, c_void};
 use napi::Env;

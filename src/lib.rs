@@ -15,10 +15,12 @@ use libffi_sys::{
 use libloading::{Library, Symbol};
 use napi::{Env, JsExternal, JsUnknown};
 
-use datatype::pointer::*;
 use std::collections::HashMap;
 use std::ffi::c_void;
-use utils::dataprocess::{get_js_unknown_from_pointer, type_define_to_rs_args};
+use utils::dataprocess::{
+  get_arg_types_values, get_js_external_wrap_Data, get_js_unknown_from_pointer, get_value_pointer,
+  type_define_to_rs_args,
+};
 
 static mut LIBRARY_MAP: Option<HashMap<String, Library>> = None;
 
