@@ -33,6 +33,15 @@ Currently, ffi-rs only supports there types of parameters and return values. How
 - doubleArray
 - object
 
+## Support Platform
+
+- darwin-x64
+- darwin-arm64
+- linux-x64-gnu
+- win32-x64-msvc
+- linux-arm64-gnu
+- linux-arm64-musl
+
 ## Usage
 
 Here is an example of how to use ffi-rs:
