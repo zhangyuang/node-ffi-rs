@@ -2,7 +2,7 @@ use crate::define::RsArgsValue;
 use crate::utils::dataprocess::get_js_external_wrap_data;
 use indexmap::IndexMap;
 use libc::{c_ulonglong, c_void};
-use napi::Env;
+use napi::{Env, Result};
 use std::alloc::{alloc, Layout};
 use std::ffi::CString;
 use std::ffi::{c_char, c_double, c_int, c_longlong, c_uchar};
@@ -64,7 +64,10 @@ pub fn calculate_struct_size(map: &IndexMap<String, RsArgsValue>) -> (usize, usi
   (size, align)
 }
 
-pub unsafe fn generate_c_struct(env: &Env, map: IndexMap<String, RsArgsValue>) -> *mut c_void {
+pub unsafe fn generate_c_struct(
+  env: &Env,
+  map: IndexMap<String, RsArgsValue>,
+) -> Result<*mut c_void> {
   let (size, align) = calculate_struct_size(&map);
   let layout = if size > 0 {
     Layout::from_size_align(size, align).unwrap()
@@ -184,7 +187,7 @@ pub unsafe fn generate_c_struct(env: &Env, map: IndexMap<String, RsArgsValue>) -
         let (size, align) = get_size_align::<*mut c_void>();
         let padding = (align - (offset % align)) % align;
         field_ptr = field_ptr.offset(padding as isize);
-        let obj_ptr = generate_c_struct(env, val);
+        let obj_ptr = generate_c_struct(env, val)?;
         (field_ptr as *mut *const c_void).write(obj_ptr);
         offset += size + padding;
         size
@@ -193,7 +196,7 @@ pub unsafe fn generate_c_struct(env: &Env, map: IndexMap<String, RsArgsValue>) -
         let (size, align) = get_size_align::<*mut c_void>();
         let padding = (align - (offset % align)) % align;
         field_ptr = field_ptr.offset(padding as isize);
-        (field_ptr as *mut *const c_void).write(get_js_external_wrap_data(&env, val));
+        (field_ptr as *mut *const c_void).write(get_js_external_wrap_data(&env, val)?);
         offset += size + padding;
         size
       }
@@ -209,5 +212,5 @@ pub unsafe fn generate_c_struct(env: &Env, map: IndexMap<String, RsArgsValue>) -
     };
     field_ptr = field_ptr.offset(field_size as isize);
   }
-  return ptr;
+  Ok(ptr)
 }

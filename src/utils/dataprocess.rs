@@ -17,11 +17,10 @@ use napi::{
 };
 use std::ffi::{CStr, CString};
 
-pub unsafe fn get_js_external_wrap_data(env: &Env, js_external: JsExternal) -> *mut c_void {
-  let js_external_raw = JsExternal::to_napi_value(env.raw(), js_external).unwrap();
-  let external: External<*mut c_void> =
-    External::from_napi_value(env.raw(), js_external_raw).unwrap();
-  *external
+pub unsafe fn get_js_external_wrap_data(env: &Env, js_external: JsExternal) -> Result<*mut c_void> {
+  let js_external_raw = JsExternal::to_napi_value(env.raw(), js_external)?;
+  let external: External<*mut c_void> = External::from_napi_value(env.raw(), js_external_raw)?;
+  Ok(*external)
 }
 
 pub fn get_array_desc(obj: &IndexMap<String, RsArgsValue>) -> Option<(usize, RefDataType)> {
@@ -214,7 +213,7 @@ pub unsafe fn get_value_pointer(
     .into_iter()
     .map(|val| match val {
       RsArgsValue::External(val) => {
-        Ok(Box::into_raw(Box::new(get_js_external_wrap_data(&env, val))) as *mut c_void)
+        Ok(Box::into_raw(Box::new(get_js_external_wrap_data(&env, val)?)) as *mut c_void)
       }
       RsArgsValue::U8(val) => {
         let c_num = Box::new(val);
@@ -294,7 +293,7 @@ pub unsafe fn get_value_pointer(
         if args_len > 10 {
           return Err(
             FFIError::Panic(
-              "The number of function parameters needs to be less than or equal to 10",
+              "The number of function parameters needs to be less than or equal to 10".to_string(),
             )
             .into(),
           );
@@ -305,7 +304,7 @@ pub unsafe fn get_value_pointer(
             let value: Vec<RsArgsValue> = ctx.value;
             let js_call_params: Vec<JsUnknown> = value
               .into_iter()
-              .map(|rs_args| return rs_value_to_js_unknown(&ctx.env, rs_args))
+              .map(|rs_args| return rs_value_to_js_unknown(&ctx.env, rs_args).unwrap())
               .collect();
 
             Ok(js_call_params)
@@ -499,7 +498,7 @@ pub unsafe fn get_js_unknown_from_pointer(
   ret_type_rs: RsArgsValue,
   ptr: *mut c_void,
 ) -> Result<JsUnknown> {
-  let res = match ret_type_rs {
+  match ret_type_rs {
     RsArgsValue::I32(number) => {
       let ret_data_type = number_to_basic_data_type(number);
       match ret_data_type {
@@ -530,7 +529,7 @@ pub unsafe fn get_js_unknown_from_pointer(
       let array_desc = get_array_desc(&obj);
       if array_desc.is_some() {
         // array
-        let (array_len, array_type) = array_desc.ok_or(FFIError::UnexpectedError)?;
+        let (array_len, array_type) = array_desc.ok_or(FFIError::UnExpectedError)?;
         match array_type {
           RefDataType::U8Array => {
             let arr = create_array_from_pointer(*(ptr as *mut *mut c_uchar), array_len);
@@ -555,7 +554,6 @@ pub unsafe fn get_js_unknown_from_pointer(
         rs_value_to_js_unknown(env, RsArgsValue::Object(rs_struct))
       }
     }
-    _ => panic!("ret_type err {:?}", ret_type_rs),
-  };
-  Ok(res)
+    _ => Err(FFIError::Panic(format!("ret_type err {:?}", ret_type_rs)).into()),
+  }
 }
