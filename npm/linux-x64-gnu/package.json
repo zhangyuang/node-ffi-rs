@@ -1,24 +1,13 @@
 {
   "name": "@yuuang/ffi-rs-linux-x64-gnu",
   "version": "1.0.29",
-  "os": [
-    "linux"
-  ],
-  "cpu": [
-    "x64"
-  ],
+  "os": ["linux"],
+  "cpu": ["x64"],
   "main": "ffi-rs.linux-x64-gnu.node",
-  "files": [
-    "ffi-rs.linux-x64-gnu.node"
-  ],
+  "files": ["ffi-rs.linux-x64-gnu.node"],
   "license": "MIT",
   "engines": {
-    "node": ">= 10"
+    "node": ">= 12"
   },
-  "libc": [
-    "glibc"
-  ],
-  "dependencies": {
-    "uuid": "^9.0.1"
-  }
+  "libc": ["glibc"]
 }

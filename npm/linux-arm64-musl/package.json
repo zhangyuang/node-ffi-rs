@@ -1,24 +1,13 @@
 {
   "name": "@yuuang/ffi-rs-linux-arm64-musl",
   "version": "1.0.29",
-  "os": [
-    "linux"
-  ],
-  "cpu": [
-    "arm64"
-  ],
+  "os": ["linux"],
+  "cpu": ["arm64"],
   "main": "ffi-rs.linux-arm64-musl.node",
-  "files": [
-    "ffi-rs.linux-arm64-musl.node"
-  ],
+  "files": ["ffi-rs.linux-arm64-musl.node"],
   "license": "MIT",
   "engines": {
-    "node": ">= 10"
+    "node": ">= 12"
   },
-  "libc": [
-    "musl"
-  ],
-  "dependencies": {
-    "uuid": "^9.0.1"
-  }
+  "libc": ["musl"]
 }

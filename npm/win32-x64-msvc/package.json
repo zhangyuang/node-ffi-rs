@@ -1,21 +1,12 @@
 {
   "name": "@yuuang/ffi-rs-win32-x64-msvc",
   "version": "1.0.29",
-  "os": [
-    "win32"
-  ],
-  "cpu": [
-    "x64"
-  ],
+  "os": ["win32"],
+  "cpu": ["x64"],
   "main": "ffi-rs.win32-x64-msvc.node",
-  "files": [
-    "ffi-rs.win32-x64-msvc.node"
-  ],
+  "files": ["ffi-rs.win32-x64-msvc.node"],
   "license": "MIT",
   "engines": {
-    "node": ">= 10"
-  },
-  "dependencies": {
-    "uuid": "^9.0.1"
+    "node": ">= 12"
   }
 }
