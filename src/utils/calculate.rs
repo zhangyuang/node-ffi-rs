@@ -26,7 +26,7 @@ pub fn get_rs_value_size_align(val: &RsArgsValue) -> (usize, usize) {
       std::mem::align_of::<*const c_int>(),
     ),
     _ => {
-      panic!("get_rs_value_size_align error")
+      panic!("get_rs_value_size_align error {:?}", val)
     }
   };
 }
