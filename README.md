@@ -118,11 +118,13 @@ extern "C" char **createArrayString(char **arr, int size) {
 typedef struct Person {
   const char *name;
   int age;
+  double doubleProps;
 } Person;
 
 extern "C" const Person *getStruct(const Person *person) {
   printf("Name: %s\n", person->name);
   printf("Age: %d\n", person->age);
+  printf("doubleProps: %f \n", person->doubleProps);
   return person;
 }
 
