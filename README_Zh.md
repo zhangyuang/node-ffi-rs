@@ -381,13 +381,14 @@ extern "C" void callFunction(FunctionPointer func) {
 与上面的代码相对应，你可以这样使用 `ffi-rs` 来传递
 
 ```js
-const func = (a, b, c, d, e) => {
-  console.log('func params', a, b, c, d, e)
+const func = (a, b, c, d, e, f) => {
+  console.log('func params', a, b, c, d, e, f)
   equal(a, 100)
   equal(b, false)
   equal(c, 'Hello, World!')
   deepStrictEqual(d, ['Hello', 'world'])
   deepStrictEqual(e, [101, 202, 303])
+  deepStrictEqual(f, newP)
 }
 
 load({
@@ -398,6 +399,17 @@ load({
     paramsType: [DataType.I32, DataType.Boolean, DataType.String,
     arrayConstructor({ type: DataType.StringArray, length: 2 }),
     arrayConstructor({ type: DataType.I32Array, length: 3 }),
+    {
+      doubleArray: arrayConstructor({ type: DataType.DoubleArray, length: 3 }),
+      age: DataType.I32,
+      doubleProps: DataType.Double,
+      name: DataType.String,
+      stringArray: arrayConstructor({ type: DataType.StringArray, length: 2 }),
+      i32Array: arrayConstructor({ type: DataType.I32Array, length: 3 }),
+      testnum: DataType.I32,
+      boolTrue: DataType.Boolean,
+      boolFalse: DataType.Boolean,
+    }
     ],
     retType: DataType.Void
   })],
