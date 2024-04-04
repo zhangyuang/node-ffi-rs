@@ -21,12 +21,15 @@ Running "ffi" suite...
 Progress: 100%
 
   ffi-napi:
-    2 007 ops/s, ±9.38%     | slowest, 99.24% slower
+    2 028 ops/s, ±4.87%     | slowest, 99.24% slower
+
+  koffi:
+    78 846 ops/s, ±13.74%    | 70.63% slower
 
   ffi-rs:
-    263 846 ops/s, ±0.20%   | fastest
+    268 468 ops/s, ±0.27%   | fastest
 
-Finished 2 cases!
+Finished 3 cases!
   Fastest: ffi-rs
   Slowest: ffi-napi
 

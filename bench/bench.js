@@ -1,10 +1,12 @@
 const b = require('benny')
 const ffi = require('ffi-napi');
+const koffi = require('koffi');
 const { load, RetType, ParamsType, open } = require('../index')
 
 
 const platform = process.platform
 const dynamicLib = platform === 'win32' ? './sum.dll' : "./libsum.so"
+const koffilib = koffi.load(dynamicLib);
 
 open({
   library: 'libsum',
@@ -17,11 +19,16 @@ const libm = ffi.Library('libsum', {
 async function run() {
   await b.suite(
     'ffi',
-    b.add('ffi', () => {
+    b.add('ffi-napi', () => {
       libm.sum(1, 2);
       libm.concatenateStrings("foo", "bar");
     }),
-
+    b.add('koffi', () => {
+      const sum = koffilib.func('int sum(int a, int b)');
+      const concatenateStrings = koffilib.func('const char *concatenateStrings(const char *str1, const char *str2)');
+      sum(1, 2)
+      concatenateStrings("foo", "bar")
+    }),
     b.add('ffi-rs', () => {
       load({
         library: 'libsum',

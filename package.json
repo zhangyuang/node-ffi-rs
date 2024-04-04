@@ -39,7 +39,8 @@
   "devDependencies": {
     "benny": "^3.7.1",
     "ffi-napi": "^4.0.3",
-    "koa": "^2.14.2"
+    "koa": "^2.14.2",
+    "koffi": "^2.6.1"
   },
   "engines": {
     "node": ">= 12"
