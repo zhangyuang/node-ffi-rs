@@ -25,17 +25,19 @@ use utils::dataprocess::{
 static mut LIBRARY_MAP: Option<HashMap<String, Library>> = None;
 
 #[napi]
-unsafe fn create_pointer(env: Env, params: createPointerParams) -> Vec<JsExternal> {
+unsafe fn create_pointer(env: Env, params: createPointerParams) -> napi::Result<Vec<JsExternal>> {
   let createPointerParams {
     params_type,
     params_value,
   } = params;
-  let (_, arg_values) = get_arg_types_values(&env, params_type, params_value);
+  let (_, arg_values) = get_arg_types_values(&env, params_type, params_value)?;
   let arg_values_c_void = get_value_pointer(&env, arg_values);
-  arg_values_c_void
-    .into_iter()
-    .map(|p| env.create_external(*(p as *mut *mut c_void), None).unwrap())
-    .collect()
+  Ok(
+    arg_values_c_void
+      .into_iter()
+      .map(|p| env.create_external(*(p as *mut *mut c_void), None).unwrap())
+      .collect(),
+  )
 }
 
 #[napi]
@@ -104,7 +106,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
   let func: Symbol<unsafe extern "C" fn()> = lib.get(func_name.as_str().as_bytes()).unwrap();
   let params_type_len = params_type.len();
 
-  let (mut arg_types, arg_values) = get_arg_types_values(&env, params_type, params_value);
+  let (mut arg_types, arg_values) = get_arg_types_values(&env, params_type, params_value)?;
   let mut arg_values_c_void = get_value_pointer(&env, arg_values);
 
   let ret_type_rs = type_define_to_rs_args(ret_type);
