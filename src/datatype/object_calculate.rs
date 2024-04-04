@@ -3,7 +3,7 @@ use indexmap::IndexMap;
 use libc::c_void;
 use std::alloc::{alloc, Layout};
 use std::ffi::CString;
-use std::ffi::{c_char, c_double, c_int, c_longlong};
+use std::ffi::{c_char, c_double, c_int, c_longlong, c_uchar};
 
 macro_rules! calculate_layout_for {
   ($variant:ident, $type:ty) => {
@@ -17,6 +17,7 @@ macro_rules! calculate_layout_for {
     }
   };
 }
+calculate_layout_for!(calculate_u8, c_uchar);
 calculate_layout_for!(calculate_i32, c_int);
 calculate_layout_for!(calculate_i64, c_longlong);
 calculate_layout_for!(calculate_double, c_double);
@@ -30,6 +31,7 @@ pub fn calculate_struct_size(map: &IndexMap<String, RsArgsValue>) -> (usize, usi
     map.iter().fold(
       (0, 0, 0),
       |(size, align, offset), (_, field_val)| match field_val {
+        RsArgsValue::U8(_) => calculate_u8(size, align, offset),
         RsArgsValue::I32(_) => calculate_i32(size, align, offset),
         RsArgsValue::I64(_) => calculate_i64(size, align, offset),
         RsArgsValue::Double(_) => calculate_double(size, align, offset),
@@ -66,6 +68,17 @@ pub unsafe fn generate_c_struct(map: IndexMap<String, RsArgsValue>) -> *mut c_vo
   let mut offset = 0;
   for (_, field_val) in map {
     let field_size = match field_val {
+      RsArgsValue::U8(number) => {
+        let (size, align) = (
+          std::mem::size_of::<c_uchar>(),
+          std::mem::align_of::<c_uchar>(),
+        );
+        let padding = (align - (offset % align)) % align;
+        field_ptr = field_ptr.offset(padding as isize);
+        (field_ptr as *mut c_uchar).write(number);
+        offset += size + padding;
+        size
+      }
       RsArgsValue::I32(number) => {
         let (size, align) = (std::mem::size_of::<c_int>(), std::mem::align_of::<c_int>());
         let padding = (align - (offset % align)) % align;

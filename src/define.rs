@@ -57,6 +57,7 @@ pub enum DataType {
   Boolean = 6,
   Void = 7,
   I64 = 8,
+  U8 = 9,
 }
 
 #[derive(Debug)]
@@ -67,6 +68,7 @@ pub enum BasicDataType {
   Boolean = 6,
   Void = 7,
   I64 = 8,
+  U8 = 9,
 }
 
 #[derive(Debug)]
@@ -87,6 +89,7 @@ pub fn number_to_data_type(value: i32) -> DataType {
     6 => DataType::Boolean,
     7 => DataType::Void,
     8 => DataType::I64,
+    9 => DataType::U8,
     _ => panic!("unknow DataType"),
   }
 }
@@ -99,6 +102,7 @@ pub fn number_to_basic_data_type(value: i32) -> BasicDataType {
     6 => BasicDataType::Boolean,
     7 => BasicDataType::Void,
     8 => BasicDataType::I64,
+    9 => BasicDataType::U8,
     _ => panic!("unknow DataType"),
   }
 }
@@ -113,6 +117,7 @@ pub fn number_to_ref_data_type(value: i32) -> RefDataType {
 
 pub enum RsArgsValue {
   String(String),
+  U8(u8),
   I32(i32),
   I64(i64),
   Double(f64),
@@ -128,6 +133,7 @@ impl std::fmt::Debug for RsArgsValue {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
       RsArgsValue::String(s) => write!(f, "String({})", s),
+      RsArgsValue::U8(i) => write!(f, "U8({})", i),
       RsArgsValue::I32(i) => write!(f, "I32({})", i),
       RsArgsValue::I64(i) => write!(f, "I64({})", i),
       RsArgsValue::Double(d) => write!(f, "Double({})", d),
