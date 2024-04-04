@@ -13,11 +13,15 @@ extern void noRet();
 extern int *createArrayi32(const int *arr, int size);
 extern double *createArrayDouble(const double *arr, int size);
 extern char **createArrayString(char **arr, int size);
+typedef struct Parent {
+  const char *name;
+  int age;
+} Parent;
 
 typedef struct Person {
   const char *name;
   int age;
-  struct Person *parent;
+  Parent parent;
 } Person;
 extern const Person *getStruct(const Person *p);
 #ifdef __cplusplus

@@ -80,30 +80,27 @@ const unitTest = () => {
     paramsType: [ParamsType.Boolean],
     paramsValue: [bool_val],
   }))
+
   const person = {
-    name: 'tom', nameType: ParamsType.String,
-    age: 23, ageType: ParamsType.I32,
-    parent: {
-      // name: 'parent', nameType: ParamsType.String,
-      age: 43, ageType: ParamsType.I32,
-    }, parentType: ParamsType.Object
+    name: 'tom',
+    age: 23,
   }
-  // const personObj = load({
-  //   library: dynamicLib,
-  //   funcName: 'getStruct',
-  //   retType: RetType.Object,
-  //   paramsType: [ParamsType.Object],
-  //   paramsValue: [person],
-  //   retFields: {
-  //     name: ParamsType.String,
-  //     age: ParamsType.I32,
-  //     parent: {
-  //       age: ParamsType.I32,
-  //     }
-  //   }
-  // })
-  // equal(person.name, personObj.name)
-  // equal(person.age, personObj.age)
+  const personObj = load({
+    library: dynamicLib,
+    funcName: 'getStruct',
+    retType: RetType.Object,
+    paramsType: [{
+      name: ParamsType.String,
+      age: ParamsType.I32,
+    }],
+    paramsValue: [person],
+    retFields: {
+      name: ParamsType.String,
+      age: ParamsType.I32,
+    }
+  })
+  equal(person.name, personObj.name)
+  equal(person.age, personObj.age)
 
 }
 

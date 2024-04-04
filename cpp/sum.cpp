@@ -44,20 +44,20 @@ extern "C" char **createArrayString(char **arr, int size) {
 extern "C" bool return_opposite(bool input) { return !input; }
 
 typedef struct Parent {
-  // const char *name;
   int age;
+  const char *name;
 } Parent;
 
 typedef struct Person {
   const char *name;
   int age;
-  Parent parent;
+  // Parent parent;
 } Person;
 
 extern "C" const Person *getStruct(const Person *person) {
   printf("Name: %s\n", person->name);
   printf("Age: %d\n", person->age);
-  printf("Parent Age: %d\n", person->parent.age);
-  // printf("Parent Age: %s\n", person->parent.name);
+  // printf("Parent Age: %d\n", person->parent.age);
+  // printf("Parent Name: %s\n", person->parent.name);
   return person;
 }
