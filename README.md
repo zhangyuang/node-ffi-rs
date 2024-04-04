@@ -13,6 +13,12 @@ ffi-rs is a module written in Rust and N-API that provides FFI (Foreign Function
 
 This module aims to provide similar functionality to the node-ffi module, but with a completely rewritten underlying codebase. The node-ffi module has been unmaintained for several years and is no longer usable, which is why ffi-rs was developed.
 
+## install
+
+```js
+$ npm i ffi-rs
+```
+
 ## Support type
 
 Currently, ffi-rs only supports there types of parameters and return values. However, support for more types will be added in the future based on actual usage scenarios.
@@ -22,6 +28,7 @@ Currently, ffi-rs only supports there types of parameters and return values. How
 - void
 - double
 - i32Array
+- stringArray
 
 ## Usage
 
@@ -58,6 +65,13 @@ extern "C" int *createArrayi32(const int *arr, int size) {
   return vec;
 }
 
+extern "C" char **createArrayString(char **arr, int size) {
+  char **vec = (char **)malloc((size) * sizeof(char *));
+  for (int i = 0; i < size; i++) {
+    vec[i] = arr[i];
+  }
+  return vec;
+}
 
 ```
 
@@ -114,13 +128,21 @@ equal(1.1 + 2.2, load({
 }))
 
 let bigArr = new Array(100000).fill(100)
-equal(Math.max(bigArr), Math.max(load({
+equal(bigArr[0], load({
   library: dynamicLib,
   funcName: 'createArrayi32',
   retType: RetType.I32Array,
   paramsType: [ParamsType.I32Array, ParamsType.I32],
   paramsValue: [bigArr, bigArr.length],
   retTypeLen: bigArr.length
-})))
-
+})[0])
+let stringArr = [c, c.repeat(200)]
+equal(stringArr[0], load({
+  library: dynamicLib,
+  funcName: 'createArrayString',
+  retType: RetType.StringArray,
+  paramsType: [ParamsType.StringArray, ParamsType.I32],
+  paramsValue: [stringArr, stringArr.length],
+  retTypeLen: stringArr.length
+})[0])
 ```
