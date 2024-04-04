@@ -53,7 +53,7 @@ pub unsafe fn create_rs_struct_from_pointer(
           offset = std::mem::size_of::<*const c_char>();
         }
 
-        _ => panic!(""),
+        _ => panic!("create_rs_struct_from_pointer {:?}", val),
       }
     }
     if let RsArgsValue::Object(obj) = val {
