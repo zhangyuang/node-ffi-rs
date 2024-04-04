@@ -58,13 +58,13 @@ pub fn get_rs_struct_size_align(data_type: &RsArgsValue) -> (usize, usize) {
     RsArgsValue::Object(obj) => {
       let mut size = 0;
       let mut align = 0;
-      for (field, val) in obj {
+      for (_, val) in obj {
         size += get_rs_struct_size_align(val).0;
         align += get_rs_struct_size_align(val).1;
       }
       (size, align)
     }
-    _ => {
+    RsArgsValue::Function(_, _) => {
       panic!("{:?} Not available as a field type at this time", data_type)
     }
   };
@@ -83,6 +83,7 @@ macro_rules! calculate_layout_for {
 calculate_layout_for!(calculate_i32, c_int);
 calculate_layout_for!(calculate_double, c_double);
 calculate_layout_for!(calculate_boolean, bool);
+calculate_layout_for!(calculate_void, ());
 calculate_layout_for!(calculate_string, *const c_char);
 calculate_layout_for!(calculate_string_array, *const *const c_char);
 calculate_layout_for!(calculate_double_array, *const c_double);
@@ -96,6 +97,7 @@ pub fn calculate_layout(map: &IndexMap<String, RsArgsValue>) -> (usize, usize) {
       RsArgsValue::Double(_) => calculate_double(size, align),
       RsArgsValue::String(_) => calculate_string(size, align),
       RsArgsValue::Boolean(_) => calculate_boolean(size, align),
+      RsArgsValue::Void(_) => calculate_void(size, align),
       RsArgsValue::Object(val) => {
         let (obj_size, obj_align) = calculate_layout(val);
         let align = align.max(obj_align);
@@ -105,7 +107,9 @@ pub fn calculate_layout(map: &IndexMap<String, RsArgsValue>) -> (usize, usize) {
       RsArgsValue::StringArray(_) => calculate_string_array(size, align),
       RsArgsValue::DoubleArray(_) => calculate_double_array(size, align),
       RsArgsValue::I32Array(_) => calculate_i32_array(size, align),
-      _ => panic!("calculate_layout"),
+      RsArgsValue::Function(_, _) => {
+        panic!("{:?} calculate_layout error", field_val)
+      }
     });
   (size, align)
 }
