@@ -15,10 +15,10 @@ This module aims to provide similar functionality to the node-ffi module, but wi
 
 ## features
 
-- High performance
-- Simpler data describe and api interface
-- Support more data type between `Node.js` and `c type`
-- Support modify data in place
+- High performance ✨
+- Simpler data describe and api interface 💗
+- Support more data type between `Node.js` and `c type` 😊
+- Support modify data in place 🥸
 
 ## benchmark
 
