@@ -106,7 +106,7 @@ pub unsafe fn get_arg_types_values(
                 .enumerate()
                 .map(|(index, _)| {
                   let js_element: JsNumber = js_object.get_element(index as u32).unwrap();
-                  return js_element.get_int32().unwrap();
+                  js_element.get_int32().unwrap()
                 })
                 .collect::<Vec<i32>>();
 
@@ -120,7 +120,7 @@ pub unsafe fn get_arg_types_values(
                 .enumerate()
                 .map(|(index, _)| {
                   let js_element: JsNumber = js_object.get_element(index as u32).unwrap();
-                  return js_element.get_double().unwrap();
+                  js_element.get_double().unwrap()
                 })
                 .collect::<Vec<f64>>();
 
@@ -264,7 +264,7 @@ pub unsafe fn get_value_pointer(
             let c_string = CString::new(str).unwrap();
             let ptr = c_string.as_ptr();
             std::mem::forget(c_string);
-            return ptr;
+            ptr
           })
           .collect();
 
@@ -304,12 +304,11 @@ pub unsafe fn get_value_pointer(
             let value: Vec<RsArgsValue> = ctx.value;
             let js_call_params: Vec<JsUnknown> = value
               .into_iter()
-              .map(|rs_args| return rs_value_to_js_unknown(&ctx.env, rs_args).unwrap())
-              .collect();
+              .map(|rs_args| rs_value_to_js_unknown(&ctx.env, rs_args))
+              .collect::<Result<Vec<JsUnknown>, _>>()?;
 
             Ok(js_call_params)
-          })
-          .unwrap();
+          })?;
 
         let tsfn_ptr = Box::into_raw(Box::new(tsfn));
 
