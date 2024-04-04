@@ -50,6 +50,8 @@ $ npm i ffi-rs
 - stringArray
 - doubleArray
 - object
+- function(开发中)
+
 
 ## 支持的系统架构
 
