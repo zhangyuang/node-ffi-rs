@@ -1,26 +1,30 @@
 const { equal } = require('assert')
-const p = require('./index')
+const { load, RetType, ParamsType } = require('./index')
 
+const platform = process.platform
 const a = 1
-const b = -100
+const b = 100
 
-equal(p.load({
-  library: "./libsum.so",
+const dynamicLib = platform === 'win32' ? './sum.dll' : "./libsum.so"
+
+equal(load({
+  library: dynamicLib,
   funcName: 'sum',
-  retType: 1,
-  paramsType: [1, 1],
+  retType: RetType.I32,
+  paramsType: [ParamsType.I32, ParamsType.I32],
   paramsValue: [a, b]
 }), a + b)
 
 const c = "foo"
 const d = "bar"
 
-equal(c + b, p.load({
-  library: "./libsum.so",
+
+equal(c + d, load({
+  library: dynamicLib,
   funcName: 'concatenateStrings',
-  retType: 0,
-  paramsType: [0, 0],
-  paramsValue: ["a", "b"]
+  retType: ParamsType.String,
+  paramsType: [ParamsType.String, ParamsType.String],
+  paramsValue: [c, d]
 }))
 
 
@@ -28,9 +32,9 @@ equal(c + b, p.load({
 
 // "optionalDependencies": {
 //   "ffi-rs-win32-x64-msvc": "1.0.3",
-//   "ffi-rs-darwin-x64": "1.0.3",
-//   "ffi-rs-linux-x64-gnu": "1.0.3",
-//   "ffi-rs-darwin-arm64": "1.0.3",
-//   "ffi-rs-linux-arm64-gnu": "1.0.3",
-//   "ffi-rs-linux-arm64-musl": "1.0.3"
+//     "ffi-rs-darwin-x64": "1.0.3",
+//       "ffi-rs-linux-x64-gnu": "1.0.3",
+//         "ffi-rs-darwin-arm64": "1.0.3",
+//           "ffi-rs-linux-arm64-gnu": "1.0.3",
+//             "ffi-rs-linux-arm64-musl": "1.0.3"
 // }
