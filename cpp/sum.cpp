@@ -53,7 +53,7 @@ typedef struct Person {
   int *i32Array;
   bool boolTrue;
   bool boolFalse;
-  // int longVal;
+  int64_t longVal;
 } Person;
 
 extern "C" Person *getStruct(Person *person) {
@@ -87,7 +87,7 @@ extern "C" Person *createPerson() {
   person->i32Array[3] = 4;
   person->boolTrue = true;
   person->boolFalse = false;
-  // person->longVal = 111;
+  person->longVal = 4294967296;
   // Allocate and initialize parent
   person->parent = (Person *)malloc(sizeof(Person));
   person->parent->doubleArray = (double *)malloc(sizeof(double) * 3);
@@ -106,7 +106,7 @@ extern "C" Person *createPerson() {
   person->parent->i32Array[2] = 7;
   person->parent->boolTrue = true;
   person->parent->boolFalse = false;
-  // person->parent->longVal = 222;
+  person->parent->longVal = 5294967296;
   return person;
 }
 typedef void (*FunctionPointer)(int a, bool b, char *c, char **d, int *e,
