@@ -98,7 +98,6 @@ const unitTest = () => {
     funcName: 'getStruct',
     retType: {
       doubleArray: arrayConstructor({ type: DataType.DoubleArray, length: person.doubleArray.length }),
-
       age: DataType.I32,
       doubleProps: DataType.Double,
       name: DataType.String,
@@ -121,7 +120,6 @@ const unitTest = () => {
     }],
     paramsValue: [person]
   })
-  console.log(personObj)
   deepStrictEqual(person, personObj)
   // deepStrictEqual(person.stringArrProps, personObj.stringArrProps)
   // const func = () => {

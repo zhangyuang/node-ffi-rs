@@ -231,34 +231,45 @@ equal(!bool_val, load({
   paramsValue: [bool_val],
 }))
 const person = {
-  name: 'tom',
+  doubleArray: [1.1, 2.2, 3.3],
+
   age: 23,
   doubleProps: 1.1,
+  name: 'tom',
   stringArray: ["foo", "bar"],
-  doubleArray: [1.1, 2.2, 3.3],
-  i32Array: [1, 2, 3, 4]
+  i32Array: [1, 2, 3, 4],
+  testnum: 32,
+  boolTrue: true,
+  boolFalse: false
 }
 const personObj = load({
   library: 'libsum',
   funcName: 'getStruct',
   retType: {
-    name: DataType.String,
+    doubleArray: arrayConstructor({ type: DataType.DoubleArray, length: person.doubleArray.length }),
     age: DataType.I32,
     doubleProps: DataType.Double,
+    name: DataType.String,
     stringArray: arrayConstructor({ type: DataType.StringArray, length: person.stringArray.length }),
-    doubleArray: arrayConstructor({ type: DataType.DoubleArray, length: person.doubleArray.length }),
     i32Array: arrayConstructor({ type: DataType.I32Array, length: person.i32Array.length }),
+    testnum: DataType.I32,
+    boolTrue: DataType.Boolean,
+    boolFalse: DataType.Boolean,
   },
   paramsType: [{
-    name: DataType.String,
     age: DataType.I32,
     doubleProps: DataType.Double,
+    name: DataType.String,
     stringArray: DataType.StringArray,
     doubleArray: DataType.DoubleArray,
     i32Array: DataType.I32Array,
+    testnum: DataType.I32,
+    boolTrue: DataType.Boolean,
+    boolFalse: DataType.Boolean,
   }],
   paramsValue: [person]
 })
+deepStrictEqual(person, personObj)
 deepStrictEqual(person, personObj)
 
 ```
