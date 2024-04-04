@@ -75,6 +75,7 @@ $ npm i ffi-rs
 - darwin-arm64
 - linux-x64-gnu
 - win32-x64-msvc
+- win32-ia32-msvc
 - linux-arm64-gnu
 - linux-arm64-musl
 

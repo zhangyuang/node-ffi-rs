@@ -1,0 +1,18 @@
+{
+  "name": "@yuuang/ffi-rs-win32-ia32-msvc",
+  "version": "1.0.39",
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "ia32"
+  ],
+  "main": "ffi-rs.win32-ia32-msvc.node",
+  "files": [
+    "ffi-rs.win32-ia32-msvc.node"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">= 12"
+  }
+}

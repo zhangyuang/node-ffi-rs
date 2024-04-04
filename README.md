@@ -76,6 +76,7 @@ Note: You need to make sure that the compilation environment of the dynamic libr
 - darwin-arm64
 - linux-x64-gnu
 - win32-x64-msvc
+- win32-ia32-msvc
 - linux-arm64-gnu
 - linux-arm64-musl
 
