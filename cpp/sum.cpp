@@ -1,7 +1,9 @@
 #include <cstdio>
 #include <cstring>
+#include <future>
 #include <iostream>
 #include <string>
+#include <thread>
 #include <vector>
 
 extern "C" int sum(int a, int b) { return a + b; }
@@ -102,7 +104,7 @@ extern "C" void callFunction(FunctionPointer func) {
   bool b = false;
   char *c = (char *)malloc(14 * sizeof(char));
   strcpy(c, "Hello, World!");
-  // double a = 100.11;
+  double ddd = 100.11;
   char **stringArray = (char **)malloc(sizeof(char *) * 2);
   stringArray[0] = strdup("Hello");
   stringArray[1] = strdup("world");
@@ -111,6 +113,7 @@ extern "C" void callFunction(FunctionPointer func) {
   i32Array[1] = 202;
   i32Array[2] = 303;
   Person *p = createPerson();
+  printf("callFunction%p\n", (void *)&ddd);
   func(a, b, c, stringArray, i32Array, p);
 }
 
@@ -119,4 +122,17 @@ extern "C" void bufferToFill(double bufferToFill[3]) {
   bufferToFill[1] = 7.5;
   bufferToFill[2] = 3;
   printf("%f", bufferToFill[0]);
+}
+
+typedef void (*CallbackType)(const char *);
+// extern "C" void call_callback_async() {
+//   dispatch_async(dispatch_get_main_queue(), ^{
+//     printf("dispatch_async\n");
+//     // callback("Hello from dispatched block");
+//   });
+//   // dispatch_main();
+// }
+int call_callback_async(CallbackType callback) {
+  std::async(std::launch::async, [=]() { callback("Hello from async task"); });
+  return 0;
 }

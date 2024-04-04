@@ -207,3 +207,4 @@ src/main.rs
 Headers
 tencent-test.js
 src/foo.rs
+src/bindings.rs
