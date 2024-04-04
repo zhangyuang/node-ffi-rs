@@ -1,10 +1,11 @@
 {
-  "name": "node-ffi-rs",
-  "version": "0.0.0",
+  "name": "ffi-rs",
+  "version": "1.0.3",
   "main": "index.js",
   "types": "index.d.ts",
+  "description": "A module written in Rust and N-APi provides interface (FFI) features for Node.js",
   "napi": {
-    "name": "node-ffi-rs",
+    "name": "ffi-rs",
     "triples": {
       "additional": [
         "aarch64-apple-darwin",
@@ -13,11 +14,26 @@
       ]
     }
   },
+  "author": "zhangyuang",
+  "homepage": "https://github.com/zhangyuang/node-ffi-rs#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zhangyuang/node-ffi-rs.git"
+  },
+  "keywords": [
+    "ffi",
+    "rust",
+    "node.js",
+    "napi"
+  ],
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "README.md"
+  ],
   "license": "MIT",
   "devDependencies": {
-    "@napi-rs/cli": "^2.15.2",
-    "ava": "^5.1.1",
-    "koa": "^2.14.2"
+    "@napi-rs/cli": "^2.15.2"
   },
   "ava": {
     "timeout": "3m"
@@ -30,7 +46,7 @@
     "build": "napi build --platform --release",
     "build:debug": "napi build --platform",
     "prepublishOnly": "napi prepublish -t npm",
-    "test": "ava",
+    "test": "node ./test.js",
     "universal": "napi universal",
     "version": "napi version"
   }

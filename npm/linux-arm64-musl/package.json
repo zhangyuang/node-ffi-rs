@@ -1,15 +1,15 @@
 {
-  "name": "share-memory-linux-arm64-musl",
-  "version": "0.0.0",
+  "name": "ffi-rs-linux-arm64-musl",
+  "version": "1.0.3",
   "os": [
     "linux"
   ],
   "cpu": [
     "arm64"
   ],
-  "main": "share-memory.linux-arm64-musl.node",
+  "main": "ffi-rs.linux-arm64-musl.node",
   "files": [
-    "share-memory.linux-arm64-musl.node"
+    "ffi-rs.linux-arm64-musl.node"
   ],
   "license": "MIT",
   "engines": {

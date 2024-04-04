@@ -1,10 +1,11 @@
 [package]
 edition = "2021"
-name = "node-ffi-rs"
+name = "ffi-rs"
 version = "0.0.0"
 
 [lib]
 crate-type = ["cdylib"]
+# crate-type = ["rlib"]
 
 [dependencies]
 
@@ -13,7 +14,8 @@ napi = { version = "2.12.0", default-features = false, features = ["napi4"] }
 napi-derive = "2.12.2"
 libloading = "0.8"
 libffi = { version = "3.2.0" }
-libffi-sys = "2.3.0"
+libffi-sys = { version = "^2.3.0" }
+
 
 
 [build-dependencies]

@@ -1,15 +1,15 @@
 {
-  "name": "share-memory-linux-x64-gnu",
-  "version": "0.0.0",
+  "name": "ffi-rs-linux-x64-gnu",
+  "version": "1.0.3",
   "os": [
     "linux"
   ],
   "cpu": [
     "x64"
   ],
-  "main": "share-memory.linux-x64-gnu.node",
+  "main": "ffi-rs.linux-x64-gnu.node",
   "files": [
-    "share-memory.linux-x64-gnu.node"
+    "ffi-rs.linux-x64-gnu.node"
   ],
   "license": "MIT",
   "engines": {
