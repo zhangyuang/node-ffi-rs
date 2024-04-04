@@ -51,7 +51,7 @@ Currently, ffi-rs only supports there types of parameters and return values. How
 - stringArray
 - doubleArray
 - object
-- function(developmenting)
+- function(developing)
 
 ## Support Platform
 
