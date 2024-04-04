@@ -11,6 +11,10 @@ const { resolve } = require('path');
       ...options,
       ffiTypeTag: 'array'
     })
+    module.exports.funcConstructor = (options) => (() => ({
+      ...options,
+      ffiTypeTag: 'function'
+    }))
     `)
   const typesContent = (await readFile(resolve(process.cwd(), './scripts/types.d.ts'))).toString()
   await writeFile(resolve(process.cwd(), './index.d.ts'), typesContent)
