@@ -13,6 +13,25 @@ ffi-rs is a module written in Rust and N-API that provides FFI (Foreign Function
 
 This module aims to provide similar functionality to the node-ffi module, but with a completely rewritten underlying codebase. The node-ffi module has been unmaintained for several years and is no longer usable, which is why ffi-rs was developed.
 
+## benchmark
+
+```bash
+$ node bench/bench.js
+Running "ffi" suite...
+Progress: 100%
+
+  ffi:
+    2 007 ops/s, ±9.38%     | slowest, 99.24% slower
+
+  ffi-rs:
+    263 846 ops/s, ±0.20%   | fastest
+
+Finished 2 cases!
+  Fastest: ffi-rs
+  Slowest: ffi-c++
+
+```
+
 ## install
 
 ```js
@@ -118,26 +137,31 @@ Then can use `ffi-rs` invoke the dynamic library file contains functions.
 
 ```js
 const { equal } = require('assert')
-const { load, RetType, ParamsType } = require('ffi-rs')
+const { load, RetType, ParamsType, open, close } = require('ffi-rs')
 const a = 1
 const b = 100
 const dynamicLib = platform === 'win32' ? './sum.dll' : "./libsum.so"
-
+// first open dynamic library with key for close
+open({
+  library: 'libsum', // key
+  path: dynamicLib // path
+})
 const r = load({
-  library: "./libsum.so", // path to the dynamic library file
+  library: "libsum", // path to the dynamic library file
   funcName: 'sum', // the name of the function to call
   retType: RetType.I32, // the return value type
   paramsType: [ParamsType.I32, ParamsType.I32], // the parameter types
   paramsValue: [a, b] // the actual parameter values
 })
-
 equal(r, a + b)
+// release library memory when you're not using it.
+close('libsum')
 
 const c = "foo"
 const d = "bar"
 
 equal(c + d, load({
-  library: dynamicLib,
+  library: 'libsum',
   funcName: 'concatenateStrings',
   retType: RetType.String,
   paramsType: [ParamsType.String, ParamsType.String],
@@ -145,7 +169,7 @@ equal(c + d, load({
 }))
 
 equal(undefined, load({
-  library: dynamicLib,
+  library: 'libsum',
   funcName: 'noRet',
   retType: RetType.Void,
   paramsType: [],
@@ -153,7 +177,7 @@ equal(undefined, load({
 }))
 
 equal(1.1 + 2.2, load({
-  library: dynamicLib,
+  library: 'libsum',
   funcName: 'doubleSum',
   retType: RetType.Double,
   paramsType: [ParamsType.Double, ParamsType.Double],
@@ -162,7 +186,7 @@ equal(1.1 + 2.2, load({
 
 let bigArr = new Array(100000).fill(100)
 equal(bigArr[0], load({
-  library: dynamicLib,
+  library: 'libsum',
   funcName: 'createArrayi32',
   retType: RetType.I32Array,
   paramsType: [ParamsType.I32Array, ParamsType.I32],
@@ -172,7 +196,7 @@ equal(bigArr[0], load({
 
 let bigDoubleArr = new Array(100).fill(1.1)
 equal(bigDoubleArr[0], load({
-  library: dynamicLib,
+  library: 'libsum',
   funcName: 'createArrayDouble',
   retType: RetType.DoubleArray,
   paramsType: [ParamsType.DoubleArray, ParamsType.I32],
@@ -182,7 +206,7 @@ equal(bigDoubleArr[0], load({
 
 const boolVal = false
 equal(!boolVal, load({
-  library: dynamicLib,
+  library: 'libsum',
   funcName: 'return_opposite',
   retType: RetType.Boolean,
   paramsType: [ParamsType.Boolean],
@@ -191,7 +215,7 @@ equal(!boolVal, load({
 
 let stringArr = [c, c.repeat(200)]
 equal(stringArr[0], load({
-  library: dynamicLib,
+  library: 'libsum',
   funcName: 'createArrayString',
   retType: RetType.StringArray,
   paramsType: [ParamsType.StringArray, ParamsType.I32],
@@ -204,7 +228,7 @@ const person = {
   age: 23,
 }
 const personObj = load({
-  library: dynamicLib,
+  library: 'libsum',
   funcName: 'getStruct',
   retType: RetType.Object,
   paramsType: [{

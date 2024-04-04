@@ -1,14 +1,19 @@
 const { equal, deepStrictEqual } = require('assert')
-const { load, RetType, ParamsType } = require('./index')
+const { load, RetType, ParamsType, open, close } = require('./index')
 
 const platform = process.platform
 const a = 1
 const b = 100
 const dynamicLib = platform === 'win32' ? './sum.dll' : "./libsum.so"
 
+open({
+  library: 'libsum',
+  path: dynamicLib
+})
+
 const unitTest = () => {
   equal(load({
-    library: dynamicLib,
+    library: 'libsum',
     funcName: 'sum',
     retType: RetType.I32,
     paramsType: [ParamsType.I32, ParamsType.I32],
@@ -19,7 +24,7 @@ const unitTest = () => {
   const d = c.repeat(200)
 
   equal(c + d, load({
-    library: dynamicLib,
+    library: 'libsum',
     funcName: 'concatenateStrings',
     retType: RetType.String,
     paramsType: [ParamsType.String, ParamsType.String],
@@ -27,7 +32,7 @@ const unitTest = () => {
   }))
 
   equal(undefined, load({
-    library: dynamicLib,
+    library: 'libsum',
     funcName: 'noRet',
     retType: RetType.Void,
     paramsType: [],
@@ -36,7 +41,7 @@ const unitTest = () => {
 
 
   equal(1.1 + 2.2, load({
-    library: dynamicLib,
+    library: 'libsum',
     funcName: 'doubleSum',
     retType: RetType.Double,
     paramsType: [ParamsType.Double, ParamsType.Double],
@@ -45,7 +50,7 @@ const unitTest = () => {
 
   let bigArr = new Array(100).fill(100)
   equal(bigArr[0], load({
-    library: dynamicLib,
+    library: 'libsum',
     funcName: 'createArrayi32',
     retType: RetType.I32Array,
     paramsType: [ParamsType.I32Array, ParamsType.I32],
@@ -55,7 +60,7 @@ const unitTest = () => {
 
   let bigDoubleArr = new Array(100).fill(1.1)
   equal(bigDoubleArr[0], load({
-    library: dynamicLib,
+    library: 'libsum',
     funcName: 'createArrayDouble',
     retType: RetType.DoubleArray,
     paramsType: [ParamsType.DoubleArray, ParamsType.I32],
@@ -65,7 +70,7 @@ const unitTest = () => {
 
   let stringArr = [c, c.repeat(200)]
   equal(stringArr[0], load({
-    library: dynamicLib,
+    library: 'libsum',
     funcName: 'createArrayString',
     retType: RetType.StringArray,
     paramsType: [ParamsType.StringArray, ParamsType.I32],
@@ -74,7 +79,7 @@ const unitTest = () => {
   })[0])
   const bool_val = true
   equal(!bool_val, load({
-    library: dynamicLib,
+    library: 'libsum',
     funcName: 'return_opposite',
     retType: RetType.Boolean,
     paramsType: [ParamsType.Boolean],
@@ -86,7 +91,7 @@ const unitTest = () => {
     age: 23,
   }
   const personObj = load({
-    library: dynamicLib,
+    library: 'libsum',
     funcName: 'getStruct',
     retType: RetType.Object,
     paramsType: [{
@@ -105,5 +110,6 @@ const unitTest = () => {
 }
 
 unitTest()
+close('libsum')
 
 exports.unitTest = unitTest
