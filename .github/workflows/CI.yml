@@ -114,7 +114,7 @@ jobs:
         run: yarn config set supportedArchitectures.cpu "ia32"
         shell: bash
       - name: Install dependencies
-        run: yarn install
+        run: yarn install --prod
       - name: Setup node x86
         uses: actions/setup-node@v3
         if: matrix.settings.target == 'i686-pc-windows-msvc'
@@ -169,7 +169,7 @@ jobs:
           check-latest: true
           cache: yarn
       - name: Install dependencies
-        run: yarn install
+        run: yarn install --prod
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
@@ -199,7 +199,7 @@ jobs:
           check-latest: true
           cache: yarn
       - name: Install dependencies
-        run: yarn install
+        run: yarn install --prod
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
@@ -227,7 +227,7 @@ jobs:
           check-latest: true
           cache: yarn
       - name: Install dependencies
-        run: yarn install
+        run: yarn install --prod
       - name: Download all artifacts
         uses: actions/download-artifact@v3
         with:
