@@ -1,11 +1,11 @@
 {
   "name": "ffi-rs",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "main": "index.js",
   "types": "index.d.ts",
   "description": "A module written in Rust and N-API provides interface (FFI) features for Node.js",
   "napi": {
-    "name": "@yuuang/ffi-rs",
+    "name": "ffi-rs",
     "triples": {
       "additional": [
         "aarch64-apple-darwin",

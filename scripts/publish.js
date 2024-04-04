@@ -12,4 +12,4 @@ const p = async () => {
   }
 }
 
-p.then()
+p().then()
