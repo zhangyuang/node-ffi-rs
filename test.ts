@@ -1,9 +1,7 @@
 import { equal, deepStrictEqual } from 'assert'
-import { load, open, close, DataType, arrayConstructor } from './index'
+import { load, open, close, DataType, arrayConstructor, funcConstructor } from './index'
 
 const platform = process.platform
-const a = 1
-const b = 100
 const dynamicLib = platform === 'win32' ? './sum.dll' : "./libsum.so"
 
 open({
@@ -12,6 +10,8 @@ open({
 })
 
 const unitTest = () => {
+  const a = 1
+  const b = 100
   equal(load({
     library: 'libsum',
     funcName: 'sum',
@@ -151,19 +151,19 @@ const unitTest = () => {
     boolTrue: true,
     boolFalse: false
   })
-  // const func = () => {
-  //   console.log('func')
-  // }
-  // load({
-  //   library: 'libsum',
-  //   funcName: 'callFunction',
-  //   retType: DataType.Void,
-  //   paramsType: [() => ({
-  //     paramsType: [DataType.I32, DataType.String, DataType.Double],
-  //     retType: DataType.Void
-  //   })],
-  //   paramsValue: [func],
-  // })
+  const func = (a) => {
+    console.log('func param1', a)
+  }
+
+  load({
+    library: 'libsum',
+    funcName: 'callFunction',
+    retType: DataType.Void,
+    paramsType: [funcConstructor({
+      paramsType: [DataType.Double],
+    })],
+    paramsValue: [func],
+  })
 
 }
 

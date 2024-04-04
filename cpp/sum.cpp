@@ -93,13 +93,15 @@ extern "C" Person *createPerson() {
 
   return person;
 }
-typedef int (*FunctionPointer)(int a, int b);
+typedef void (*FunctionPointer)(double a);
 
 extern "C" void callFunction(FunctionPointer func) {
   printf("callFunction");
-  int a = 1;
-  int b = 2;
-  func(a, b);
+  double a = 100.11;
+  // char *a = "Hello, World!";
+  // char *str = (char *)malloc(14 * sizeof(char));
+  // strcpy(str, "Hello, World!");
+  func(a);
 }
 
 extern "C" void bufferToFill(double bufferToFill[3]) {
