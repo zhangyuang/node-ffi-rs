@@ -24,7 +24,7 @@ Progress: 100%
     2 028 ops/s, ±4.87%     | slowest, 99.24% slower
 
   ffi-rs:
-    287 523 ops/s, ±0.17%   | fastest
+    318 467 ops/s, ±0.17%   | fastest
 
 Finished 2 cases!
   Fastest: ffi-rs

@@ -83,7 +83,6 @@ const unitTest = () => {
   }))
   const person = {
     doubleArray: [1.1, 2.2, 3.3],
-
     age: 23,
     doubleProps: 1.1,
     name: 'tom',
@@ -153,7 +152,6 @@ const unitTest = () => {
   }
   deepStrictEqual(p, newP)
   const func = (a, b, c, d, e, f) => {
-    console.log('func params', a, b, c, d, e, f)
     equal(a, 100)
     equal(b, false)
     equal(c, 'Hello, World!')
