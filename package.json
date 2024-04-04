@@ -64,6 +64,7 @@
     "@yuuang/ffi-rs-linux-arm64-gnu": "^1.0.0",
     "@yuuang/ffi-rs-linux-arm64-musl": "^1.0.0",
     "@yuuang/ffi-rs-linux-x64-gnu": "^1.0.0",
+    "@yuuang/ffi-rs-linux-x64-musl": "^1.0.0",
     "@yuuang/ffi-rs-win32-x64-msvc": "^1.0.0",
     "@yuuang/ffi-rs-win32-ia32-msvc": "^1.0.0"
   }
