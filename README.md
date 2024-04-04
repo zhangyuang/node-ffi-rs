@@ -44,6 +44,7 @@ Currently, ffi-rs only supports there types of parameters and return values. How
 
 ### Basic Type
 - [string](#basic-types)
+- [u8](#basic-types)
 - [i32](#basic-types)
 - [i64](#basic-types)
 - [void](#basic-types)(undefined)
@@ -52,6 +53,7 @@ Currently, ffi-rs only supports there types of parameters and return values. How
 
 ### Reference Type
 
+- [u8Array](#array)
 - [i32Array](#array)
 - [stringArray](#array)
 - [doubleArray](#array)
@@ -261,8 +263,10 @@ typedef struct Person {
   int *i32Array;
   bool boolTrue;
   bool boolFalse;
+  int64_t longVal;
+  char byte;
+  char *byteArray;
 } Person;
-
 extern "C" Person *getStruct(Person *person) {
   return person;
 }
@@ -271,47 +275,63 @@ extern "C" Person *createPerson() {
   Person *person = (Person *)malloc(sizeof(Person));
 
   // Allocate and initialize doubleArray
-  person->doubleArray = (double *)malloc(sizeof(double) * 3);
-  person->doubleArray[0] = 1.1;
-  person->doubleArray[1] = 2.2;
-  person->doubleArray[2] = 3.3;
+  double initDoubleArray[] = {1.1, 2.2, 3.3};
+  person->doubleArray = (double *)malloc(sizeof(initDoubleArray));
+  memcpy(person->doubleArray, initDoubleArray, sizeof(initDoubleArray));
 
   // Initialize age and doubleProps
   person->age = 23;
   person->doubleProps = 1.1;
+  person->byte = 'A';
 
   // Allocate and initialize name
   person->name = strdup("tom");
 
-  person->stringArray = (char **)malloc(sizeof(char *) * 1);
-  person->stringArray[0] = strdup("tom");
+  char *stringArray[] = {strdup("tom")};
+  person->stringArray = (char **)malloc(sizeof(stringArray));
+  memcpy(person->stringArray, stringArray, sizeof(stringArray));
 
-  person->i32Array = (int *)malloc(sizeof(int) * 4);
-  person->i32Array[0] = 1;
-  person->i32Array[1] = 2;
-  person->i32Array[2] = 3;
-  person->i32Array[3] = 4;
+  // Allocate and initialize byteArray
+  char initByteArray[] = {101, 102};
+  person->byteArray = (char *)malloc(sizeof(initByteArray));
+  memcpy(person->byteArray, initByteArray, sizeof(initByteArray));
+
+  int initI32Array[] = {1, 2, 3, 4};
+  person->i32Array = (int *)malloc(sizeof(initI32Array));
+  memcpy(person->i32Array, initI32Array, sizeof(initI32Array));
+
   person->boolTrue = true;
   person->boolFalse = false;
+  person->longVal = 4294967296;
 
   // Allocate and initialize parent
   person->parent = (Person *)malloc(sizeof(Person));
-  person->parent->doubleArray = (double *)malloc(sizeof(double) * 3);
-  person->parent->doubleArray[0] = 1.1;
-  person->parent->doubleArray[1] = 2.2;
-  person->parent->doubleArray[2] = 3.3;
+  double parentDoubleArray[] = {1.1, 2.2, 3.3};
+  person->parent->doubleArray = (double *)malloc(sizeof(parentDoubleArray));
+  memcpy(person->parent->doubleArray, parentDoubleArray,
+         sizeof(parentDoubleArray));
+
   person->parent->age = 43;
   person->parent->doubleProps = 3.3;
   person->parent->name = strdup("tom father");
-  person->parent->stringArray = (char **)malloc(sizeof(char *) * 2);
-  person->parent->stringArray[0] = strdup("tom");
-  person->parent->stringArray[1] = strdup("father");
-  person->parent->i32Array = (int *)malloc(sizeof(int) * 3);
-  person->parent->i32Array[0] = 5;
-  person->parent->i32Array[1] = 6;
-  person->parent->i32Array[2] = 7;
+
+  char *pstringArray[] = {strdup("tom"), strdup("father")};
+  person->parent->stringArray = (char **)malloc(sizeof(pstringArray));
+
+  memcpy(person->parent->stringArray, pstringArray, sizeof(pstringArray));
+
+  int parentI32Array[] = {5, 6, 7};
+  person->parent->i32Array = (int *)malloc(sizeof(parentI32Array));
+  memcpy(person->parent->i32Array, parentI32Array, sizeof(parentI32Array));
+
   person->parent->boolTrue = true;
   person->parent->boolFalse = false;
+  person->parent->longVal = 5294967296;
+  person->parent->byte = 'B';
+
+  char parentByteArray[] = {103, 104};
+  person->parent->byteArray = (char *)malloc(sizeof(parentByteArray));
+  memcpy(person->parent->byteArray, parentByteArray, sizeof(parentByteArray));
 
   return person;
 }
@@ -328,6 +348,9 @@ const parent = {
   i32Array: [5, 6, 7],
   boolTrue: true,
   boolFalse: false,
+  longVal: 5294967296,
+  byte: 66,
+  byteArray: [103, 104],
 };
 const person = {
   age: 23,
@@ -339,6 +362,9 @@ const person = {
   i32Array: [1, 2, 3, 4],
   boolTrue: true,
   boolFalse: false,
+  longVal: 4294967296,
+  byte: 65,
+  byteArray: [101, 102],
 };
 const parentType = {
   age: DataType.I32,
@@ -359,6 +385,12 @@ const parentType = {
   }),
   boolTrue: DataType.Boolean,
   boolFalse: DataType.Boolean,
+  longVal: DataType.I64,
+  byte: DataType.U8,
+  byteArray: arrayConstructor({
+    type: DataType.U8Array,
+    length: parent.byteArray.length,
+  }),
 };
 const personType = {
   age: DataType.I32,
@@ -379,6 +411,12 @@ const personType = {
   }),
   boolTrue: DataType.Boolean,
   boolFalse: DataType.Boolean,
+  longVal: DataType.I64,
+  byte: DataType.U8,
+  byteArray: arrayConstructor({
+    type: DataType.U8Array,
+    length: person.byteArray.length,
+  }),
 };
 const personObj = load({
   library: "libsum",
@@ -398,6 +436,9 @@ const personObj = load({
         i32Array: DataType.I32Array,
         boolTrue: DataType.Boolean,
         boolFalse: DataType.Boolean,
+        longVal: DataType.I64,
+        byte: DataType.U8,
+        byteArray: DataType.U8Array,
       },
       doubleProps: DataType.Double,
       name: DataType.String,
@@ -405,6 +446,9 @@ const personObj = load({
       i32Array: DataType.I32Array,
       boolTrue: DataType.Boolean,
       boolFalse: DataType.Boolean,
+      longVal: DataType.I64,
+      byte: DataType.U8,
+      byteArray: DataType.U8Array,
     },
   ],
   paramsValue: [person],
