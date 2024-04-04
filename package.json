@@ -38,6 +38,7 @@
     "shelljs": "^0.8.5"
   },
   "devDependencies": {
+    "@types/node": "^20.8.7",
     "benny": "^3.7.1",
     "ffi-napi": "^4.0.3",
     "koa": "^2.14.2",

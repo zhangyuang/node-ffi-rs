@@ -17,11 +17,11 @@ type DataFieldTypeToType<T extends DataFieldType<DataType>> =
   T extends ArrayConstructorOptions<infer U> ? DataTypeToType<U> :
   never;
 
-export function load<T extends DataType, U extends Record<string, DataFieldType<T>>>(params: FfiParams<T> & {
-  retType: U
-}): { [K in keyof U]: DataFieldTypeToType<U[K]> }
-
-export function load<T extends DataType>(params: FfiParams<T> & {
+  export function load<T extends DataType, U extends Record<string, DataFieldType<T>>>(params: Omit<FfiParams<T>, 'retType'> & {
+    retType?: U
+  }): { [K in keyof U]: DataFieldTypeToType<U[K]> }
+  
+export function load<T extends DataType>(params: Omit<FfiParams<T>, 'retType'> & {
   retType: T
 }): DataTypeToType<T>
 
@@ -32,7 +32,7 @@ export type ArrayConstructorOptions<T extends DataType> = {
 }
 export function arrayConstructor<T extends DataType>(options: ArrayConstructorOptions<T>): ArrayConstructorOptions<T>
 
-export function load<T extends DataType>(params: FfiParams<T> & {
+export function load<T extends DataType>(params: Omit<FfiParams<T>, 'retType'> & {
   retType: ArrayConstructorOptions<T>
 }): DataTypeToType<T>
 
