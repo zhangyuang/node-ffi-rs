@@ -60,7 +60,8 @@ pub enum DataType {
   I64 = 8,
   U8 = 9,
   U8Array = 10,
-  External,
+  External = 11,
+  U64 = 12,
 }
 
 #[derive(Debug)]
@@ -73,6 +74,7 @@ pub enum BasicDataType {
   I64 = 8,
   U8 = 9,
   External = 11,
+  U64 = 12,
 }
 
 #[derive(Debug)]
@@ -97,6 +99,7 @@ pub fn number_to_data_type(value: i32) -> DataType {
     9 => DataType::U8,
     10 => DataType::U8Array,
     11 => DataType::External,
+    12 => DataType::U64,
     _ => panic!("unknow DataType"),
   }
 }
@@ -111,6 +114,7 @@ pub fn number_to_basic_data_type(value: i32) -> BasicDataType {
     8 => BasicDataType::I64,
     9 => BasicDataType::U8,
     11 => BasicDataType::External,
+    12 => BasicDataType::U64,
     _ => panic!("unknow DataType"),
   }
 }
@@ -129,6 +133,7 @@ pub enum RsArgsValue {
   U8(u8),
   I32(i32),
   I64(i64),
+  U64(u64),
   Double(f64),
   U8Array(Option<JsBufferValue>, Option<Vec<u8>>),
   I32Array(Vec<i32>),
@@ -148,6 +153,7 @@ impl std::fmt::Debug for RsArgsValue {
       RsArgsValue::U8(i) => write!(f, "U8({})", i),
       RsArgsValue::I32(i) => write!(f, "I32({})", i),
       RsArgsValue::I64(i) => write!(f, "I64({})", i),
+      RsArgsValue::U64(i) => write!(f, "U64({})", i),
       RsArgsValue::Double(d) => write!(f, "Double({})", d),
       RsArgsValue::U8Array(buffer, v) => {
         write!(f, "U8Array({:?})", buffer.as_ref().unwrap().as_ref())

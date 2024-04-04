@@ -1,7 +1,7 @@
 use crate::datatype::pointer::get_js_external_wrap_Data;
 use crate::define::RsArgsValue;
 use indexmap::IndexMap;
-use libc::c_void;
+use libc::{c_ulonglong, c_void};
 use napi::Env;
 use std::alloc::{alloc, Layout};
 use std::ffi::CString;
@@ -36,6 +36,7 @@ pub fn calculate_struct_size(map: &IndexMap<String, RsArgsValue>) -> (usize, usi
         RsArgsValue::U8(_) => calculate_u8(size, align, offset),
         RsArgsValue::I32(_) => calculate_i32(size, align, offset),
         RsArgsValue::I64(_) => calculate_i64(size, align, offset),
+        RsArgsValue::U64(_) => calculate_i64(size, align, offset),
         RsArgsValue::Double(_) => calculate_double(size, align, offset),
         RsArgsValue::String(_) => calculate_string(size, align, offset),
         RsArgsValue::Boolean(_) => calculate_boolean(size, align, offset),
@@ -99,6 +100,17 @@ pub unsafe fn generate_c_struct(env: &Env, map: IndexMap<String, RsArgsValue>) -
         let padding = (align - (offset % align)) % align;
         field_ptr = field_ptr.offset(padding as isize);
         (field_ptr as *mut c_longlong).write(number);
+        offset += size + padding;
+        size
+      }
+      RsArgsValue::U64(number) => {
+        let (size, align) = (
+          std::mem::size_of::<c_ulonglong>(),
+          std::mem::align_of::<c_ulonglong>(),
+        );
+        let padding = (align - (offset % align)) % align;
+        field_ptr = field_ptr.offset(padding as isize);
+        (field_ptr as *mut c_ulonglong).write(number);
         offset += size + padding;
         size
       }
