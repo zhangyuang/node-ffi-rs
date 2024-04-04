@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <iostream>
 
 #include <string>
 
@@ -14,6 +15,8 @@ extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
   strcpy(cstr, result.c_str());
   return cstr;
 }
+
+extern "C" char *getStringFromPtr(void *ptr) { return (char *)ptr; };
 
 extern "C" void noRet() { printf("%s", "hello world\n"); }
 
