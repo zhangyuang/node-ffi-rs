@@ -1,6 +1,6 @@
 {
   "name": "@yuuang/ffi-rs-win32-x64-msvc",
-  "version": "1.0.22",
+  "version": "1.0.23",
   "os": [
     "win32"
   ],
