@@ -6,14 +6,14 @@ const options = {
 }
 
 if (platform === 'darwin') {
-  execSync('g++ -dynamiclib -o libsum.so cpp/sum.cpp', options)
+  execSync('g++ -std=c++11 -dynamiclib -o libsum.so cpp/sum.cpp', options)
 }
 
 if (platform === 'linux') {
-  execSync('g++ -shared -o libsum.so cpp/sum.cpp', options)
+  execSync('g++ -std=c++11 -fPIC -shared -o libsum.so cpp/sum.cpp', options)
 }
 
 
 if (platform === 'win32') {
-  execSync('g++ -shared -o sum.dll cpp/sum.cpp', options)
+  execSync('g++ -std=c++11 -shared -o sum.dll cpp/sum.cpp', options)
 }
