@@ -6,6 +6,7 @@
 
 A module written in Rust and N-APi provides interface (FFI) features for Node.js
 
+为了获取最及时的更新，我们更建议你查看[英文版文档](./README.md)
 
 ## 简介
 
@@ -70,6 +71,10 @@ $ npm i ffi-rs
 - [doubleArray](#array)
 - [object](#struct)(最新版本支持嵌套对象的生成)
 - [function](#function)
+
+### C++
+
+如果你需要调用c++函数, 请阅读 [tutorial](#c)
 
 ## 支持的系统架构
 
@@ -564,3 +569,50 @@ load({
 ```
 
 目前函数支持的参数类型都在上面的例子里，我们将会在未来支持更多的参数类型
+
+
+## C++
+
+We'll provide more examples from real-worl scenarios, if you have any ideas, please submit an issue
+
+### class type
+
+In C++ scene, we can use `DataType.External` to get class type pointer
+
+In the code below, we use C types to wrap C++ types such as convert `char *` to `std::string` and return class pointer
+
+```cpp
+MyClass *createMyClass(std::string name, int age) {
+  return new MyClass(name, age);
+}
+
+extern "C" MyClass *createMyClassFromC(const char *name, int age) {
+  return createMyClass(std::string(name), age);
+}
+
+extern "C" void printMyClass(MyClass *instance) { instance->print(); }
+```
+
+And then, we can call it by above code
+
+```js
+const classPointer = load({
+  library: "libsum",
+  funcName: "createMyClassFromC",
+  retType: DataType.External,
+  paramsType: [
+    DataType.String,
+    DataType.I32
+  ],
+  paramsValue: ["classString", 26],
+});
+load({
+  library: "libsum",
+  funcName: "printMyClass",
+  retType: DataType.External,
+  paramsType: [
+    DataType.External,
+  ],
+  paramsValue: [classPointer],
+})
+```
