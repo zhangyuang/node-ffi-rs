@@ -1,7 +1,28 @@
 use indexmap::IndexMap;
-use napi::{bindgen_prelude::*, JsBuffer, JsBufferValue};
+use napi::bindgen_prelude::{Error, Result, Status as NapiStatus};
+use napi::{bindgen_prelude::*, JsBufferValue};
 use napi::{Env, JsExternal, JsObject, JsUnknown};
 use std::hash::Hash;
+
+pub enum FFIError {
+  NapiError(Error<NapiStatus>),
+  Panic,
+  LibraryNotFound(String),
+}
+impl AsRef<str> for FFIError {
+  fn as_ref(&self) -> &str {
+    match self {
+      FFIError::Panic => "Panic",
+      FFIError::NapiError(e) => e.status.as_ref(),
+      FFIError::LibraryNotFound(library) => library,
+    }
+  }
+}
+impl From<FFIError> for Error {
+  fn from(err: FFIError) -> Self {
+    Error::new(napi::Status::GenericFailure, format!("{}", err.as_ref()))
+  }
+}
 
 #[derive(Clone)]
 pub struct NapiIndexMap<K, V>(IndexMap<K, V>);

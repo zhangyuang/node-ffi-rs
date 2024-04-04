@@ -86,7 +86,7 @@ fn close(library: String) {
 }
 
 #[napi]
-unsafe fn load(env: Env, params: FFIParams) -> JsUnknown {
+unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
   let FFIParams {
     library,
     func_name,
@@ -96,7 +96,11 @@ unsafe fn load(env: Env, params: FFIParams) -> JsUnknown {
   } = params;
 
   let lib = LIBRARY_MAP.as_ref().unwrap();
-  let lib = lib.get(&library).unwrap();
+  let lib = lib.get(&library).ok_or(FFIError::LibraryNotFound(format!(
+    "Before calling load, you need to open the file {:?} with the open method",
+    library
+  )))?;
+
   let func: Symbol<unsafe extern "C" fn()> = lib.get(func_name.as_str().as_bytes()).unwrap();
   let params_type_len = params_type.len();
 
@@ -148,5 +152,5 @@ unsafe fn load(env: Env, params: FFIParams) -> JsUnknown {
     result,
     arg_values_c_void.as_mut_ptr(),
   );
-  get_js_unknown_from_pointer(&env, ret_type_rs, result)
+  Ok(get_js_unknown_from_pointer(&env, ret_type_rs, result))
 }
