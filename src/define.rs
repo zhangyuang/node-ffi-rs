@@ -45,3 +45,31 @@ where
     unsafe { JsObject::to_napi_value(raw_env, obj) }
   }
 }
+
+#[napi]
+#[derive(Debug)]
+pub enum DataType {
+  String = 0,
+  I32 = 1,
+  Double = 2,
+  I32Array = 3,
+  StringArray = 4,
+  DoubleArray = 5,
+  Boolean = 6,
+  Function = 7,
+  Void = 8,
+}
+pub fn number_to_data_type(value: i32) -> DataType {
+  match value {
+    0 => DataType::String,
+    1 => DataType::I32,
+    2 => DataType::Double,
+    3 => DataType::I32Array,
+    4 => DataType::StringArray,
+    5 => DataType::DoubleArray,
+    6 => DataType::Boolean,
+    7 => DataType::Function,
+    8 => DataType::Void,
+    _ => panic!("unknow DataType"),
+  }
+}
