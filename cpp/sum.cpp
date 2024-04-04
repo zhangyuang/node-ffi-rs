@@ -3,7 +3,6 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <xlocale/_stdio.h>
 
 extern "C" int sum(int a, int b) { return a + b; }
 
