@@ -14,6 +14,7 @@ use libffi_sys::{
 use libloading::{Library, Symbol};
 use napi::{Env, JsNumber, JsObject, JsString, JsUnknown};
 use std::alloc::{alloc, Layout};
+use std::collections::HashMap;
 use std::ffi::c_void;
 use std::ffi::CString;
 
@@ -75,6 +76,36 @@ struct FFIParams {
   pub params_value: Vec<JsUnknown>,
   pub ret_fields: Option<NapiIndexMap<String, ParamsType>>,
 }
+#[napi(object)]
+struct OpenParams {
+  pub library: String,
+  pub path: String,
+}
+static mut LibraryMap: Option<HashMap<String, Library>> = None;
+
+#[napi]
+fn open(params: OpenParams) {
+  let OpenParams { library, path } = params;
+  unsafe {
+    let lib = Library::new(path).unwrap();
+    if LibraryMap.is_none() {
+      LibraryMap = Some(HashMap::new());
+    }
+    let map = LibraryMap.as_mut().unwrap();
+    map.insert(library, lib);
+  }
+}
+
+#[napi]
+fn close(library: String) {
+  unsafe {
+    if LibraryMap.is_none() {
+      return;
+    }
+    let map = LibraryMap.as_mut().unwrap();
+    map.remove(&library);
+  }
+}
 
 #[napi]
 fn load(
@@ -91,7 +122,8 @@ fn load(
     ret_fields,
   } = params;
   unsafe {
-    let lib = Library::new(library).unwrap();
+    let lib = LibraryMap.as_ref().unwrap();
+    let lib = lib.get(&library).unwrap();
     let func: Symbol<unsafe extern "C" fn()> = lib.get(func_name.as_str().as_bytes()).unwrap();
     let params_type_len = params_type.len();
     let (mut arg_types, arg_values): (Vec<*mut ffi_type>, Vec<RsArgsValue>) = params_type
