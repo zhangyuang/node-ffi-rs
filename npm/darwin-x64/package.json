@@ -1,15 +1,15 @@
 {
-  "name": "share-memory-darwin-x64",
-  "version": "0.0.0",
+  "name": "ffi-rs-darwin-x64",
+  "version": "1.0.3",
   "os": [
     "darwin"
   ],
   "cpu": [
     "x64"
   ],
-  "main": "share-memory.darwin-x64.node",
+  "main": "ffi-rs.darwin-x64.node",
   "files": [
-    "share-memory.darwin-x64.node"
+    "ffi-rs.darwin-x64.node"
   ],
   "license": "MIT",
   "engines": {
