@@ -172,8 +172,7 @@ unsafe fn load(
     .unzip();
   let mut arg_values_c_void: Vec<*mut c_void> = arg_values
     .into_iter()
-    .enumerate()
-    .map(|(index, val)| {
+    .map(|val| {
       match val {
         RsArgsValue::I32(val) => {
           let c_num = Box::new(val);
