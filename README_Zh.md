@@ -135,13 +135,13 @@ equal(bigArr[0], load({
   paramsValue: [bigArr, bigArr.length],
   retTypeLen: bigArr.length
 })[0])
-// let stringArr = [c, c.repeat(200)]
-// equal(stringArr[0], load({
-//   library: dynamicLib,
-//   funcName: 'createArrayString',
-//   retType: RetType.StringArray,
-//   paramsType: [ParamsType.StringArray, ParamsType.I32],
-//   paramsValue: [stringArr, stringArr.length],
-//   retTypeLen: stringArr.length
-// })[0])
+let stringArr = [c, c.repeat(200)]
+equal(stringArr[0], load({
+  library: dynamicLib,
+  funcName: 'createArrayString',
+  retType: RetType.StringArray,
+  paramsType: [ParamsType.StringArray, ParamsType.I32],
+  paramsValue: [stringArr, stringArr.length],
+  retTypeLen: stringArr.length
+})[0])
 ```
