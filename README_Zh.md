@@ -9,7 +9,7 @@ A module written in Rust and N-APi provides interface (FFI) features for Node.js
 
 ## 简介
 
-[ffi-rs](https://github.com/zhangyuang/node-ffi-rs) 是一个使用 `Rust` 编写用于在 `Node.js` 中使用 [ffi](https://en.wikipedia.org/wiki/Foreign_function_interface)来调用 `C++/C/Rust` 等语言的能力。
+[ffi-rs](https://github.com/zhangyuang/node-ffi-rs) 是一个高性能的使用 `Rust` 编写用于在 `Node.js` 中使用 [ffi](https://en.wikipedia.org/wiki/Foreign_function_interface)来调用 `C++/C/Rust` 等语言的能力。
 
 开发者无需编写 `C++` 代码便可以直接在 `js` 中调用其他语言的能力。此模块在功能上尽量对标[node-ffi](https://github.com/node-ffi/node-ffi)模块，但底层代码已彻底重写。因 `node-ffi` 模块已经多年无人维护处于一个不可用的状态因此开发了`ffi-rs`模块。
 
@@ -23,13 +23,10 @@ Progress: 100%
   ffi-napi:
     2 028 ops/s, ±4.87%     | slowest, 99.24% slower
 
-  koffi:
-    78 846 ops/s, ±13.74%    | 70.63% slower
-
   ffi-rs:
-    268 468 ops/s, ±0.27%   | fastest
+    287 523 ops/s, ±0.17%   | fastest
 
-Finished 3 cases!
+Finished 2 cases!
   Fastest: ffi-rs
   Slowest: ffi-napi
 
@@ -136,7 +133,7 @@ $ g++ -shared -o sum.dll cpp/sum.cpp # win
 
 ```js
 const { equal } = require('assert')
-const { load, RetType, ParamsType, open } = require('ffi-rs')
+const { load, DataType, open } = require('ffi-rs')
 const a = 1
 const b = 100
 const dynamicLib = platform === 'win32' ? './sum.dll' : "./libsum.so"
