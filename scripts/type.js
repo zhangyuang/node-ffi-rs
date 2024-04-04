@@ -2,6 +2,17 @@ const { readFile, writeFile } = require('fs/promises')
 const { resolve } = require('path');
 
 (async () => {
+  const entryContent = (await readFile(resolve(process.cwd(), './index.js'))).toString()
+    .replace('paramsType: Array<unknown>', 'paramsType: Array<DataFieldType>')
+    .replace('retType: unknown', 'retType: DataFieldType')
+  await writeFile(resolve(process.cwd(), './index.js'), `
+    ${entryContent}
+    module.exports.arrayConstructor = (options) => ({
+      ...options,
+      ffiTypeTag: 'array'
+    })
+    `)
+
   const typeContent = (await readFile(resolve(process.cwd(), './index.d.ts'))).toString()
     .replace('paramsType: Array<unknown>', 'paramsType: Array<DataFieldType>')
     .replace('retType: unknown', 'retType: DataFieldType')
@@ -12,14 +23,6 @@ const { resolve } = require('path');
     export function load(params: FfiParams & {
       retType: DataType.I32 | DataType.Double
     }): number
-
-    export function load(params: FfiParams & {
-      retType: DataType.I32Array | DataType.DoubleArray
-    }): Array<number>
-
-    export function load(params: FfiParams & {
-      retType: DataType.StringArray
-    }): Array<string>
 
     export function load(params: FfiParams & {
       retType: DataType.Boolean
@@ -41,8 +44,23 @@ const { resolve } = require('path');
       never;
     };
     export function load<T extends Record<string, DataType>>(params: FfiParams & { retType: T }): DataTypeToType<T>
+    export type ArrayConstructorOptions = {
+      type: DataType
+      length: number
+    }
+    export function arrayConstructor<T extends ffiTypeTag>(options: ArrayConstructorOptions): ArrayConstructorOptions & {
+      ffiTypeTag: T
+    }
+    type ffiTypeTag = 'double' | 'string' | 'i32';
 
-    export type DataFieldType = DataType | Record<string, DataType>
+    type FfiReturnType<T extends ffiTypeTag> = T extends 'double' ? number :
+     T extends 'i32' ? number :
+    string;
+
+    export function load<T extends ffiTypeTag>(params: FfiParams & { retType: { ffiTypeTag: T } }): Array<FfiReturnType<T>>
+    export type DataFieldType = DataType | Record<string, DataType>| ArrayConstructorOptions & {
+      ffiTypeTag: ffiTypeTag
+    }
       ${typeContent}
       `)
 })()
