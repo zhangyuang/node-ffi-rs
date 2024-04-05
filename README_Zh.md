@@ -83,6 +83,7 @@ $ npm i ffi-rs
 - darwin-x64
 - darwin-arm64
 - linux-x64-gnu
+- linux-x64-musl
 - win32-x64-msvc
 - win32-ia32-msvc
 - linux-arm64-gnu
@@ -152,6 +153,28 @@ equal(r, a + b)
 // 当你不需要再用到这个动态链接库时，使用close来释放它
 close('libsum')
 
+```
+
+### 加载主进程的符号
+
+同样，开发者也可以像 `ffi-napi` 一样，传递一个空的 `path` 字符串给 `open` 方法来加载已经在主进程中加载的`c`基础库中包含的符号，参考[dlopen](https://man7.org/linux/man-pages/man3/dlopen.3.html)
+
+```js
+open({
+  library: "libnative",
+  path: "",
+});
+// 调用 atoi 这个包含在系统 c 基础库中的方法
+equal(
+  load({
+    library: "libnative",
+    funcName: "atoi",
+    retType: DataType.I32,
+    paramsType: [DataType.String],
+    paramsValue: ["1000"],
+  }),
+  1000,
+);
 ```
 
 ### 基本类型

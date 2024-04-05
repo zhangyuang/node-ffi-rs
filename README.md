@@ -80,6 +80,7 @@ Note: You need to make sure that the compilation environment of the dynamic libr
 - darwin-x64
 - darwin-arm64
 - linux-x64-gnu
+- linux-x64-musl
 - win32-x64-msvc
 - win32-ia32-msvc
 - linux-arm64-gnu
@@ -132,7 +133,7 @@ $ g++ -shared -o sum.dll cpp/sum.cpp # win
 
 Then you can use `ffi-rs` to invoke the dynamic library file that contains functions.
 
-### initialization
+### Initialization
 
 ```js
 const { equal } = require('assert')
@@ -157,6 +158,28 @@ equal(r, a + b)
 // release library memory when you're not using it.
 close('libsum')
 
+```
+
+### Load Main Program handle
+
+You can alse pass emptry path string in `open` function like [ffi-napi](https://github.com/node-ffi-napi/node-ffi-napi?tab=readme-ov-file#example) to get the main program handle refer [dlopen](https://man7.org/linux/man-pages/man3/dlopen.3.html)
+
+```js
+open({
+  library: "libnative",
+  path: "",
+});
+// Call atoi function which is includeed in the basic c library
+equal(
+  load({
+    library: "libnative",
+    funcName: "atoi",
+    retType: DataType.I32,
+    paramsType: [DataType.String],
+    paramsValue: ["1000"],
+  }),
+  1000,
+);
 ```
 
 ### Basic Types

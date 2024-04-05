@@ -18,6 +18,11 @@ open({
   path: dynamicLib,
 });
 
+open({
+  library: "libnative",
+  path: "",
+});
+
 const unitTest = () => {
   const a = 1;
   const b = 100;
@@ -346,6 +351,16 @@ const unitTest = () => {
     ],
     paramsValue: [classPointer],
   })
+  equal(
+    load({
+      library: "libnative",
+      funcName: "atoi",
+      retType: DataType.I32,
+      paramsType: [DataType.String],
+      paramsValue: ["1000"],
+    }),
+    1000,
+  );
 };
 
 unitTest();
