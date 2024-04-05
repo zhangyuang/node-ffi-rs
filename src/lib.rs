@@ -22,7 +22,9 @@ use utils::dataprocess::{
   type_define_to_rs_args,
 };
 
-static mut LIBRARY_MAP: Option<HashMap<String, Library>> = None;
+static mut LIBRARY_MAP: Option<
+  HashMap<String, (Library, HashMap<String, Symbol<unsafe extern "C" fn()>>)>,
+> = None;
 
 #[napi]
 unsafe fn create_pointer(env: Env, params: createPointerParams) -> Result<Vec<JsExternal>> {
@@ -76,7 +78,7 @@ fn open(params: OpenParams) {
       } else {
         Library::open(path).unwrap()
       };
-      map.insert(library, lib);
+      map.insert(library, (lib, HashMap::new()));
     }
   }
 }
@@ -102,18 +104,26 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     params_value,
   } = params;
 
-  let lib = LIBRARY_MAP.as_ref().unwrap();
-  let lib = lib.get(&library).ok_or(FFIError::LibraryNotFound(format!(
-    "Before calling load, you need to open the file {:?} with the open method",
-    library
-  )))?;
-
-  let func: Symbol<unsafe extern "C" fn()> = lib.symbol(func_name.as_str()).map_err(|_| {
-    FFIError::FunctionNotFound(format!(
-      "Cannot find {:?} function in share library",
-      func_name.as_str()
-    ))
-  })?;
+  let lib = LIBRARY_MAP.as_mut().unwrap();
+  let (lib, func_map) = lib
+    .get_mut(&library)
+    .ok_or(FFIError::LibraryNotFound(format!(
+      "Before calling load, you need to open the file {:?} with the open method",
+      library
+    )))?;
+  let func_name_str = func_name.as_str();
+  let func = if func_map.get(func_name_str).is_some() {
+    *(func_map.get(func_name_str).unwrap())
+  } else {
+    let func = lib.symbol(func_name_str).map_err(|_| {
+      FFIError::FunctionNotFound(format!(
+        "Cannot find {:?} function in share library",
+        func_name_str
+      ))
+    })?;
+    func_map.insert(func_name, func);
+    func
+  };
   let params_type_len = params_type.len();
 
   let (mut arg_types, arg_values) = get_arg_types_values(&env, params_type, params_value)?;

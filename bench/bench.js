@@ -10,9 +10,18 @@ open({
   library: 'libsum',
   path: dynamicLib
 })
+open({
+  library: "libnative",
+  path: "",
+});
+
 const libm = ffi.Library('./libsum', {
   'sum': ['int', ['int', 'int']],
   concatenateStrings: ['string', ['string', 'string']],
+});
+
+const current = ffi.Library(null, {
+  'atoi': ['int', ['string']]
 });
 
 async function run() {
@@ -21,6 +30,7 @@ async function run() {
     b.add('ffi-napi', () => {
       libm.sum(1, 2);
       libm.concatenateStrings("foo", "bar");
+      current.atoi("1000")
     }),
     b.add('ffi-rs', () => {
       load({
@@ -36,6 +46,13 @@ async function run() {
         retType: DataType.String,
         paramsType: [DataType.String, DataType.String],
         paramsValue: ["foo", "bar"]
+      })
+      load({
+        library: "libnative",
+        funcName: "atoi",
+        retType: DataType.I32,
+        paramsType: [DataType.String],
+        paramsValue: ["1000"],
       })
     }),
     b.cycle(),
