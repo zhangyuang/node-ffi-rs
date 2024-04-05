@@ -6,13 +6,13 @@ mod define;
 mod utils;
 
 use define::*;
+use dlopen::symbor::{Library, Symbol};
 use libc::malloc;
 use libffi_sys::{
   ffi_abi_FFI_DEFAULT_ABI, ffi_call, ffi_cif, ffi_prep_cif, ffi_type, ffi_type_double,
   ffi_type_pointer, ffi_type_sint32, ffi_type_sint64, ffi_type_uint64, ffi_type_uint8,
   ffi_type_void,
 };
-use libloading::{Library, Symbol};
 use napi::{Env, JsExternal, JsUnknown, Result};
 
 use std::collections::HashMap;
@@ -71,7 +71,11 @@ fn open(params: OpenParams) {
     }
     let map = LIBRARY_MAP.as_mut().unwrap();
     if map.get(&library).is_none() {
-      let lib = Library::new(path).unwrap();
+      let lib = if path == "" {
+        Library::open_self().unwrap()
+      } else {
+        Library::open(path).unwrap()
+      };
       map.insert(library, lib);
     }
   }
@@ -104,13 +108,12 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     library
   )))?;
 
-  let func: Symbol<unsafe extern "C" fn()> =
-    lib.get(func_name.as_str().as_bytes()).map_err(|_| {
-      FFIError::FunctionNotFound(format!(
-        "Cannot find {:?} function in share library",
-        func_name.as_str()
-      ))
-    })?;
+  let func: Symbol<unsafe extern "C" fn()> = lib.symbol(func_name.as_str()).map_err(|_| {
+    FFIError::FunctionNotFound(format!(
+      "Cannot find {:?} function in share library",
+      func_name.as_str()
+    ))
+  })?;
   let params_type_len = params_type.len();
 
   let (mut arg_types, arg_values) = get_arg_types_values(&env, params_type, params_value)?;
