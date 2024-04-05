@@ -169,7 +169,7 @@ open({
   library: "libnative",
   path: "",
 });
-// Call atoi function which is includeed in the basic c library
+// In darwin/linux, you can call atoi function which is includeed in the basic c library
 equal(
   load({
     library: "libnative",

@@ -164,7 +164,7 @@ open({
   library: "libnative",
   path: "",
 });
-// 调用 atoi 这个包含在系统 c 基础库中的方法
+// 在 darwin/linux 上，你可以调用 atoi 这个包含在系统 c 基础库中的方法
 equal(
   load({
     library: "libnative",
