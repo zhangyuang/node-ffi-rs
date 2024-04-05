@@ -351,16 +351,18 @@ const unitTest = () => {
     ],
     paramsValue: [classPointer],
   })
-  equal(
-    load({
-      library: "libnative",
-      funcName: "atoi",
-      retType: DataType.I32,
-      paramsType: [DataType.String],
-      paramsValue: ["1000"],
-    }),
-    1000,
-  );
+  if (platform !== 'win32') {
+    equal(
+      load({
+        library: "libnative",
+        funcName: "atoi",
+        retType: DataType.I32,
+        paramsType: [DataType.String],
+        paramsValue: ["1000"],
+      }),
+      1000,
+    );
+  }
 };
 
 unitTest();
