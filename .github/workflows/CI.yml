@@ -103,7 +103,7 @@ jobs:
         with:
           node-version: 18
           check-latest: true
-          cache: yarn
+
 
       - name: Install
         uses: dtolnay/rust-toolchain@stable
@@ -134,14 +134,14 @@ jobs:
         run: yarn config set supportedArchitectures.cpu "ia32"
         shell: bash
       - name: Install dependencies
-        run: yarn add esno@^4.0.0 shelljs@^0.8.5 @napi-rs/cli@^2.15.2 --prod --ignore-optional
+        run: yarn add esno@^4.0.0 shelljs@^0.8.5 @napi-rs/cli@^2.15.2 --ignore-optional --registry https://registry.npmjs.org/ --prod
       - name: Setup node x86
         uses: actions/setup-node@v4
         if: matrix.settings.target == 'i686-pc-windows-msvc'
         with:
           node-version: 18
           check-latest: true
-          cache: yarn
+
           architecture: x86
       - name: Build in docker
         uses: addnab/docker-run-action@v3
@@ -185,9 +185,9 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           check-latest: true
-          cache: yarn
+
       - name: Install dependencies
-        run: yarn add esno@^4.0.0 shelljs@^0.8.5 @napi-rs/cli@^2.15.2 --prod --ignore-optional
+        run: yarn add esno@^4.0.0 shelljs@^0.8.5 @napi-rs/cli@^2.15.2 --ignore-optional --registry https://registry.npmjs.org/ --prod
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -223,14 +223,14 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           check-latest: true
-          cache: yarn
+
       - name: Setup node x86
         uses: actions/setup-node@v4
         if: matrix.settings.target == 'i686-pc-windows-msvc'
         with:
           node-version: 18
           check-latest: true
-          cache: yarn
+
           architecture: x86
       - name: Setup node x86
         if: matrix.settings.target == 'i686-pc-windows-msvc'
@@ -238,7 +238,7 @@ jobs:
         shell: bash
 
       - name: Install dependencies
-        run: yarn add esno@^4.0.0 shelljs@^0.8.5 @napi-rs/cli@^2.15.2 --prod --ignore-optional
+        run: yarn add esno@^4.0.0 shelljs@^0.8.5 @napi-rs/cli@^2.15.2 --ignore-optional --registry https://registry.npmjs.org/ --prod
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -266,9 +266,9 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           check-latest: true
-          cache: yarn
+
       - name: Install dependencies
-        run: yarn add esno@^4.0.0 shelljs@^0.8.5 @napi-rs/cli@^2.15.2 --prod --ignore-optional
+        run: yarn add esno@^4.0.0 shelljs@^0.8.5 @napi-rs/cli@^2.15.2 --ignore-optional --registry https://registry.npmjs.org/ --prod
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -294,9 +294,9 @@ jobs:
         with:
           node-version: 18
           check-latest: true
-          cache: yarn
+
       - name: Install dependencies
-        run: yarn add esno@^4.0.0 shelljs@^0.8.5 @napi-rs/cli@^2.15.2 --prod --ignore-optional
+        run: yarn add esno@^4.0.0 shelljs@^0.8.5 @napi-rs/cli@^2.15.2 --ignore-optional --registry https://registry.npmjs.org/ --prod
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:

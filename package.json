@@ -59,13 +59,13 @@
     "version": "napi version"
   },
   "optionalDependencies": {
-    "@yuuang/ffi-rs-darwin-arm64": "1.0.53",
-    "@yuuang/ffi-rs-darwin-x64": "1.0.53",
-    "@yuuang/ffi-rs-linux-arm64-gnu": "1.0.53",
-    "@yuuang/ffi-rs-linux-arm64-musl": "1.0.53",
-    "@yuuang/ffi-rs-linux-x64-gnu": "1.0.53",
-    "@yuuang/ffi-rs-linux-x64-musl": "1.0.53",
-    "@yuuang/ffi-rs-win32-x64-msvc": "1.0.53",
-    "@yuuang/ffi-rs-win32-ia32-msvc": "1.0.53"
+    "@yuuang/ffi-rs-darwin-arm64": "1.0.54",
+    "@yuuang/ffi-rs-darwin-x64": "1.0.54",
+    "@yuuang/ffi-rs-linux-arm64-gnu": "1.0.54",
+    "@yuuang/ffi-rs-linux-arm64-musl": "1.0.54",
+    "@yuuang/ffi-rs-linux-x64-gnu": "1.0.54",
+    "@yuuang/ffi-rs-linux-x64-musl": "1.0.54",
+    "@yuuang/ffi-rs-win32-x64-msvc": "1.0.54",
+    "@yuuang/ffi-rs-win32-ia32-msvc": "1.0.54"
   }
 }

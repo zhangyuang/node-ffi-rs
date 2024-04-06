@@ -283,6 +283,11 @@ const unitTest = () => {
     ],
     paramsValue: [personPointer[0]],
   });
+  // const restorePersonObjByPointer = restorePointer({
+  //   paramsValue: personPointer,
+  //   retType: [personObjType]
+  // })
+  // console.log('xxx', restorePersonObjByPointer)
   deepStrictEqual(person, personObj);
   deepStrictEqual(person, personObjByPointer);
 
