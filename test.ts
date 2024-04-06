@@ -70,7 +70,6 @@ const unitTest = () => {
     paramsType: [DataType.String, DataType.String],
     paramsValue: [c, d],
   })
-
   const string = load({
     library: "libsum",
     funcName: "getStringFromPtr",
@@ -290,7 +289,7 @@ const unitTest = () => {
     deepStrictEqual(f, person);
     console.log("callback called");
     count++;
-    if (count === 2) {
+    if (count === 4) {
       console.log("test succeed");
       process.exit(0);
     }
@@ -309,6 +308,23 @@ const unitTest = () => {
     })],
     paramsValue: [func]
   })
+  load({
+    library: "libsum",
+    funcName: "callFunction",
+    retType: DataType.Void,
+    paramsType: [funcConstructor({
+      paramsType: [
+        DataType.I32,
+        DataType.Boolean,
+        DataType.String,
+        arrayConstructor({ type: DataType.StringArray, length: 2 }),
+        arrayConstructor({ type: DataType.I32Array, length: 3 }),
+        personType,
+      ],
+      retType: DataType.Void,
+    })],
+    paramsValue: [func]
+  });
   load({
     library: "libsum",
     funcName: "callFunction",
