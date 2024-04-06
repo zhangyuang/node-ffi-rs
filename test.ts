@@ -234,42 +234,57 @@ const unitTest = () => {
       length: person.byteArray.length,
     }),
   };
+  const personObjType = {
+    age: DataType.I32,
+    doubleArray: DataType.DoubleArray,
+    parent: {
+      parent: {},
+      age: DataType.I32,
+      doubleProps: DataType.Double,
+      name: DataType.String,
+      stringArray: DataType.StringArray,
+      doubleArray: DataType.DoubleArray,
+      i32Array: DataType.I32Array,
+      boolTrue: DataType.Boolean,
+      boolFalse: DataType.Boolean,
+      longVal: DataType.I64,
+      byte: DataType.U8,
+      byteArray: DataType.U8Array,
+    },
+    doubleProps: DataType.Double,
+    name: DataType.String,
+    stringArray: DataType.StringArray,
+    i32Array: DataType.I32Array,
+    boolTrue: DataType.Boolean,
+    boolFalse: DataType.Boolean,
+    longVal: DataType.I64,
+    byte: DataType.U8,
+    byteArray: DataType.U8Array,
+  }
   const personObj = load({
     library: "libsum",
     funcName: "getStruct",
     retType: personType,
     paramsType: [
-      {
-        age: DataType.I32,
-        doubleArray: DataType.DoubleArray,
-        parent: {
-          parent: {},
-          age: DataType.I32,
-          doubleProps: DataType.Double,
-          name: DataType.String,
-          stringArray: DataType.StringArray,
-          doubleArray: DataType.DoubleArray,
-          i32Array: DataType.I32Array,
-          boolTrue: DataType.Boolean,
-          boolFalse: DataType.Boolean,
-          longVal: DataType.I64,
-          byte: DataType.U8,
-          byteArray: DataType.U8Array,
-        },
-        doubleProps: DataType.Double,
-        name: DataType.String,
-        stringArray: DataType.StringArray,
-        i32Array: DataType.I32Array,
-        boolTrue: DataType.Boolean,
-        boolFalse: DataType.Boolean,
-        longVal: DataType.I64,
-        byte: DataType.U8,
-        byteArray: DataType.U8Array,
-      },
+      personObjType
     ],
     paramsValue: [person],
   });
+  const personPointer = createPointer({
+    paramsType: [personObjType],
+    paramsValue: [person]
+  })
+  const personObjByPointer = load({
+    library: "libsum",
+    funcName: "getStruct",
+    retType: personType,
+    paramsType: [
+      DataType.External
+    ],
+    paramsValue: [personPointer[0]],
+  });
   deepStrictEqual(person, personObj);
+  deepStrictEqual(person, personObjByPointer);
 
   const createdPerson = load({
     library: "libsum",
