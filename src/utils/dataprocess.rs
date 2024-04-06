@@ -325,7 +325,7 @@ pub unsafe fn get_value_pointer(
         // }
 
         Ok(
-          match_args_len!(env, args_len, tsfn_ptr,create_pointer, func_args_type_rs_ptr,
+          match_args_len!(env, args_len, tsfn_ptr, create_pointer, func_args_type_rs_ptr,
               1 => Closure1, a
               ,2 => Closure2, a,b
               ,3 => Closure3, a,b,c
@@ -340,7 +340,11 @@ pub unsafe fn get_value_pointer(
         )
       }
       RsArgsValue::Object(val) => {
-        Ok(Box::into_raw(Box::new(generate_c_struct(&env, val))) as *mut c_void)
+        if create_pointer {
+          Ok(generate_c_struct(&env, val)?)
+        } else {
+          Ok(Box::into_raw(Box::new(generate_c_struct(&env, val)?)) as *mut c_void)
+        }
       }
     })
     .collect::<Result<Vec<*mut c_void>>>()
