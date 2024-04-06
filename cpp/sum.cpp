@@ -126,8 +126,8 @@ extern "C" Person *createPerson() {
 
   return person;
 }
-typedef void (*FunctionPointer)(int a, bool b, char *c, char **d, int *e,
-                                Person *p);
+typedef const void (*FunctionPointer)(int a, bool b, char *c, char **d, int *e,
+                                      Person *p);
 
 extern "C" void callFunction(FunctionPointer func) {
   printf("callFunction\n");

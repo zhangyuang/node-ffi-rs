@@ -178,7 +178,7 @@ pub unsafe fn get_arg_types_values(
 
 #[macro_export]
 macro_rules! match_args_len {
- ($env:ident, $args_len:ident, $tsfn_ptr:expr, $func_args_type_rs_ptr:expr,  $($num:literal => $closure:ident, $($arg:ident),*),*) => {
+ ($env:ident, $args_len:ident, $tsfn_ptr:expr,$create_pointer:expr, $func_args_type_rs_ptr:expr,  $($num:literal => $closure:ident, $($arg:ident),*),*) => {
         match $args_len {
             $(
                 $num => {
@@ -196,7 +196,11 @@ macro_rules! match_args_len {
                             (&*$tsfn_ptr).call(value, ThreadsafeFunctionCallMode::NonBlocking);
                     };
                     let closure = Box::into_raw(Box::new($closure::new(&*Box::into_raw(Box::new(lambda)))));
-                    std::mem::transmute((*closure).code_ptr())
+                    if $create_pointer {
+                         *((*closure).code_ptr() as *const _ as *mut *mut c_void)
+                    } else {
+                         std::mem::transmute((*closure).code_ptr())
+                    }
                 }
             )*
             _ => {
@@ -208,6 +212,7 @@ macro_rules! match_args_len {
 pub unsafe fn get_value_pointer(
   env: &Env,
   arg_values: Vec<RsArgsValue>,
+  create_pointer: bool,
 ) -> Result<Vec<*mut c_void>> {
   arg_values
     .into_iter()
@@ -215,22 +220,10 @@ pub unsafe fn get_value_pointer(
       RsArgsValue::External(val) => {
         Ok(Box::into_raw(Box::new(get_js_external_wrap_data(&env, val)?)) as *mut c_void)
       }
-      RsArgsValue::U8(val) => {
-        let c_num = Box::new(val);
-        Ok(Box::into_raw(c_num) as *mut c_void)
-      }
-      RsArgsValue::I32(val) => {
-        let c_num = Box::new(val);
-        Ok(Box::into_raw(c_num) as *mut c_void)
-      }
-      RsArgsValue::I64(val) => {
-        let c_num = Box::new(val);
-        Ok(Box::into_raw(c_num) as *mut c_void)
-      }
-      RsArgsValue::U64(val) => {
-        let c_num = Box::new(val);
-        Ok(Box::into_raw(c_num) as *mut c_void)
-      }
+      RsArgsValue::U8(val) => Ok(Box::into_raw(Box::new(val)) as *mut c_void),
+      RsArgsValue::I32(val) => Ok(Box::into_raw(Box::new(val)) as *mut c_void),
+      RsArgsValue::I64(val) => Ok(Box::into_raw(Box::new(val)) as *mut c_void),
+      RsArgsValue::U64(val) => Ok(Box::into_raw(Box::new(val)) as *mut c_void),
       RsArgsValue::String(val) => {
         let c_string = CString::new(val).unwrap();
         let ptr = c_string.as_ptr();
@@ -327,10 +320,12 @@ pub unsafe fn get_value_pointer(
         //     (&*tsfn_ptr).call(value, ThreadsafeFunctionCallMode::NonBlocking);
         //   };
         //   let closure = Box::into_raw(Box::new(Closure1::new(&*Box::into_raw(Box::new(lambda)))));
+        //   let code_ptr = (*closure).code_ptr();
         //   return Ok(std::mem::transmute((*closure).code_ptr()));
         // }
+
         Ok(
-          match_args_len!(env, args_len, tsfn_ptr, func_args_type_rs_ptr,
+          match_args_len!(env, args_len, tsfn_ptr,create_pointer, func_args_type_rs_ptr,
               1 => Closure1, a
               ,2 => Closure2, a,b
               ,3 => Closure3, a,b,c
