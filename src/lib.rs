@@ -72,6 +72,17 @@ unsafe fn unpack_pointer(env: Env, params: Vec<JsExternal>) -> Result<Vec<JsExte
 }
 
 #[napi]
+unsafe fn wrap_pointer(env: Env, params: Vec<JsExternal>) -> Result<Vec<JsExternal>> {
+  params
+    .into_iter()
+    .map(|js_external| {
+      let ptr = get_js_external_wrap_data(&env, js_external)?;
+      env.create_external(Box::into_raw(Box::new(ptr)), None)
+    })
+    .collect()
+}
+
+#[napi]
 fn open(params: OpenParams) {
   let OpenParams { library, path } = params;
   unsafe {

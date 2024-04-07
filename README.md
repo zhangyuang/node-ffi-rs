@@ -317,6 +317,8 @@ deepStrictEqual(stringArr, load({
 
 In `ffi-rs`, we use [DataType.External](https://nodejs.org/api/n-api.html#napi_create_external) for wrapping the `pointer` which enables it to be passed between `Node.js` and `C`.
 
+`Pointer` is complicated and underlying, `ffi-rs` provide four functions to handle this pointer include `createPointer`, `restorePointer`, `unpackPointer`, `wrapPointer` for different scene.
+
 ```cpp
 extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
   std::string result = std::string(str1) + std::string(str2);
@@ -349,7 +351,13 @@ const string = load({
 })
 ```
 
-#### CreatePointer
+#### createPointer
+
+`createPointer` function is used for create a pointer point to specify type. In order to avoid mistaks, developers have to understand what type this pointer is.
+
+For numeric type like `i32|u8|i64|f64`, createPointer will create a pointer like `*mut i32` point to there number
+
+For types that are originally pointer types like `char *` represent `string` type in `c`, createPointer will create a dual pointer like `*mut *mut c_char` point to `*mut c_char`.Developers can use `unpackPointer` get the interal pointer `*mut c_char`
 
 ```js
 let bigDoubleArr = new Array(5).fill(1.1);
@@ -390,6 +398,8 @@ load({
 
 The two pieces of code above are equivalent
 
+#### restorePointer
+
 Similarly, you can use `restorePointer` to restore data from `pointer` which is wrapped by `createPointer`
 
 ```js
@@ -405,6 +415,43 @@ const restoreData = restorePointer({
   paramsValue: pointerArr
 })
 deepStrictEqual(restoreData, [[1.1, 2.2]])
+```
+
+#### wrapPointer
+
+`wrapPointer` is used to create multiple pointer.
+
+For example, developers can use `wrapPointer` to create a pointer point to other existing pointer.
+
+```js
+const { wrapPointer } = require('ffi-rs')
+// ptr type is *mut c_char
+const ptr = load({
+  library: "libsum",
+  funcName: "concatenateStrings",
+  retType: DataType.External,
+  paramsType: [DataType.String, DataType.String],
+  paramsValue: [c, d],
+})
+
+// wrapPtr type is *mut *mut c_char
+const wrapPtr = wrapPointer([ptr])[0]
+```
+
+#### unpackPointer
+
+`unpackPointer` is oppsite to `wrapPointer` which is used to get the internal pointer for multiple pointer
+
+```js
+const { unpackPointer, createPointer } = require('ffi-rs')
+// ptr type is *mut *mut c_char
+let ptr = createPointer({
+  paramsType: [DataType.String],
+  paramsValue: ["foo]
+})
+
+// unpackedPtr type is *mut c_char
+const unpackedPtr = unpackPointer([ptr])[0]
 ```
 
 ### Struct
