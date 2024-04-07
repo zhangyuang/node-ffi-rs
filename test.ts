@@ -162,7 +162,16 @@ const testCreatePointer = () => {
     paramsType: [DataType.String, DataType.String],
     paramsValue: [c, d],
   })
-
+  equal(load({
+    library: "libsum",
+    funcName: "getStringFromPtr",
+    retType: DataType.String,
+    paramsType: [DataType.External],
+    paramsValue: unpackPointer(createPointer({
+      paramsType: [DataType.String],
+      paramsValue: ["foo"]
+    })),
+  }), "foo")
   const string = load({
     library: "libsum",
     funcName: "getStringFromPtr",
@@ -171,7 +180,6 @@ const testCreatePointer = () => {
     paramsValue: [ptr],
   })
   equal(string, c + d)
-
   deepStrictEqual(stringData[0], "foo")
   logGreen('string pointer success')
   const restoreData = restorePointer({
