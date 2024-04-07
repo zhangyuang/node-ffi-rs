@@ -19,7 +19,8 @@ A module written in Rust and N-APi provides interface (FFI) features for Node.js
 - 更高的性能
 - 更简洁的类型描述和接口描述
 - 支持在 `Node.js` 和 `C` 之间传递更多类型的数据
-- 支持原地修改数据
+- 支持原地修改`buffer`数据
+- 提供了更多的方法来操作指针类型的数据
 
 ## 基准测试
 
