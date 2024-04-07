@@ -8,11 +8,14 @@ import {
   funcConstructor,
   createPointer,
   restorePointer,
+  unpackPointer
 } from "./index";
 
 const platform = process.platform;
 const dynamicLib = platform === "win32" ? "./sum.dll" : "./libsum.so";
-
+const logGreen = (text: string) => {
+  console.log('\x1b[32m%s\x1b[0m', text);
+}
 open({
   library: "libsum",
   path: dynamicLib,
@@ -23,7 +26,7 @@ open({
   path: "",
 });
 
-const unitTest = () => {
+const testNumber = () => {
   const a = 1;
   const b = 100;
   equal(
@@ -36,9 +39,20 @@ const unitTest = () => {
     }),
     a + b,
   );
-
-  const c = "foo";
-  const d = c.repeat(200);
+  equal(
+    1.1 + 2.2,
+    load({
+      library: "libsum",
+      funcName: "doubleSum",
+      retType: DataType.Double,
+      paramsType: [DataType.Double, DataType.Double],
+      paramsValue: [1.1, 2.2],
+    }),
+  );
+}
+const c = "foo";
+const d = c.repeat(200);
+const testString = () => {
 
   equal(
     c + d,
@@ -50,34 +64,23 @@ const unitTest = () => {
       paramsValue: [c, d],
     }),
   );
-  const pointer = createPointer({
-    paramsType: [DataType.DoubleArray],
-    paramsValue: [[1.1, 2.2]]
-  })
-  const restoreData = restorePointer({
-    retType: [arrayConstructor({
-      type: DataType.DoubleArray,
-      length: 2
-    })],
-    paramsValue: pointer
-  })
-  deepStrictEqual(restoreData, [[1.1, 2.2]])
 
-  const ptr = load({
-    library: "libsum",
-    funcName: "concatenateStrings",
-    retType: DataType.External,
-    paramsType: [DataType.String, DataType.String],
-    paramsValue: [c, d],
-  })
-  const string = load({
-    library: "libsum",
-    funcName: "getStringFromPtr",
-    retType: DataType.String,
-    paramsType: [DataType.External],
-    paramsValue: [ptr],
-  })
-  equal(string, c + d)
+  let stringArr = [c, c.repeat(20)];
+  deepStrictEqual(
+    stringArr,
+    load({
+      library: "libsum",
+      funcName: "createArrayString",
+      retType: arrayConstructor({
+        type: DataType.StringArray,
+        length: stringArr.length,
+      }),
+      paramsType: [DataType.StringArray, DataType.I32],
+      paramsValue: [stringArr, stringArr.length],
+    }),
+  );
+}
+const testVoid = () => {
   equal(
     undefined,
     load({
@@ -88,17 +91,21 @@ const unitTest = () => {
       paramsValue: [],
     }),
   );
-
+}
+const testBool = () => {
+  const bool_val = true;
   equal(
-    1.1 + 2.2,
+    !bool_val,
     load({
       library: "libsum",
-      funcName: "doubleSum",
-      retType: DataType.Double,
-      paramsType: [DataType.Double, DataType.Double],
-      paramsValue: [1.1, 2.2],
+      funcName: "return_opposite",
+      retType: DataType.Boolean,
+      paramsType: [DataType.Boolean],
+      paramsValue: [bool_val],
     }),
   );
+}
+const testArray = () => {
   let bigArr = new Array(100).fill(100);
   deepStrictEqual(
     bigArr,
@@ -128,112 +135,138 @@ const unitTest = () => {
       paramsValue: [bigDoubleArr, bigDoubleArr.length],
     }),
   );
-  let stringArr = [c, c.repeat(20)];
+}
+const testCreatePointer = () => {
+  const i32Data = restorePointer({
+    retType: [DataType.I32],
+    paramsValue: createPointer({
+      paramsType: [DataType.I32],
+      paramsValue: [100]
+    })
+  })
+  deepStrictEqual(i32Data[0], 100)
+  logGreen('test i32 pointer success')
 
-  deepStrictEqual(
-    stringArr,
-    load({
-      library: "libsum",
-      funcName: "createArrayString",
-      retType: arrayConstructor({
-        type: DataType.StringArray,
-        length: stringArr.length,
-      }),
-      paramsType: [DataType.StringArray, DataType.I32],
-      paramsValue: [stringArr, stringArr.length],
-    }),
-  );
-  const bool_val = true;
-  equal(
-    !bool_val,
-    load({
-      library: "libsum",
-      funcName: "return_opposite",
-      retType: DataType.Boolean,
-      paramsType: [DataType.Boolean],
-      paramsValue: [bool_val],
-    }),
-  );
-  const parent = {
-    age: 43,
-    doubleArray: [1.1, 2.2, 3.3],
-    parent: {},
-    doubleProps: 3.3,
-    name: "tom father",
-    stringArray: ["tom", "father"],
-    i32Array: [5, 6, 7],
-    boolTrue: true,
-    boolFalse: false,
-    longVal: 5294967296,
-    byte: 66,
-    byteArray: Buffer.from([103, 104]),
-  };
-  const person = {
-    age: 23,
-    doubleArray: [1.1, 2.2, 3.3],
-    parent,
-    doubleProps: 1.1,
-    name: "tom",
-    stringArray: ["tom"],
-    i32Array: [1, 2, 3, 4],
-    boolTrue: true,
-    boolFalse: false,
-    longVal: 4294967296,
-    byte: 65,
-    byteArray: Buffer.from([101, 102]),
-  };
-  const parentType = {
-    age: DataType.I32,
-    doubleArray: arrayConstructor({
+  const stringData = restorePointer({
+    retType: [DataType.String],
+    paramsValue: createPointer({
+      paramsType: [DataType.String],
+      paramsValue: ["foo"]
+    })
+  })
+  logGreen('test string pointer success')
+  const ptr = load({
+    library: "libsum",
+    funcName: "concatenateStrings",
+    retType: DataType.External,
+    paramsType: [DataType.String, DataType.String],
+    paramsValue: [c, d],
+  })
+
+  const string = load({
+    library: "libsum",
+    funcName: "getStringFromPtr",
+    retType: DataType.String,
+    paramsType: [DataType.External],
+    paramsValue: [ptr],
+  })
+  equal(string, c + d)
+
+  deepStrictEqual(stringData[0], "foo")
+  logGreen('string pointer success')
+  const restoreData = restorePointer({
+    retType: [arrayConstructor({
       type: DataType.DoubleArray,
-      length: parent.doubleArray.length,
-    }),
-    parent: {},
-    doubleProps: DataType.Double,
-    name: DataType.String,
-    stringArray: arrayConstructor({
-      type: DataType.StringArray,
-      length: parent.stringArray.length,
-    }),
-    i32Array: arrayConstructor({
-      type: DataType.I32Array,
-      length: parent.i32Array.length,
-    }),
-    boolTrue: DataType.Boolean,
-    boolFalse: DataType.Boolean,
-    longVal: DataType.I64,
-    byte: DataType.U8,
-    byteArray: arrayConstructor({
-      type: DataType.U8Array,
-      length: parent.byteArray.length,
-    }),
-  };
-  const personType = {
-    age: DataType.I32,
-    doubleArray: arrayConstructor({
-      type: DataType.DoubleArray,
-      length: person.doubleArray.length,
-    }),
-    parent: parentType,
-    doubleProps: DataType.Double,
-    name: DataType.String,
-    stringArray: arrayConstructor({
-      type: DataType.StringArray,
-      length: person.stringArray.length,
-    }),
-    i32Array: arrayConstructor({
-      type: DataType.I32Array,
-      length: person.i32Array.length,
-    }),
-    boolTrue: DataType.Boolean,
-    boolFalse: DataType.Boolean,
-    longVal: DataType.I64,
-    byte: DataType.U8,
-    byteArray: arrayConstructor({
-      type: DataType.U8Array,
-      length: person.byteArray.length,
-    }),
-  };
+      length: 2
+    })],
+    paramsValue: createPointer({
+      paramsType: [DataType.DoubleArray],
+      paramsValue: [[1.1, 2.2]]
+    })
+  })
+  deepStrictEqual(restoreData, [[1.1, 2.2]])
+}
+const parent = {
+  age: 43,
+  doubleArray: [1.1, 2.2, 3.3],
+  parent: {},
+  doubleProps: 3.3,
+  name: "tom father",
+  stringArray: ["tom", "father"],
+  i32Array: [5, 6, 7],
+  boolTrue: true,
+  boolFalse: false,
+  longVal: 5294967296,
+  byte: 66,
+  byteArray: Buffer.from([103, 104]),
+};
+const person = {
+  age: 23,
+  doubleArray: [1.1, 2.2, 3.3],
+  parent,
+  doubleProps: 1.1,
+  name: "tom",
+  stringArray: ["tom"],
+  i32Array: [1, 2, 3, 4],
+  boolTrue: true,
+  boolFalse: false,
+  longVal: 4294967296,
+  byte: 65,
+  byteArray: Buffer.from([101, 102]),
+};
+const parentType = {
+  age: DataType.I32,
+  doubleArray: arrayConstructor({
+    type: DataType.DoubleArray,
+    length: parent.doubleArray.length,
+  }),
+  parent: {},
+  doubleProps: DataType.Double,
+  name: DataType.String,
+  stringArray: arrayConstructor({
+    type: DataType.StringArray,
+    length: parent.stringArray.length,
+  }),
+  i32Array: arrayConstructor({
+    type: DataType.I32Array,
+    length: parent.i32Array.length,
+  }),
+  boolTrue: DataType.Boolean,
+  boolFalse: DataType.Boolean,
+  longVal: DataType.I64,
+  byte: DataType.U8,
+  byteArray: arrayConstructor({
+    type: DataType.U8Array,
+    length: parent.byteArray.length,
+  }),
+};
+const personType = {
+  age: DataType.I32,
+  doubleArray: arrayConstructor({
+    type: DataType.DoubleArray,
+    length: person.doubleArray.length,
+  }),
+  parent: parentType,
+  doubleProps: DataType.Double,
+  name: DataType.String,
+  stringArray: arrayConstructor({
+    type: DataType.StringArray,
+    length: person.stringArray.length,
+  }),
+  i32Array: arrayConstructor({
+    type: DataType.I32Array,
+    length: person.i32Array.length,
+  }),
+  boolTrue: DataType.Boolean,
+  boolFalse: DataType.Boolean,
+  longVal: DataType.I64,
+  byte: DataType.U8,
+  byteArray: arrayConstructor({
+    type: DataType.U8Array,
+    length: person.byteArray.length,
+  }),
+};
+const testObject = () => {
   const personObjType = {
     age: DataType.I32,
     doubleArray: DataType.DoubleArray,
@@ -270,7 +303,9 @@ const unitTest = () => {
     ],
     paramsValue: [person],
   });
-  const personPointer = createPointer({
+  deepStrictEqual(person, personObj);
+  logGreen('test getStruct succeed')
+  let personPointer = createPointer({
     paramsType: [personObjType],
     paramsValue: [person]
   })
@@ -281,16 +316,19 @@ const unitTest = () => {
     paramsType: [
       DataType.External
     ],
-    paramsValue: [personPointer[0]],
+    paramsValue: unpackPointer(personPointer),
   });
-  // const restorePersonObjByPointer = restorePointer({
-  //   paramsValue: personPointer,
-  //   retType: [personObjType]
-  // })
-  // console.log('xxx', restorePersonObjByPointer)
-  deepStrictEqual(person, personObj);
   deepStrictEqual(person, personObjByPointer);
-
+  logGreen('test getStructByPointer succeed')
+  personPointer = createPointer({
+    paramsType: [personObjType],
+    paramsValue: [person]
+  })
+  const restorePersonObjByPointer = restorePointer({
+    paramsValue: personPointer,
+    retType: [personType]
+  })
+  deepStrictEqual(person, restorePersonObjByPointer[0])
   const createdPerson = load({
     library: "libsum",
     funcName: "createPerson",
@@ -299,6 +337,22 @@ const unitTest = () => {
     paramsValue: [],
   });
   deepStrictEqual(createdPerson, person);
+}
+const unitTest = () => {
+  testNumber()
+  logGreen('test number succeed')
+  testString()
+  logGreen('test string succeed')
+  testArray()
+  logGreen('test array succeed')
+  testCreatePointer()
+  logGreen('test createPointer succeed')
+  testVoid()
+  logGreen('test void succeed')
+  testBool()
+  logGreen('test bool succeed')
+  testObject()
+  logGreen('test object succeed')
   let count = 0;
   const func = (a, b, c, d, e, f) => {
     equal(a, 100);
@@ -310,7 +364,7 @@ const unitTest = () => {
     console.log("callback called");
     count++;
     if (count === 4) {
-      console.log("test succeed");
+      logGreen("test succeed");
       process.exit(0);
     }
   };
@@ -352,7 +406,7 @@ const unitTest = () => {
     paramsType: [
       DataType.External,
     ],
-    paramsValue: [funcExternal[0]],
+    paramsValue: unpackPointer(funcExternal),
   });
   // load({
   //   library: "libsum",
