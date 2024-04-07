@@ -178,7 +178,7 @@ pub unsafe fn get_arg_types_values(
 
 #[macro_export]
 macro_rules! match_args_len {
- ($env:ident, $args_len:ident, $tsfn_ptr:expr,$create_pointer:expr, $func_args_type_rs_ptr:expr,  $($num:literal => $closure:ident, $($arg:ident),*),*) => {
+ ($env:ident, $args_len:ident, $tsfn_ptr:expr, $func_args_type_rs_ptr:expr,  $($num:literal => $closure:ident, $($arg:ident),*),*) => {
         match $args_len {
             $(
                 $num => {
@@ -196,11 +196,7 @@ macro_rules! match_args_len {
                             (&*$tsfn_ptr).call(value, ThreadsafeFunctionCallMode::NonBlocking);
                     };
                     let closure = Box::into_raw(Box::new($closure::new(&*Box::into_raw(Box::new(lambda)))));
-                    if $create_pointer {
-                         *((*closure).code_ptr() as *const _ as *mut *mut c_void)
-                    } else {
-                         std::mem::transmute((*closure).code_ptr())
-                    }
+                    std::mem::transmute((*closure).code_ptr())
                 }
             )*
             _ => {
@@ -212,7 +208,6 @@ macro_rules! match_args_len {
 pub unsafe fn get_value_pointer(
   env: &Env,
   arg_values: Vec<RsArgsValue>,
-  create_pointer: bool,
 ) -> Result<Vec<*mut c_void>> {
   arg_values
     .into_iter()
@@ -270,6 +265,9 @@ pub unsafe fn get_value_pointer(
         Ok(Box::into_raw(c_bool) as *mut c_void)
       }
       RsArgsValue::Void(_) => Ok(Box::into_raw(Box::new(())) as *mut c_void),
+      RsArgsValue::Object(val) => {
+        Ok(Box::into_raw(Box::new(generate_c_struct(&env, val)?)) as *mut c_void)
+      }
       RsArgsValue::Function(func_desc, js_function) => {
         use libffi::high::*;
         let func_desc_obj = func_desc
@@ -325,7 +323,7 @@ pub unsafe fn get_value_pointer(
         // }
 
         Ok(
-          match_args_len!(env, args_len, tsfn_ptr, create_pointer, func_args_type_rs_ptr,
+          match_args_len!(env, args_len, tsfn_ptr, func_args_type_rs_ptr,
               1 => Closure1, a
               ,2 => Closure2, a,b
               ,3 => Closure3, a,b,c
@@ -338,13 +336,6 @@ pub unsafe fn get_value_pointer(
               ,10 => Closure10, a,b,c,d,e,f,g,h,i,j
           ),
         )
-      }
-      RsArgsValue::Object(val) => {
-        if create_pointer {
-          Ok(generate_c_struct(&env, val)?)
-        } else {
-          Ok(Box::into_raw(Box::new(generate_c_struct(&env, val)?)) as *mut c_void)
-        }
       }
     })
     .collect::<Result<Vec<*mut c_void>>>()
@@ -519,9 +510,6 @@ pub unsafe fn get_js_unknown_from_pointer(
       let ret_data_type = number_to_basic_data_type(number);
       match ret_data_type {
         BasicDataType::String => {
-          // let ptr_str = CString::from_raw(*(ptr as *mut *mut c_char))
-          //   .into_string()
-          //   .unwrap();
           let ptr_str = CStr::from_ptr(*(ptr as *mut *const c_char))
             .to_string_lossy()
             .to_string();

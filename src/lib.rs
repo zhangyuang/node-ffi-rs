@@ -33,13 +33,12 @@ unsafe fn create_pointer(env: Env, params: createPointerParams) -> Result<Vec<Js
     params_value,
   } = params;
   let (_, arg_values) = get_arg_types_values(&env, params_type, params_value)?;
-  let arg_values_c_void = get_value_pointer(&env, arg_values, true)?;
-  Ok(
-    arg_values_c_void
-      .into_iter()
-      .map(|p| env.create_external(p, None).unwrap())
-      .collect(),
-  )
+  let arg_values_c_void = get_value_pointer(&env, arg_values)?;
+
+  arg_values_c_void
+    .into_iter()
+    .map(|p| env.create_external(p, None))
+    .collect()
 }
 
 #[napi]
@@ -57,7 +56,19 @@ unsafe fn restore_pointer(env: Env, params: storePointerParams) -> Result<Vec<Js
       let ret_type_rs = type_define_to_rs_args(ret_type_item)?;
       get_js_unknown_from_pointer(&env, ret_type_rs, ptr)
     })
-    .collect::<Result<Vec<JsUnknown>>>()
+    .collect()
+}
+
+#[napi]
+unsafe fn unpack_pointer(env: Env, params: Vec<JsExternal>) -> Result<Vec<JsExternal>> {
+  params
+    .into_iter()
+    .map(|js_external| {
+      let ptr = get_js_external_wrap_data(&env, js_external)?;
+      let internal_ptr = *(ptr as *mut *mut c_void);
+      env.create_external(internal_ptr, None)
+    })
+    .collect()
 }
 
 #[napi]
@@ -123,7 +134,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
   let params_type_len = params_type.len();
 
   let (mut arg_types, arg_values) = get_arg_types_values(&env, params_type, params_value)?;
-  let mut arg_values_c_void = get_value_pointer(&env, arg_values, false)?;
+  let mut arg_values_c_void = get_value_pointer(&env, arg_values)?;
 
   let ret_type_rs = type_define_to_rs_args(ret_type)?;
   let r_type: *mut ffi_type = match ret_type_rs {
