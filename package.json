@@ -53,7 +53,7 @@
     "build:dev": "env=development node scripts/build.js",
     "build": "node scripts/build.js",
     "build:debug": "napi build --platform",
-    "publish:npm": "node scripts/publish.js && napi prepublish -t npm",
+    "publish:npm": "node scripts/publish.js && napi prepublish -t npm && npm publish --access public",
     "test": "esno ./test.ts",
     "universal": "napi universal",
     "version": "napi version"
