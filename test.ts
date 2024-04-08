@@ -8,7 +8,7 @@ import {
   funcConstructor,
   createPointer,
   restorePointer,
-  unpackPointer
+  unwrapPointer
 } from "./index";
 
 const platform = process.platform;
@@ -167,7 +167,7 @@ const testCreatePointer = () => {
     funcName: "getStringFromPtr",
     retType: DataType.String,
     paramsType: [DataType.External],
-    paramsValue: unpackPointer(createPointer({
+    paramsValue: unwrapPointer(createPointer({
       paramsType: [DataType.String],
       paramsValue: ["foo"]
     })),
@@ -324,7 +324,7 @@ const testObject = () => {
     paramsType: [
       DataType.External
     ],
-    paramsValue: unpackPointer(personPointer),
+    paramsValue: unwrapPointer(personPointer),
   });
   deepStrictEqual(person, personObjByPointer);
   logGreen('test getStructByPointer succeed')
@@ -414,7 +414,7 @@ const unitTest = () => {
     paramsType: [
       DataType.External,
     ],
-    paramsValue: unpackPointer(funcExternal),
+    paramsValue: unwrapPointer(funcExternal),
   });
   // load({
   //   library: "libsum",

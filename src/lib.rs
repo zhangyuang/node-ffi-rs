@@ -60,7 +60,7 @@ unsafe fn restore_pointer(env: Env, params: storePointerParams) -> Result<Vec<Js
 }
 
 #[napi]
-unsafe fn unpack_pointer(env: Env, params: Vec<JsExternal>) -> Result<Vec<JsExternal>> {
+unsafe fn unwrap_pointer(env: Env, params: Vec<JsExternal>) -> Result<Vec<JsExternal>> {
   params
     .into_iter()
     .map(|js_external| {

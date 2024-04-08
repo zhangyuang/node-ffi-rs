@@ -311,7 +311,7 @@ deepStrictEqual(stringArr, load({
 
 在 `ffi-rs`,我们使用 [DataType.External](https://nodejs.org/api/n-api.html#napi_create_external) 来包裹指针使得其可以在 `Node.js` 和 `C` 之间传递
 
-由于指针类型非常复杂并且底层，所以 `ffi-rs`提供了四个方法 `createPointer`, `restorePointer`, `unpackPointer`, `wrapPointer` 来操作指针，具体的用法请参考最新的英文文档。
+由于指针类型非常复杂并且底层，所以 `ffi-rs`提供了四个方法 `createPointer`, `restorePointer`, `unwrapPointer`, `wrapPointer` 来操作指针，具体的用法请参考最新的英文文档。
 
 ```cpp
 extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
