@@ -163,6 +163,7 @@ jobs:
             *.so
             *.dll
             index.js
+            index.d.ts
           if-no-files-found: error
   test-macOS-binding:
     name: Test bindings on ${{ matrix.settings.target }} - node@${{ matrix.node }}
@@ -302,9 +303,9 @@ jobs:
         with:
           path: artifacts
       - name: Move artifacts
-        run: yarn artifacts
+        run:  yarn artifacts
       - name: List packages
-        run: ls -R ./npm
+        run: mv ./artifacts/bindings-aarch64-apple-darwin/index.js . && mv ./artifacts/bindings-aarch64-apple-darwin/index.d.ts . && ls . && ls -R ./npm
         shell: bash
       - name: Publish
         run: |

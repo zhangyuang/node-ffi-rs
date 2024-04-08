@@ -6,6 +6,11 @@
 
 A module written in Rust and N-API provides interface (FFI) features for Node.js
 
+<div align="">
+<a href="https://github.com/zhangyuang/node-ffi-rs/actions" target="_blank"><img src="https://github.com/zhangyuang/ssr/workflows/CI/badge.svg" alt="githubActions" />
+<a href="https://github.com/zhangyuang/node-ffi-rs" target="_blank"><img src="https://img.shields.io/badge/node-%3E=14-green.svg?color=4dc71f" alt="Node" ></a>
+<a href="https://github.com/zhangyuang/node-ffi-rs" target="_blank"><img src="https://badge.fury.io/js/ffi-rs.svg" alt="Node" ></a>
+</div>
 
 ## Description
 
