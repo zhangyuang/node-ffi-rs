@@ -1,6 +1,6 @@
 {
   "name": "ffi-rs",
-  "version": "1.0.55",
+  "version": "1.0.56",
   "main": "index.js",
   "types": "index.d.ts",
   "description": "A module written in Rust and N-API provides interface (FFI) features for Node.js",
@@ -53,7 +53,7 @@
     "build:dev": "env=development node scripts/build.js",
     "build": "node scripts/build.js",
     "build:debug": "napi build --platform",
-    "publish:npm": "node scripts/publish.js && napi prepublish -t npm && npm publish --access public",
+    "publish:npm": "OPTIONAL=1 node scripts/publish.js && napi prepublish -t npm && MAIN=1 node scripts/publish.js && npm publish --access public",
     "test": "esno ./test.ts",
     "universal": "napi universal",
     "version": "napi version"
