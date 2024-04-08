@@ -346,21 +346,8 @@ const testObject = () => {
   });
   deepStrictEqual(createdPerson, person);
 }
-const unitTest = () => {
-  testNumber()
-  logGreen('test number succeed')
-  testString()
-  logGreen('test string succeed')
-  testArray()
-  logGreen('test array succeed')
-  testCreatePointer()
-  logGreen('test createPointer succeed')
-  testVoid()
-  logGreen('test void succeed')
-  testBool()
-  logGreen('test bool succeed')
-  testObject()
-  logGreen('test object succeed')
+
+const testFunction = () => {
   let count = 0;
   const func = (a, b, c, d, e, f) => {
     equal(a, 100);
@@ -416,20 +403,9 @@ const unitTest = () => {
     ],
     paramsValue: unwrapPointer(funcExternal),
   });
-  // load({
-  //   library: "libsum",
-  //   funcName: "callFunctionDouble",
-  //   retType: DataType.Void,
-  //   paramsType: [
-  //     funcConstructor({
-  //       paramsType: [DataType.I32, DataType.Double],
-  //       retType: DataType.Void,
-  //     }),
-  //   ],
-  //   paramsValue: [func],
-  // });
+}
 
-  // cpp
+const testCpp = () => {
   const classPointer = load({
     library: "libsum",
     funcName: "createMyClassFromC",
@@ -449,6 +425,8 @@ const unitTest = () => {
     ],
     paramsValue: [classPointer],
   })
+}
+const testMainProgram = () => {
   if (platform !== 'win32') {
     equal(
       load({
@@ -461,6 +439,41 @@ const unitTest = () => {
       1000,
     );
   }
+}
+const unitTest = () => {
+  testNumber()
+  logGreen('test number succeed')
+  testString()
+  logGreen('test string succeed')
+  testArray()
+  logGreen('test array succeed')
+  testCreatePointer()
+  logGreen('test createPointer succeed')
+  testVoid()
+  logGreen('test void succeed')
+  testBool()
+  logGreen('test bool succeed')
+  testObject()
+  logGreen('test object succeed')
+  testCpp()
+  logGreen('test cpp succeed')
+  testMainProgram()
+  logGreen('test main program succeed')
+  testFunction()
+  logGreen('test function succeed')
+  // load({
+  //   library: "libsum",
+  //   funcName: "callFunctionDouble",
+  //   retType: DataType.Void,
+  //   paramsType: [
+  //     funcConstructor({
+  //       paramsType: [DataType.I32, DataType.Double],
+  //       retType: DataType.Void,
+  //     }),
+  //   ],
+  //   paramsValue: [func],
+  // });
+
 };
 
 unitTest();

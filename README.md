@@ -24,7 +24,7 @@ This module aims to provide similar functionality to the node-ffi module but wit
 - Simpler data description and API interface 💗
 - Support more data types between `Node.js` and `c type` 😊
 - Support modify data in place 🥸
-- Provide many function to handle pointer type
+- Provide many functions to handle pointer type
 
 ## benchmark
 
