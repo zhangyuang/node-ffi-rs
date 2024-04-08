@@ -1,5 +1,6 @@
 const { resolve } = require('path')
 const { cp } = require('shelljs')
+const { execSync } = require('child_process')
 const { promises } = require('fs')
 
 const myResolve = dir => resolve(process.cwd(), dir)
@@ -26,5 +27,6 @@ if (process.env.OPTIONAL) {
 }
 
 if (process.env.MAIN) {
+  execSync('yarn build', { stdio: 'inherit' })
   main().then()
 }
