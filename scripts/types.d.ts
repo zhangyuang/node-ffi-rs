@@ -120,7 +120,7 @@ export function restorePointer<T extends DataType>(params: {
   paramsValue: Array<unknown>;
 }): Array<DataTypeToType<T>>
 
-export function unpackPointer(params: Array<unknown>): Array<unknown>
+export function unwrapPointer(params: Array<unknown>): Array<unknown>
 
 export function load<
   T extends DataType,

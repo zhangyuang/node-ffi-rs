@@ -318,7 +318,7 @@ deepStrictEqual(stringArr, load({
 
 In `ffi-rs`, we use [DataType.External](https://nodejs.org/api/n-api.html#napi_create_external) for wrapping the `pointer` which enables it to be passed between `Node.js` and `C`.
 
-`Pointer` is complicated and underlying, `ffi-rs` provide four functions to handle this pointer include `createPointer`, `restorePointer`, `unpackPointer`, `wrapPointer` for different scene.
+`Pointer` is complicated and underlying, `ffi-rs` provide four functions to handle this pointer include `createPointer`, `restorePointer`, `wrapPointer`, `unwrapPointer` for different scene.
 
 ```cpp
 extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
@@ -358,7 +358,7 @@ const string = load({
 
 For numeric type like `i32|u8|i64|f64`, createPointer will create a pointer like `*mut i32` point to there number
 
-For types that are originally pointer types like `char *` represent `string` type in `c`, createPointer will create a dual pointer like `*mut *mut c_char` point to `*mut c_char`.Developers can use `unpackPointer` get the interal pointer `*mut c_char`
+For types that are originally pointer types like `char *` represent `string` type in `c`, createPointer will create a dual pointer like `*mut *mut c_char` point to `*mut c_char`.Developers can use `unwrapPointer` get the interal pointer `*mut c_char`
 
 ```js
 let bigDoubleArr = new Array(5).fill(1.1);
@@ -439,20 +439,20 @@ const ptr = load({
 const wrapPtr = wrapPointer([ptr])[0]
 ```
 
-#### unpackPointer
+#### unwrapPointer
 
-`unpackPointer` is oppsite to `wrapPointer` which is used to get the internal pointer for multiple pointer
+`unwrapPointer` is oppsite to `wrapPointer` which is used to get the internal pointer for multiple pointer
 
 ```js
-const { unpackPointer, createPointer } = require('ffi-rs')
+const { unwrapPointer, createPointer } = require('ffi-rs')
 // ptr type is *mut *mut c_char
 let ptr = createPointer({
   paramsType: [DataType.String],
   paramsValue: ["foo]
 })
 
-// unpackedPtr type is *mut c_char
-const unpackedPtr = unpackPointer([ptr])[0]
+// unwrapPtr type is *mut c_char
+const unwrapPtr = unwrapPointer([ptr])[0]
 ```
 
 ### Struct
