@@ -128,7 +128,26 @@ pub fn number_to_data_type(value: i32) -> DataType {
     _ => panic!("unknow DataType"),
   }
 }
-
+use libffi::middle::Type;
+pub fn rs_value_to_ffi_type(value: &RsArgsValue) -> Type {
+  match value {
+    RsArgsValue::I32(number) => {
+      let data_type = number_to_basic_data_type(*number);
+      match data_type {
+        BasicDataType::String => Type::pointer(),
+        BasicDataType::U8 | BasicDataType::Boolean => Type::u8(),
+        BasicDataType::I32 => Type::i32(),
+        BasicDataType::I64 => Type::i64(),
+        BasicDataType::U64 => Type::u64(),
+        BasicDataType::Double => Type::f64(),
+        BasicDataType::Void => Type::void(),
+        BasicDataType::External => Type::pointer(),
+      }
+    }
+    RsArgsValue::Object(_) => Type::pointer(),
+    _ => panic!("parse function params type err {:?}", value),
+  }
+}
 pub fn number_to_basic_data_type(value: i32) -> BasicDataType {
   match value {
     0 => BasicDataType::String,
@@ -181,7 +200,11 @@ impl std::fmt::Debug for RsArgsValue {
       RsArgsValue::U64(i) => write!(f, "U64({})", i),
       RsArgsValue::Double(d) => write!(f, "Double({})", d),
       RsArgsValue::U8Array(buffer, v) => {
-        write!(f, "U8Array({:?})", buffer.as_ref().unwrap().as_ref())
+        if buffer.is_some() {
+          write!(f, "U8Array({:?})", buffer.as_ref().unwrap().as_ref())
+        } else {
+          write!(f, "U8Array({:?})", v.as_ref().unwrap())
+        }
       }
       RsArgsValue::I32Array(arr) => write!(f, "I32Array({:?})", arr),
       RsArgsValue::StringArray(arr) => write!(f, "StringArray({:?})", arr),

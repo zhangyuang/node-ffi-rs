@@ -349,13 +349,14 @@ const testObject = () => {
 
 const testFunction = () => {
   let count = 0;
-  const func = (a, b, c, d, e, f) => {
+  const func = (a, b, c, d, e, f, g) => {
     equal(a, 100);
     equal(b, false);
     equal(c, "Hello, World!");
-    deepStrictEqual(d, ["Hello", "world"]);
-    deepStrictEqual(e, [101, 202, 303]);
-    deepStrictEqual(f, person);
+    equal(d, "100.11");
+    deepStrictEqual(e, ["Hello", "world"]);
+    deepStrictEqual(f, [101, 202, 303]);
+    deepStrictEqual(g, person);
     console.log("callback called");
     count++;
     if (count === 4) {
@@ -369,6 +370,7 @@ const testFunction = () => {
         DataType.I32,
         DataType.Boolean,
         DataType.String,
+        DataType.Double,
         arrayConstructor({ type: DataType.StringArray, length: 2 }),
         arrayConstructor({ type: DataType.I32Array, length: 3 }),
         personType,
@@ -386,6 +388,7 @@ const testFunction = () => {
         DataType.I32,
         DataType.Boolean,
         DataType.String,
+        DataType.Double,
         arrayConstructor({ type: DataType.StringArray, length: 2 }),
         arrayConstructor({ type: DataType.I32Array, length: 3 }),
         personType,
@@ -461,18 +464,6 @@ const unitTest = () => {
   logGreen('test main program succeed')
   testFunction()
   logGreen('test function succeed')
-  // load({
-  //   library: "libsum",
-  //   funcName: "callFunctionDouble",
-  //   retType: DataType.Void,
-  //   paramsType: [
-  //     funcConstructor({
-  //       paramsType: [DataType.I32, DataType.Double],
-  //       retType: DataType.Void,
-  //     }),
-  //   ],
-  //   paramsValue: [func],
-  // });
 
 };
 

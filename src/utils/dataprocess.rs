@@ -1,6 +1,6 @@
 use crate::datatype::array::ToRsArray;
 use crate::datatype::buffer::get_safe_buffer;
-use crate::datatype::function::get_js_function_call_value;
+use crate::datatype::function::{get_js_function_call_value, get_js_function_call_value_from_ptr};
 use crate::datatype::object_calculate::generate_c_struct;
 use crate::datatype::object_generate::{create_rs_struct_from_pointer, rs_value_to_js_unknown};
 use crate::datatype::pointer::*;
@@ -269,7 +269,8 @@ pub unsafe fn get_value_pointer(
         Ok(Box::into_raw(Box::new(generate_c_struct(&env, val)?)) as *mut c_void)
       }
       RsArgsValue::Function(func_desc, js_function) => {
-        use libffi::high::*;
+        use libffi::low;
+        use libffi::middle::*;
         let func_desc_obj = func_desc
           .call_without_args(None)
           .unwrap()
@@ -278,18 +279,8 @@ pub unsafe fn get_value_pointer(
         let func_args_type: JsObject = func_desc_obj
           .get_property(env.create_string("paramsType").unwrap())
           .unwrap();
-        let args_len = func_args_type.get_array_length().unwrap();
-        let func_args_type_rs = type_object_to_rs_struct(&func_args_type);
+        let func_args_type_rs = type_object_to_rs_vector(&func_args_type)?;
         let func_args_type_rs_ptr = Box::into_raw(Box::new(func_args_type_rs));
-        if args_len > 10 {
-          return Err(
-            FFIError::Panic(
-              "The number of function parameters needs to be less than or equal to 10".to_string(),
-            )
-            .into(),
-          );
-        }
-
         let tsfn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal> = (&js_function)
           .create_threadsafe_function(0, |ctx| {
             let value: Vec<RsArgsValue> = ctx.value;
@@ -303,39 +294,59 @@ pub unsafe fn get_value_pointer(
 
         let tsfn_ptr = Box::into_raw(Box::new(tsfn));
 
-        // if args_len == 1 {
-        //   let lambda = move |a: *mut c_void| {
-        //     let func_args_type_rs = &*func_args_type_rs_ptr;
-        //     let arg_arr = [a];
-        //     let value: Vec<RsArgsValue> = (0..1)
-        //       .map(|index| {
-        //         let c_param = arg_arr[index as usize];
-        //         let arg_type = func_args_type_rs.get(&index.to_string()).unwrap();
-        //         let param = get_js_function_call_value(&env, arg_type, c_param, true);
-        //         param
-        //       })
-        //       .collect();
-        //     (&*tsfn_ptr).call(value, ThreadsafeFunctionCallMode::NonBlocking);
-        //   };
-        //   let closure = Box::into_raw(Box::new(Closure1::new(&*Box::into_raw(Box::new(lambda)))));
-        //   let code_ptr = (*closure).code_ptr();
-        //   return Ok(std::mem::transmute((*closure).code_ptr()));
-        // }
+        unsafe extern "C" fn lambda_callback<F: Fn(Vec<*mut c_void>)>(
+          _cif: &low::ffi_cif,
+          result: &mut *mut c_void,
+          args: *const *const c_void,
+          userdata: &F,
+        ) {
+          let params: Vec<*mut c_void> = (0.._cif.nargs)
+            .map(|index| *args.offset(index as isize) as *mut c_void)
+            .collect();
+          userdata(params);
+        }
+        let cif = Cif::new(
+          (*func_args_type_rs_ptr)
+            .iter()
+            .map(|arg_type| rs_value_to_ffi_type(arg_type)),
+          Type::void(),
+        );
+        let lambda = move |args: Vec<*mut c_void>| {
+          let value: Vec<RsArgsValue> = args
+            .into_iter()
+            .enumerate()
+            .map(|(index, c_param)| {
+              let arg_type = &(*func_args_type_rs_ptr)[index];
+              let param = get_js_function_call_value_from_ptr(env, arg_type, c_param, true);
+              param
+            })
+            .collect();
+          (*tsfn_ptr).call(value, ThreadsafeFunctionCallMode::NonBlocking);
+        };
 
-        Ok(
-          match_args_len!(env, args_len, tsfn_ptr, func_args_type_rs_ptr,
-              1 => Closure1, a
-              ,2 => Closure2, a,b
-              ,3 => Closure3, a,b,c
-              ,4 => Closure4, a,b,c,d
-              ,5 => Closure5, a,b,c,d,e
-              ,6 => Closure6, a,b,c,d,e,f
-              ,7 => Closure7, a,b,c,d,e,f,g
-              ,8 => Closure8, a,b,c,d,e,f,g,h
-              ,9 => Closure9, a,b,c,d,e,f,g,h,i
-              ,10 => Closure10, a,b,c,d,e,f,g,h,i,j
-          ),
-        )
+        let closure = Box::into_raw(Box::new(Closure::new(
+          cif,
+          lambda_callback,
+          &*Box::into_raw(Box::new(lambda)),
+        )));
+
+        Ok(Box::into_raw(Box::new(*(*closure).instantiate_code_ptr::<&fn()>())) as *mut c_void)
+
+        // has been deprecated
+        // Ok(
+        //   match_args_len!(env, args_len, tsfn_ptr, func_args_type_rs_ptr,
+        //       1 => Closure1, a
+        //       ,2 => Closure2, a,b
+        //       ,3 => Closure3, a,b,c
+        //       ,4 => Closure4, a,b,c,d
+        //       ,5 => Closure5, a,b,c,d,e
+        //       ,6 => Closure6, a,b,c,d,e,f
+        //       ,7 => Closure7, a,b,c,d,e,f,g
+        //       ,8 => Closure8, a,b,c,d,e,f,g,h
+        //       ,9 => Closure9, a,b,c,d,e,f,g,h,i
+        //       ,10 => Closure10, a,b,c,d,e,f,g,h,i,j
+        //   ),
+        // )
       }
     })
     .collect::<Result<Vec<*mut c_void>>>()
@@ -477,6 +488,44 @@ pub fn type_object_to_rs_struct(params_type: &JsObject) -> IndexMap<String, RsAr
       Ok(())
     });
   index_map
+}
+
+pub fn type_object_to_rs_vector(params_type: &JsObject) -> Result<Vec<RsArgsValue>> {
+  JsObject::keys(params_type)
+    .unwrap()
+    .into_iter()
+    .map(|field| {
+      let field_type: JsUnknown = params_type.get_named_property(&field).unwrap();
+      Ok(match field_type.get_type().unwrap() {
+        ValueType::Number => {
+          let number: JsNumber = field_type.try_into().unwrap();
+          let val: i32 = number.try_into().unwrap();
+          RsArgsValue::I32(val)
+        }
+
+        ValueType::Object => {
+          // maybe jsobject or jsarray
+          let args_type = field_type.coerce_to_object().unwrap();
+          let map = type_object_to_rs_struct(&args_type);
+          RsArgsValue::Object(map)
+        }
+        ValueType::String => {
+          let str: JsString = field_type.try_into().unwrap();
+          let str = js_string_to_string(str);
+          RsArgsValue::String(str)
+        }
+        _ => {
+          return Err(
+            FFIError::UnsupportedValueType(format!(
+              "Receive {:?} but params type can only be number or object ",
+              field_type.get_type().unwrap()
+            ))
+            .into(),
+          )
+        }
+      })
+    })
+    .collect()
 }
 
 // describe paramsType or retType, field can only be number or object
