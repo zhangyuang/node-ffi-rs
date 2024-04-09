@@ -453,7 +453,7 @@ const { unwrapPointer, createPointer } = require('ffi-rs')
 // ptr type is *mut *mut c_char
 let ptr = createPointer({
   paramsType: [DataType.String],
-  paramsValue: ["foo]
+  paramsValue: ["foo"]
 })
 
 // unwrapPtr type is *mut c_char
@@ -692,7 +692,6 @@ extern "C" void callFunction(FunctionPointer func) {
   for (int i = 0; i < 2; i++) {
     int a = 100;
     bool b = false;
-    double ddd = 100.11;
     char *c = (char *)malloc(14 * sizeof(char));
     strcpy(c, "Hello, World!");
 
@@ -751,7 +750,7 @@ load({
 });
 ```
 
-The function parameters supports type are all in the example above (double type is unsupported at this time), we will support more types in the future
+The function parameters supports type are all in the example above
 
 Attention，since the vast majority of scenarios developers pass js function to c as a callback, so `ffi-rs` will create [threadsafe_function](https://nodejs.org/api/n-api.html#napi_threadsafe_function) from jsfunction which means the jsfunction will be called asynchronous, and Node.js process will not be exited automatically
 
