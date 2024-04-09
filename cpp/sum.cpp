@@ -126,8 +126,8 @@ extern "C" Person *createPerson() {
 
   return person;
 }
-typedef const void (*FunctionPointer)(int a, bool b, char *c, char **d, int *e,
-                                      Person *p);
+typedef const void (*FunctionPointer)(int a, bool b, char *c, double d,
+                                      char **e, int *f, Person *g);
 
 extern "C" void callFunction(FunctionPointer func) {
   printf("callFunction\n");
@@ -135,7 +135,7 @@ extern "C" void callFunction(FunctionPointer func) {
   for (int i = 0; i < 2; i++) {
     int a = 100;
     bool b = false;
-    double ddd = 100.11;
+    double d = 100.11;
     char *c = (char *)malloc(14 * sizeof(char));
     strcpy(c, "Hello, World!");
 
@@ -149,16 +149,8 @@ extern "C" void callFunction(FunctionPointer func) {
     i32Array[2] = 303;
 
     Person *p = createPerson();
-    func(a, b, c, stringArray, i32Array, p);
+    func(a, b, c, d, stringArray, i32Array, p);
   }
-}
-
-typedef void (*FunctionPointerDouble)(int a, double b);
-
-extern "C" void callFunctionDouble(FunctionPointerDouble func) {
-  int aaa = 100;
-  double ddd = 100.11;
-  func(aaa, ddd);
 }
 
 // 定义 C++ 类
