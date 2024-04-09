@@ -330,7 +330,7 @@ pub unsafe fn get_value_pointer(
           &*Box::into_raw(Box::new(lambda)),
         )));
 
-        Ok(Box::into_raw(Box::new(*(*closure).instantiate_code_ptr::<&fn()>())) as *mut c_void)
+        Ok(std::mem::transmute((*closure).code_ptr()))
 
         // has been deprecated
         // Ok(
