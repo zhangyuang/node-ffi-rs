@@ -280,7 +280,6 @@ pub unsafe fn get_value_pointer(
           .get_property(env.create_string("paramsType").unwrap())
           .unwrap();
         let func_args_type_rs = type_object_to_rs_vector(&func_args_type)?;
-        let func_args_type_rs_ptr = Box::into_raw(Box::new(func_args_type_rs));
         let tsfn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal> = (&js_function)
           .create_threadsafe_function(0, |ctx| {
             let value: Vec<RsArgsValue> = ctx.value;
@@ -291,8 +290,6 @@ pub unsafe fn get_value_pointer(
 
             Ok(js_call_params)
           })?;
-
-        let tsfn_ptr = Box::into_raw(Box::new(tsfn));
 
         unsafe extern "C" fn lambda_callback<F: Fn(Vec<*mut c_void>)>(
           _cif: &low::ffi_cif,
@@ -306,7 +303,7 @@ pub unsafe fn get_value_pointer(
           userdata(params);
         }
         let cif = Cif::new(
-          (*func_args_type_rs_ptr)
+          func_args_type_rs
             .iter()
             .map(|arg_type| rs_value_to_ffi_type(arg_type)),
           Type::void(),
@@ -316,12 +313,12 @@ pub unsafe fn get_value_pointer(
             .into_iter()
             .enumerate()
             .map(|(index, c_param)| {
-              let arg_type = &(*func_args_type_rs_ptr)[index];
+              let arg_type = &(func_args_type_rs)[index];
               let param = get_js_function_call_value_from_ptr(env, arg_type, c_param, true);
               param
             })
             .collect();
-          (*tsfn_ptr).call(value, ThreadsafeFunctionCallMode::NonBlocking);
+          tsfn.call(value, ThreadsafeFunctionCallMode::NonBlocking);
         };
 
         let closure = Box::into_raw(Box::new(Closure::new(
