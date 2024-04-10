@@ -44,9 +44,6 @@
     "esno": "^4.7.0",
     "shelljs": "^0.8.5"
   },
-  "engines": {
-    "node": ">= 16"
-  },
   "scripts": {
     "artifacts": "napi artifacts",
     "build:c": "node scripts/compile.js",

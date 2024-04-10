@@ -8,8 +8,6 @@ A module written in Rust and N-API provides interface (FFI) features for Node.js
 
 <div align="">
 <a href="https://github.com/zhangyuang/node-ffi-rs/actions" target="_blank"><img src="https://github.com/zhangyuang/ssr/workflows/CI/badge.svg" alt="githubActions" />
-<a href="https://github.com/zhangyuang/node-ffi-rs" target="_blank"><img src="https://img.shields.io/badge/node-%3E=14-green.svg?color=4dc71f" alt="Node" ></a>
-<a href="https://github.com/zhangyuang/node-ffi-rs" target="_blank"><img src="https://badge.fury.io/js/ffi-rs.svg" alt="Node" ></a>
 </div>
 
 ## Description
@@ -22,9 +20,9 @@ This module aims to provide similar functionality to the node-ffi module but wit
 
 - High performance ✨
 - Simpler data description and API interface 💗
-- Support more data types between `Node.js` and `c type` 😊
+- Support more different data types between `Node.js` and `c` 😊
 - Support modify data in place 🥸
-- Provide many functions to handle pointer type
+- Provide many ways to handle pointer type directly
 
 ## benchmark
 
@@ -406,7 +404,7 @@ The two pieces of code above are equivalent
 
 #### restorePointer
 
-Similarly, you can use `restorePointer` to restore data from `pointer` which is wrapped by `createPointer`
+Similarly, you can use `restorePointer` to restore data from `pointer` which is wrapped by `createPointer` or as a return value of foreign function
 
 ```js
 const pointerArr = createPointer({
@@ -683,8 +681,8 @@ deepStrictEqual(createdPerson, person);
 `ffi-rs` supports passing js function to c, like this
 
 ```cpp
-typedef void (*FunctionPointer)(int a, bool b, char *c, char **d, int *e,
-                                Person *p);
+typedef const void (*FunctionPointer)(int a, bool b, char *c, double d,
+                                      char **e, int *f, Person *g);
 
 extern "C" void callFunction(FunctionPointer func) {
   printf("callFunction\n");
@@ -692,6 +690,7 @@ extern "C" void callFunction(FunctionPointer func) {
   for (int i = 0; i < 2; i++) {
     int a = 100;
     bool b = false;
+    double d = 100.11;
     char *c = (char *)malloc(14 * sizeof(char));
     strcpy(c, "Hello, World!");
 
@@ -705,7 +704,7 @@ extern "C" void callFunction(FunctionPointer func) {
     i32Array[2] = 303;
 
     Person *p = createPerson();
-    func(a, b, c, stringArray, i32Array, p);
+    func(a, b, c, d, stringArray, i32Array, p);
   }
 }
 ```
@@ -714,39 +713,62 @@ Corresponds to the code above，you can use `ffi-rs` like
 
 ```js
 let count = 0;
-const func = (a, b, c, d, e, f) => {
+const func = (a, b, c, d, e, f, g) => {
   equal(a, 100);
   equal(b, false);
   equal(c, "Hello, World!");
-  deepStrictEqual(d, ["Hello", "world"]);
-  deepStrictEqual(e, [101, 202, 303]);
-  deepStrictEqual(f, person);
+  equal(d, "100.11");
+  deepStrictEqual(e, ["Hello", "world"]);
+  deepStrictEqual(f, [101, 202, 303]);
+  deepStrictEqual(g, person);
   console.log("callback called");
   count++;
-  if (count === 2) {
-    console.log("test succeed");
+  if (count === 4) {
+    logGreen("test succeed");
     process.exit(0);
   }
 };
-
+const funcExternal = createPointer({
+  paramsType: [funcConstructor({
+    paramsType: [
+      DataType.I32,
+      DataType.Boolean,
+      DataType.String,
+      DataType.Double,
+      arrayConstructor({ type: DataType.StringArray, length: 2 }),
+      arrayConstructor({ type: DataType.I32Array, length: 3 }),
+      personType,
+    ],
+    retType: DataType.Void,
+  })],
+  paramsValue: [func]
+})
+load({
+  library: "libsum",
+  funcName: "callFunction",
+  retType: DataType.Void,
+  paramsType: [funcConstructor({
+    paramsType: [
+      DataType.I32,
+      DataType.Boolean,
+      DataType.String,
+      DataType.Double,
+      arrayConstructor({ type: DataType.StringArray, length: 2 }),
+      arrayConstructor({ type: DataType.I32Array, length: 3 }),
+      personType,
+    ],
+    retType: DataType.Void,
+  })],
+  paramsValue: [func]
+});
 load({
   library: "libsum",
   funcName: "callFunction",
   retType: DataType.Void,
   paramsType: [
-    funcConstructor({
-      paramsType: [
-        DataType.I32,
-        DataType.Boolean,
-        DataType.String,
-        arrayConstructor({ type: DataType.StringArray, length: 2 }),
-        arrayConstructor({ type: DataType.I32Array, length: 3 }),
-        personType,
-      ],
-      retType: DataType.Void,
-    }),
+    DataType.External,
   ],
-  paramsValue: [func],
+  paramsValue: unwrapPointer(funcExternal),
 });
 ```
 
