@@ -120,6 +120,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     ret_type,
     params_type,
     params_value,
+    callback,
   } = params;
 
   let lib = LIBRARY_MAP.as_mut().unwrap();
@@ -186,11 +187,52 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     arg_types.as_mut_ptr(),
   );
   let result = malloc(std::mem::size_of::<*mut c_void>());
-  ffi_call(
-    &mut cif,
-    Some(*func),
-    result,
-    arg_values_c_void.as_mut_ptr(),
-  );
-  get_js_unknown_from_pointer(&env, ret_type_rs, result)
+  if callback.is_some() {
+    use datatype::function::get_js_function_call_value_from_ptr;
+    use datatype::object_generate::rs_value_to_js_unknown;
+    use napi::threadsafe_function::{
+      ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode,
+    };
+    let callback_thread_safe_fn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal> =
+      callback.unwrap().create_threadsafe_function(0, |ctx| {
+        let value: Vec<RsArgsValue> = ctx.value;
+        let js_call_params: Vec<JsUnknown> = value
+          .into_iter()
+          .map(|rs_args| rs_value_to_js_unknown(&ctx.env, rs_args))
+          .collect::<Result<Vec<JsUnknown>, _>>()?;
+        Ok(js_call_params)
+      })?;
+    struct SafePtr(Vec<*mut c_void>);
+    struct SafeResult(*mut c_void);
+    struct FFICIF(ffi_cif);
+    unsafe impl Send for SafePtr {}
+    unsafe impl Send for FFICIF {}
+    unsafe impl Send for SafeResult {}
+    unsafe impl Sync for SafePtr {}
+    unsafe impl Sync for FFICIF {}
+    unsafe impl Sync for SafeResult {}
+    let mut arg_values_c_void = SafePtr(arg_values_c_void);
+    let mut cif = FFICIF(cif);
+    let result = SafeResult(result);
+    std::thread::spawn(move || {
+      let foo = &mut cif.0;
+      // ffi_call(
+      //   &mut cif.0,
+      //   Some(*func),
+      //   result.0,
+      //   arg_values_c_void.0.as_mut_ptr(),
+      // );
+      // let result = get_js_function_call_value_from_ptr(&env, &ret_type_rs, result, true);
+      // callback_thread_safe_fn.call(vec![result], ThreadsafeFunctionCallMode::NonBlocking);
+    });
+    Ok(env.create_int32(0).unwrap().into_unknown())
+  } else {
+    ffi_call(
+      &mut cif,
+      Some(*func),
+      result,
+      arg_values_c_void.as_mut_ptr(),
+    );
+    get_js_unknown_from_pointer(&env, ret_type_rs, result)
+  }
 }

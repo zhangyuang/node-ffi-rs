@@ -347,6 +347,23 @@ const testObject = () => {
   deepStrictEqual(createdPerson, person);
 }
 
+const testAsyncCall = () => {
+  const a = 1;
+  const b = 100;
+  equal(
+    load({
+      library: "libsum",
+      funcName: "sum",
+      retType: DataType.I32,
+      paramsType: [DataType.I32, DataType.I32],
+      paramsValue: [a, b],
+      callback: (res) => {
+        console.log('xxx', res)
+      }
+    }),
+    a + b,
+  );
+}
 const testFunction = () => {
   let count = 0;
   const func = (a, b, c, d, e, f, g) => {
@@ -464,6 +481,8 @@ const unitTest = () => {
   logGreen('test main program succeed')
   testFunction()
   logGreen('test function succeed')
+  testAsyncCall()
+  logGreen('test async call succeed')
 
 };
 

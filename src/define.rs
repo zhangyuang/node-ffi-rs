@@ -224,6 +224,7 @@ pub struct FFIParams {
   pub ret_type: JsUnknown,
   pub params_type: Vec<JsUnknown>,
   pub params_value: Vec<JsUnknown>,
+  pub callback: Option<JsFunction>,
 }
 
 #[napi(object)]
