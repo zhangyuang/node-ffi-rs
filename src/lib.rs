@@ -13,7 +13,7 @@ use libffi_sys::{
   ffi_type_pointer, ffi_type_sint32, ffi_type_sint64, ffi_type_uint64, ffi_type_uint8,
   ffi_type_void,
 };
-use napi::{Env, JsExternal, JsUnknown, Result};
+use napi::{Env, Error, JsExternal, JsUnknown, Result};
 
 use std::collections::HashMap;
 use std::ffi::c_void;
@@ -23,7 +23,13 @@ use utils::dataprocess::{
 };
 
 static mut LIBRARY_MAP: Option<
-  HashMap<String, (Library, HashMap<String, Symbol<unsafe extern "C" fn()>>)>,
+  HashMap<
+    String,
+    (
+      Library,
+      HashMap<String, Result<Symbol<unsafe extern "C" fn()>>>,
+    ),
+  >,
 > = None;
 
 #[napi]
@@ -122,28 +128,31 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     params_value,
   } = params;
 
-  let lib = LIBRARY_MAP.as_mut().unwrap();
-  let (lib, func_map) = lib
+  let library_map = LIBRARY_MAP.as_mut().unwrap();
+  let (lib, func_map) = library_map
     .get_mut(&library)
     .ok_or(FFIError::LibraryNotFound(format!(
       "Before calling load, you need to open the file {:?} with the open method",
       library
     )))?;
-  let func_name_str = func_name.as_str();
-  let func = if func_map.get(func_name_str).is_some() {
-    *(func_map.get(func_name_str).unwrap())
-  } else {
-    let func = lib.symbol(func_name_str).map_err(|_| {
-      FFIError::FunctionNotFound(format!(
-        "Cannot find {:?} function in share library",
-        func_name_str
-      ))
-    })?;
-    func_map.insert(func_name, func);
-    func
-  };
-  let params_type_len = params_type.len();
 
+  let func = func_map
+    .entry(func_name.clone())
+    .or_insert_with(|| {
+      lib
+        .symbol::<unsafe extern "C" fn()>(&func_name)
+        .map_err(|_| {
+          FFIError::FunctionNotFound(format!(
+            "Cannot find {:?} function in shared library",
+            &func_name
+          ))
+          .into()
+        })
+    })
+    .as_ref()
+    .unwrap();
+
+  let params_type_len = params_type.len();
   let (mut arg_types, arg_values) = get_arg_types_values(&env, params_type, params_value)?;
   let mut arg_values_c_void = get_value_pointer(&env, arg_values)?;
 
@@ -188,7 +197,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
   let result = malloc(std::mem::size_of::<*mut c_void>());
   ffi_call(
     &mut cif,
-    Some(*func),
+    Some(**func),
     result,
     arg_values_c_void.as_mut_ptr(),
   );
