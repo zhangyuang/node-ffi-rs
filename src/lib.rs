@@ -193,6 +193,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     use napi::threadsafe_function::{
       ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode,
     };
+    use napi::{Error, Ref, Task};
     let callback_thread_safe_fn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal> =
       callback.unwrap().create_threadsafe_function(0, |ctx| {
         let value: Vec<RsArgsValue> = ctx.value;
@@ -202,29 +203,42 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
           .collect::<Result<Vec<JsUnknown>, _>>()?;
         Ok(js_call_params)
       })?;
-    struct SafePtr(Vec<*mut c_void>);
-    struct SafeResult(*mut c_void);
-    struct FFICIF(ffi_cif);
-    unsafe impl Send for SafePtr {}
-    unsafe impl Send for FFICIF {}
-    unsafe impl Send for SafeResult {}
-    unsafe impl Sync for SafePtr {}
-    unsafe impl Sync for FFICIF {}
-    unsafe impl Sync for SafeResult {}
-    let mut arg_values_c_void = SafePtr(arg_values_c_void);
-    let mut cif = FFICIF(cif);
-    let result = SafeResult(result);
-    std::thread::spawn(move || {
-      let foo = &mut cif.0;
-      // ffi_call(
-      //   &mut cif.0,
-      //   Some(*func),
-      //   result.0,
-      //   arg_values_c_void.0.as_mut_ptr(),
-      // );
-      // let result = get_js_function_call_value_from_ptr(&env, &ret_type_rs, result, true);
-      // callback_thread_safe_fn.call(vec![result], ThreadsafeFunctionCallMode::NonBlocking);
-    });
+    struct CountBufferLength {
+      data: Ref<RsArgsValue>,
+    }
+
+    impl CountBufferLength {
+      pub fn new(data: Ref<RsArgsValue>) -> Self {
+        Self { data }
+      }
+    }
+
+    impl Task for CountBufferLength {
+      type Output = RsArgsValue;
+      type JsValue = JsUnknown;
+
+      unsafe fn compute(&mut self) -> Result<Self::Output> {
+        ffi_call(
+          &mut cif,
+          Some(*func),
+          result,
+          arg_values_c_void.as_mut_ptr(),
+        );
+      }
+
+      fn resolve(&mut self, env: Env, output: Self::Output) -> Result<Self::JsValue> {
+        // env.create_uint32(output as _)
+      }
+
+      fn reject(&mut self, env: Env, err: Error) -> Result<Self::JsValue> {
+        Err(err)
+      }
+
+      fn finally(&mut self, env: Env) -> Result<()> {
+        self.data.unref(env)?;
+        Ok(())
+      }
+    }
     Ok(env.create_int32(0).unwrap().into_unknown())
   } else {
     ffi_call(
