@@ -11,11 +11,11 @@ const { resolve } = require("path");
     `
     ${entryContent}
     module.exports.arrayConstructor = (options) => ({
+      dynamicArray: true,
       ...options,
       ffiTypeTag: 'array'
     })
     module.exports.funcConstructor = (options) => (() => ({
-      permanent: false,
       ffiTypeTag: 'function',
       ...options,
     }))
