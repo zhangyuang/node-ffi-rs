@@ -53,6 +53,7 @@ export type ArrayConstructorOptions<T extends DataType> = {
   type: T;
   length: number;
   ffiTypeTag?: string;
+  dynamicArray?: boolean
 };
 
 export type FuncConstructorOptions<T extends DataType> = {

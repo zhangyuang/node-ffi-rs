@@ -1,8 +1,8 @@
 use super::array::*;
 use super::buffer::*;
-use super::object_calculate::get_size_align;
 use super::pointer::*;
 use crate::utils::dataprocess::get_array_desc;
+use crate::utils::object_utils::{create_static_array_from_pointer, get_size_align};
 
 use crate::define::*;
 use indexmap::IndexMap;
@@ -118,50 +118,87 @@ pub unsafe fn create_rs_struct_from_pointer(
       let array_desc = get_array_desc(obj);
       if array_desc.is_some() {
         // array
-        let (array_len, array_type) = array_desc.unwrap();
-        let size = match array_type {
+        let array_desc = array_desc.unwrap();
+        let FFIARRARYDESC {
+          array_type,
+          array_len,
+          dynamic_array,
+          ..
+        } = &array_desc;
+        match array_type {
           RefDataType::StringArray => {
             let (size, align) = get_size_align::<*const c_void>();
             let padding = (align - (offset % align)) % align;
             field_ptr = field_ptr.offset(padding as isize);
             let type_field_ptr = field_ptr as *mut *mut *mut c_char;
-            let arr = create_array_from_pointer(*type_field_ptr, array_len);
+            let arr = create_array_from_pointer(*type_field_ptr, *array_len);
             rs_struct.insert(field, RsArgsValue::StringArray(arr));
             offset += size + padding;
             field_size = size
           }
           RefDataType::DoubleArray => {
-            let (size, align) = get_size_align::<*const c_void>();
+            let (size, align) = if *dynamic_array {
+              get_size_align::<*const c_void>()
+            } else {
+              let (size, align) = get_size_align::<c_double>();
+              (size * array_len, align)
+            };
             let padding = (align - (offset % align)) % align;
             field_ptr = field_ptr.offset(padding as isize);
-            let type_field_ptr = field_ptr as *mut *mut c_double;
-            let arr = create_array_from_pointer(*type_field_ptr, array_len);
-            rs_struct.insert(field, RsArgsValue::DoubleArray(arr));
+            if *dynamic_array {
+              let type_field_ptr = field_ptr as *mut *mut c_double;
+              let arr = create_array_from_pointer(*type_field_ptr, *array_len);
+              rs_struct.insert(field, RsArgsValue::DoubleArray(arr));
+            } else {
+              let arr = create_static_array_from_pointer(field_ptr as *mut c_void, &array_desc);
+              rs_struct.insert(field, arr);
+            }
             offset += size + padding;
             field_size = size
           }
           RefDataType::I32Array => {
-            let (size, align) = get_size_align::<*const c_void>();
+            let (size, align) = if *dynamic_array {
+              get_size_align::<*const c_void>()
+            } else {
+              let (size, align) = get_size_align::<c_int>();
+              (size * array_len, align)
+            };
             let padding = (align - (offset % align)) % align;
             field_ptr = field_ptr.offset(padding as isize);
-            let type_field_ptr = field_ptr as *mut *mut c_int;
-            let arr = create_array_from_pointer(*type_field_ptr, array_len);
-            rs_struct.insert(field, RsArgsValue::I32Array(arr));
+            if *dynamic_array {
+              let type_field_ptr = field_ptr as *mut *mut c_int;
+              let arr = create_array_from_pointer(*type_field_ptr, *array_len);
+              rs_struct.insert(field, RsArgsValue::I32Array(arr));
+            } else {
+              let arr = create_static_array_from_pointer(field_ptr as *mut c_void, &array_desc);
+              rs_struct.insert(field, arr);
+            }
             offset += size + padding;
             field_size = size
           }
           RefDataType::U8Array => {
-            let (size, align) = get_size_align::<*const c_void>();
+            let (size, align) = if *dynamic_array {
+              get_size_align::<*const c_void>()
+            } else {
+              let (size, align) = get_size_align::<u8>();
+              (size * array_len, align)
+            };
             let padding = (align - (offset % align)) % align;
             field_ptr = field_ptr.offset(padding as isize);
-            let type_field_ptr = field_ptr as *mut *mut c_uchar;
-            let arr = create_array_from_pointer(*type_field_ptr, array_len);
-            rs_struct.insert(field, get_safe_buffer(env, arr, need_thread_safe));
+            if *dynamic_array {
+              let type_field_ptr = field_ptr as *mut *mut c_uchar;
+              let arr = create_array_from_pointer(*type_field_ptr, array_desc.array_len);
+              rs_struct.insert(field, get_safe_buffer(env, arr, need_thread_safe));
+            } else {
+              let arr = create_static_array_from_pointer(field_ptr as *mut c_void, &array_desc);
+              if let RsArgsValue::U8Array(_, arr) = arr {
+                rs_struct.insert(field, get_safe_buffer(env, arr.unwrap(), need_thread_safe));
+              }
+            }
             offset += size + padding;
             field_size = size
           }
         };
-        size
       } else {
         // function | raw object
         let (size, align) = get_size_align::<*const c_void>();

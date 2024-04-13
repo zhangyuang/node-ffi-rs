@@ -1,15 +1,13 @@
-use crate::define::RsArgsValue;
-use crate::utils::dataprocess::get_js_external_wrap_data;
+use crate::define::{RsArgsValue, FFIARRARYDESC};
+use crate::utils::dataprocess::{get_array_desc, get_js_external_wrap_data};
+use crate::utils::object_utils::get_size_align;
+use crate::{FFIError, RefDataType};
 use indexmap::IndexMap;
 use libc::{c_ulonglong, c_void};
 use napi::{Env, Result};
 use std::alloc::{alloc, Layout};
 use std::ffi::CString;
 use std::ffi::{c_char, c_double, c_int, c_longlong, c_uchar};
-
-pub fn get_size_align<T: Sized>() -> (usize, usize) {
-  (std::mem::size_of::<T>(), std::mem::align_of::<T>())
-}
 
 macro_rules! calculate_layout_for {
   ($variant:ident, $type:ty) => {
@@ -44,8 +42,34 @@ pub fn calculate_struct_size(map: &IndexMap<String, RsArgsValue>) -> (usize, usi
         RsArgsValue::String(_) => calculate_string(size, align, offset),
         RsArgsValue::Boolean(_) => calculate_boolean(size, align, offset),
         RsArgsValue::Void(_) => calculate_void(size, align, offset),
-        RsArgsValue::Object(_)
-        | RsArgsValue::StringArray(_)
+        RsArgsValue::Object(obj) => {
+          let array_desc = get_array_desc(obj);
+          if array_desc.is_some() {
+            let FFIARRARYDESC {
+              array_type,
+              array_len,
+              ..
+            } = array_desc.unwrap();
+            let (mut type_size, type_align) = match array_type {
+              RefDataType::U8Array => get_size_align::<u8>(),
+              RefDataType::I32Array => get_size_align::<i32>(),
+              RefDataType::DoubleArray => get_size_align::<f64>(),
+              _ => panic!(
+                "write {:?} static array in struct is unsupported",
+                array_type
+              ),
+            };
+            type_size = type_size * array_len;
+            let align = align.max(type_align);
+            let padding = (type_align - (offset % type_align)) % type_align;
+            let size = size + padding + type_size;
+            let offset = offset + padding + type_size;
+            (size, align, offset)
+          } else {
+            calculate_pointer(size, align, offset)
+          }
+        }
+        RsArgsValue::StringArray(_)
         | RsArgsValue::DoubleArray(_)
         | RsArgsValue::I32Array(_)
         | RsArgsValue::U8Array(_, _)
@@ -147,7 +171,7 @@ pub unsafe fn generate_c_struct(
             let c_string = CString::new(str).unwrap();
             let ptr = c_string.as_ptr();
             std::mem::forget(c_string);
-            return ptr;
+            ptr
           })
           .collect();
         (field_ptr as *mut *const *const c_char).write(c_char_vec.as_ptr());
@@ -173,7 +197,7 @@ pub unsafe fn generate_c_struct(
         offset += size + padding;
         size
       }
-      RsArgsValue::U8Array(buffer, arr) => {
+      RsArgsValue::U8Array(buffer, _) => {
         let buffer = buffer.unwrap();
         let (size, align) = get_size_align::<*mut c_void>();
         let padding = (align - (offset % align)) % align;
@@ -184,13 +208,68 @@ pub unsafe fn generate_c_struct(
         size
       }
       RsArgsValue::Object(val) => {
-        let (size, align) = get_size_align::<*mut c_void>();
-        let padding = (align - (offset % align)) % align;
-        field_ptr = field_ptr.offset(padding as isize);
-        let obj_ptr = generate_c_struct(env, val)?;
-        (field_ptr as *mut *const c_void).write(obj_ptr);
-        offset += size + padding;
-        size
+        let array_desc = get_array_desc(&val);
+        if array_desc.is_some() {
+          // write static array data to struct
+          let FFIARRARYDESC {
+            array_type,
+            array_len,
+            array_value,
+            dynamic_array,
+            ..
+          } = array_desc.unwrap();
+          if dynamic_array {
+            panic!("generate struct field unsupport use object describe array")
+          }
+          match array_type {
+            RefDataType::U8Array => {
+              let (size, align) = get_size_align::<u8>();
+              let field_size = size * array_len;
+              let padding = (align - (offset % align)) % align;
+              field_ptr = field_ptr.offset(padding as isize);
+              if let RsArgsValue::U8Array(buffer, _) = array_value.unwrap() {
+                let buffer = buffer.as_ref().unwrap();
+                std::ptr::copy(buffer.as_ptr(), field_ptr as *mut u8, array_len);
+                offset += field_size + padding;
+              }
+              field_size
+            }
+            RefDataType::I32Array => {
+              let (size, align) = get_size_align::<i32>();
+              let field_size = size * array_len;
+              let padding = (align - (offset % align)) % align;
+              field_ptr = field_ptr.offset(padding as isize);
+              if let RsArgsValue::I32Array(arr) = array_value.unwrap() {
+                std::ptr::copy(arr.as_ptr(), field_ptr as *mut i32, array_len);
+                offset += field_size + padding;
+              }
+              field_size
+            }
+            RefDataType::DoubleArray => {
+              let (size, align) = get_size_align::<f64>();
+              let field_size = size * array_len;
+              let padding = (align - (offset % align)) % align;
+              field_ptr = field_ptr.offset(padding as isize);
+              if let RsArgsValue::DoubleArray(arr) = array_value.unwrap() {
+                std::ptr::copy(arr.as_ptr(), field_ptr as *mut f64, array_len);
+                offset += field_size + padding;
+              }
+              field_size
+            }
+            _ => panic!(
+              "write {:?} static array in struct is unsupported",
+              array_type
+            ),
+          }
+        } else {
+          let (size, align) = get_size_align::<*mut c_void>();
+          let padding = (align - (offset % align)) % align;
+          field_ptr = field_ptr.offset(padding as isize);
+          let obj_ptr = generate_c_struct(env, val)?;
+          (field_ptr as *mut *const c_void).write(obj_ptr);
+          offset += size + padding;
+          size
+        }
       }
       RsArgsValue::External(val) => {
         let (size, align) = get_size_align::<*mut c_void>();

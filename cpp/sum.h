@@ -13,26 +13,11 @@ extern void noRet();
 extern int *createArrayi32(const int *arr, int size);
 extern double *createArrayDouble(const double *arr, int size);
 extern char **createArrayString(char **arr, int size);
-typedef struct Parent {
-  const char *name;
-  int age;
-} Parent;
-class MyClass {
-public:
-  MyClass();
-  void method();
-};
-typedef void (*FunctionPointer)(double a);
+typedef struct {
+  int bytes[2];
+} cpu_svn_t;
 
-extern void callFunction(FunctionPointer func);
-
-typedef struct Person {
-  const char *name;
-  int age;
-  Parent parent;
-} Person;
-extern const Person *getStruct(const Person *p);
-
+extern int pck_cert_select(const cpu_svn_t *platform_svn, int bytes[2]);
 #ifdef __cplusplus
 }
 #endif

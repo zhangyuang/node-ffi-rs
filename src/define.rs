@@ -71,6 +71,13 @@ where
     unsafe { JsObject::to_napi_value(raw_env, obj) }
   }
 }
+
+pub struct FFIARRARYDESC<'a> {
+  pub dynamic_array: bool,
+  pub array_type: RefDataType,
+  pub array_len: usize,
+  pub array_value: Option<&'a RsArgsValue>,
+}
 #[napi]
 #[derive(Debug)]
 pub enum DataType {
@@ -246,3 +253,5 @@ pub struct OpenParams {
 
 pub const ARRAY_LENGTH_TAG: &str = "length";
 pub const ARRAY_TYPE_TAG: &str = "type";
+pub const ARRAY_DYNAMIC_TAG: &str = "dynamicArray";
+pub const ARRAY_VALUE_TAG: &str = "value";

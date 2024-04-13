@@ -155,7 +155,6 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
   let params_type_len = params_type.len();
   let (mut arg_types, arg_values) = get_arg_types_values(&env, params_type, params_value)?;
   let mut arg_values_c_void = get_value_pointer(&env, arg_values)?;
-
   let ret_type_rs = type_define_to_rs_args(ret_type)?;
   let r_type: *mut ffi_type = match ret_type_rs {
     RsArgsValue::I32(number) => {

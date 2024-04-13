@@ -23,19 +23,28 @@ pub unsafe fn get_js_external_wrap_data(env: &Env, js_external: JsExternal) -> R
   Ok(*external)
 }
 
-pub fn get_array_desc(obj: &IndexMap<String, RsArgsValue>) -> Option<(usize, RefDataType)> {
+pub fn get_array_desc(obj: &IndexMap<String, RsArgsValue>) -> Option<FFIARRARYDESC> {
   if obj.get(ARRAY_LENGTH_TAG).is_none() {
     return None;
   }
-  let (mut array_len, mut array_type) = (0, 0);
+  let (mut array_len, mut array_type, mut array_dynamic) = (0, 0, true);
   if let RsArgsValue::I32(number) = obj.get(ARRAY_LENGTH_TAG).unwrap() {
     array_len = *number as usize
   }
   if let RsArgsValue::I32(number) = obj.get(ARRAY_TYPE_TAG).unwrap() {
     array_type = *number
   }
+  if let RsArgsValue::Boolean(val) = obj.get(ARRAY_DYNAMIC_TAG).unwrap() {
+    array_dynamic = *val
+  }
   let array_type = number_to_ref_data_type(array_type);
-  Some((array_len, array_type))
+
+  Some(FFIARRARYDESC {
+    array_len,
+    dynamic_array: array_dynamic,
+    array_type,
+    array_value: obj.get(ARRAY_VALUE_TAG),
+  })
 }
 
 pub fn js_string_to_string(js_string: JsString) -> String {
@@ -355,7 +364,7 @@ pub fn get_params_value_rs_struct(
   params_value_object: &JsObject,
 ) -> Result<IndexMap<String, RsArgsValue>> {
   let mut index_map = IndexMap::new();
-  let _: Result<()> = JsObject::keys(&params_value_object)?
+  let parse_result: Result<()> = JsObject::keys(&params_value_object)?
     .into_iter()
     .try_for_each(|field| {
       let field_type: JsUnknown = params_type_object.get_named_property(&field)?;
@@ -429,13 +438,29 @@ pub fn get_params_value_rs_struct(
         ValueType::Object => {
           let params_type = field_type.coerce_to_object()?;
           let params_value: JsObject = params_value_object.get_named_property(&field)?;
-          let map = get_params_value_rs_struct(env, &params_type, &params_value);
-          index_map.insert(field, RsArgsValue::Object(map?));
+          let mut params_type_rs_value = type_object_to_rs_struct(&params_type)?;
+          let array_desc = get_array_desc(&params_type_rs_value);
+          if array_desc.is_some() {
+            let FFIARRARYDESC { array_type, .. } = array_desc.unwrap();
+            let array_value = match array_type {
+              RefDataType::U8Array => {
+                let js_buffer: JsBuffer = params_value_object.get_named_property(&field)?;
+                RsArgsValue::U8Array(Some(js_buffer.into_value()?), None)
+              }
+              _ => panic!("111"),
+            };
+            params_type_rs_value.insert("value".to_string(), array_value);
+            index_map.insert(field, RsArgsValue::Object(params_type_rs_value));
+          } else {
+            let map = get_params_value_rs_struct(env, &params_type, &params_value);
+            index_map.insert(field, RsArgsValue::Object(map?));
+          }
         }
         _ => {
           return Err(
             FFIError::UnsupportedValueType(format!(
-              "Received {:?} but params type only supported number or object ",
+              "Get field {:?} received {:?} but params type only supported number or object ",
+              field,
               field_type.get_type().unwrap()
             ))
             .into(),
@@ -444,31 +469,37 @@ pub fn get_params_value_rs_struct(
       };
       Ok(())
     });
-  Ok(index_map)
+  match parse_result {
+    Ok(_) => Ok(index_map),
+    Err(e) => Err(e),
+  }
 }
 
-pub fn type_object_to_rs_struct(params_type: &JsObject) -> IndexMap<String, RsArgsValue> {
+pub fn type_object_to_rs_struct(params_type: &JsObject) -> Result<IndexMap<String, RsArgsValue>> {
   let mut index_map = IndexMap::new();
-  let _: Result<()> = JsObject::keys(params_type)
+  let parse_result: Result<()> = JsObject::keys(params_type)
     .unwrap()
     .into_iter()
     .try_for_each(|field| {
       let field_type: JsUnknown = params_type.get_named_property(&field).unwrap();
       match field_type.get_type().unwrap() {
         ValueType::Number => {
-          let number: JsNumber = field_type.try_into().unwrap();
-          let val: i32 = number.try_into().unwrap();
+          let number: JsNumber = field_type.try_into()?;
+          let val: i32 = number.try_into()?;
           index_map.insert(field, RsArgsValue::I32(val));
         }
-
+        ValueType::Boolean => {
+          let val: JsBoolean = field_type.try_into()?;
+          index_map.insert(field, RsArgsValue::Boolean(val.try_into()?));
+        }
         ValueType::Object => {
           // maybe jsobject or jsarray
-          let args_type = field_type.coerce_to_object().unwrap();
-          let map = type_object_to_rs_struct(&args_type);
+          let args_type = field_type.coerce_to_object()?;
+          let map = type_object_to_rs_struct(&args_type)?;
           index_map.insert(field, RsArgsValue::Object(map));
         }
         ValueType::String => {
-          let str: JsString = field_type.try_into().unwrap();
+          let str: JsString = field_type.try_into()?;
           let str = js_string_to_string(str);
           index_map.insert(field, RsArgsValue::String(str));
         }
@@ -479,12 +510,15 @@ pub fn type_object_to_rs_struct(params_type: &JsObject) -> IndexMap<String, RsAr
               field_type.get_type().unwrap()
             ))
             .into(),
-          )
+          );
         }
       };
       Ok(())
     });
-  index_map
+  match parse_result {
+    Ok(_) => Ok(index_map),
+    Err(e) => Err(e),
+  }
 }
 
 pub fn type_object_to_rs_vector(params_type: &JsObject) -> Result<Vec<RsArgsValue>> {
@@ -503,7 +537,7 @@ pub fn type_object_to_rs_vector(params_type: &JsObject) -> Result<Vec<RsArgsValu
         ValueType::Object => {
           // maybe jsobject or jsarray
           let args_type = field_type.coerce_to_object().unwrap();
-          let map = type_object_to_rs_struct(&args_type);
+          let map = type_object_to_rs_struct(&args_type)?;
           RsArgsValue::Object(map)
         }
         ValueType::String => {
@@ -531,7 +565,7 @@ pub fn type_define_to_rs_args(type_define: JsUnknown) -> Result<RsArgsValue> {
   let ret_value = match ret_value_type {
     ValueType::Number => RsArgsValue::I32(js_number_to_i32(type_define.coerce_to_number()?)),
     ValueType::Object => {
-      RsArgsValue::Object(type_object_to_rs_struct(&type_define.coerce_to_object()?))
+      RsArgsValue::Object(type_object_to_rs_struct(&type_define.coerce_to_object()?)?)
     }
     _ => {
       return Err(
@@ -582,7 +616,11 @@ pub unsafe fn get_js_unknown_from_pointer(
       let array_desc = get_array_desc(&obj);
       if array_desc.is_some() {
         // array
-        let (array_len, array_type) = array_desc.ok_or(FFIError::UnExpectedError)?;
+        let FFIARRARYDESC {
+          array_type,
+          array_len,
+          ..
+        } = array_desc.ok_or(FFIError::UnExpectedError)?;
         match array_type {
           RefDataType::U8Array => {
             let arr = create_array_from_pointer(*(ptr as *mut *mut c_uchar), array_len);

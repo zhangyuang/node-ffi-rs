@@ -44,7 +44,11 @@ pub unsafe fn get_js_function_call_value_from_ptr(
     RsArgsValue::Object(obj) => {
       let array_desc = get_array_desc(obj);
       if array_desc.is_some() {
-        let (array_len, array_type) = array_desc.unwrap();
+        let FFIARRARYDESC {
+          array_type,
+          array_len,
+          ..
+        } = array_desc.unwrap();
         match array_type {
           RefDataType::StringArray => {
             let arr =
@@ -119,7 +123,11 @@ pub unsafe fn get_js_function_call_value(
     RsArgsValue::Object(obj) => {
       let array_desc = get_array_desc(obj);
       if array_desc.is_some() {
-        let (array_len, array_type) = array_desc.unwrap();
+        let FFIARRARYDESC {
+          array_type,
+          array_len,
+          ..
+        } = array_desc.unwrap();
         match array_type {
           RefDataType::StringArray => {
             let arr = create_array_from_pointer(func_val_ptr as *mut *mut c_char, array_len);
