@@ -462,218 +462,37 @@ const unwrapPtr = unwrapPointer([ptr])[0]
 
 To create a c struct or get a c struct as a return type, you need to define the types of the parameters strictly in the order in which the fields of the c structure are defined.
 
-```cpp
-typedef struct Person {
-  int age;
-  double *doubleArray;
-  Person *parent;
-  double doubleProps;
-  const char *name;
-  char **stringArray;
-  int *i32Array;
-  bool boolTrue;
-  bool boolFalse;
-  int64_t longVal;
-  char byte;
-  char *byteArray;
-} Person;
-extern "C" Person *getStruct(Person *person) {
-  return person;
-}
+`ffi-rs` provide a c struct named `Person` with many types of field in [sum.cpp](https://github.com/zhangyuang/node-ffi-rs/blob/master/cpp/sum.cpp#L48)
 
-extern "C" Person *createPerson() {
-  Person *person = (Person *)malloc(sizeof(Person));
+The example call method about how to call foreign function to create `Person` struct or use `Person` struct as a return value is [here](https://github.com/zhangyuang/node-ffi-rs/blob/master/test.ts#L289)
 
-  // Allocate and initialize doubleArray
-  double initDoubleArray[] = {1.1, 2.2, 3.3};
-  person->doubleArray = (double *)malloc(sizeof(initDoubleArray));
-  memcpy(person->doubleArray, initDoubleArray, sizeof(initDoubleArray));
+#### Use array in struct
 
-  // Initialize age and doubleProps
-  person->age = 23;
-  person->doubleProps = 1.1;
-  person->byte = 'A';
+There are two types of array in c language like `int* array` and `int array[100]` yhat have some different usages.
 
-  // Allocate and initialize name
-  person->name = strdup("tom");
+The first type `int* array` is a pointer type store the first address of the array.
 
-  char *stringArray[] = {strdup("tom")};
-  person->stringArray = (char **)malloc(sizeof(stringArray));
-  memcpy(person->stringArray, stringArray, sizeof(stringArray));
+The second type `int array[100]` is a fixed length array and each element in array has continous address.
 
-  // Allocate and initialize byteArray
-  char initByteArray[] = {101, 102};
-  person->byteArray = (char *)malloc(sizeof(initByteArray));
-  memcpy(person->byteArray, initByteArray, sizeof(initByteArray));
+If you use a array as function parameter, this usually passes an array pointer regardless of which type you define.But if the array type is defined in struct, the two types of array define will cause different size and align of struct.
 
-  int initI32Array[] = {1, 2, 3, 4};
-  person->i32Array = (int *)malloc(sizeof(initI32Array));
-  memcpy(person->i32Array, initI32Array, sizeof(initI32Array));
+So, `ffi-rs` need to distinguish between the two types.
 
-  person->boolTrue = true;
-  person->boolFalse = false;
-  person->longVal = 4294967296;
-
-  // Allocate and initialize parent
-  person->parent = (Person *)malloc(sizeof(Person));
-  double parentDoubleArray[] = {1.1, 2.2, 3.3};
-  person->parent->doubleArray = (double *)malloc(sizeof(parentDoubleArray));
-  memcpy(person->parent->doubleArray, parentDoubleArray,
-         sizeof(parentDoubleArray));
-
-  person->parent->age = 43;
-  person->parent->doubleProps = 3.3;
-  person->parent->name = strdup("tom father");
-
-  char *pstringArray[] = {strdup("tom"), strdup("father")};
-  person->parent->stringArray = (char **)malloc(sizeof(pstringArray));
-
-  memcpy(person->parent->stringArray, pstringArray, sizeof(pstringArray));
-
-  int parentI32Array[] = {5, 6, 7};
-  person->parent->i32Array = (int *)malloc(sizeof(parentI32Array));
-  memcpy(person->parent->i32Array, parentI32Array, sizeof(parentI32Array));
-
-  person->parent->boolTrue = true;
-  person->parent->boolFalse = false;
-  person->parent->longVal = 5294967296;
-  person->parent->byte = 'B';
-
-  char parentByteArray[] = {103, 104};
-  person->parent->byteArray = (char *)malloc(sizeof(parentByteArray));
-  memcpy(person->parent->byteArray, parentByteArray, sizeof(parentByteArray));
-
-  return person;
-}
-```
+By default, `ffi-rs` use pointer array to calculate struct. If you confirm there should use static array, you can define it in the way
 
 ```js
-const parent = {
-  age: 43,
-  doubleArray: [1.1, 2.2, 3.3],
-  parent: {},
-  doubleProps: 3.3,
-  name: "tom father",
-  stringArray: ["tom", "father"],
-  i32Array: [5, 6, 7],
-  boolTrue: true,
-  boolFalse: false,
-  longVal: 5294967296,
-  byte: 66,
-  byteArray: Buffer.from([103, 104]),
-};
-const person = {
-  age: 23,
-  doubleArray: [1.1, 2.2, 3.3],
-  parent,
-  doubleProps: 1.1,
-  name: "tom",
-  stringArray: ["tom"],
-  i32Array: [1, 2, 3, 4],
-  boolTrue: true,
-  boolFalse: false,
-  longVal: 4294967296,
-  byte: 65,
-  byteArray: Buffer.from([101, 102]),
-};
-const parentType = {
-  age: DataType.I32,
-  doubleArray: arrayConstructor({
-    type: DataType.DoubleArray,
-    length: parent.doubleArray.length,
-  }),
-  parent: {},
-  doubleProps: DataType.Double,
-  name: DataType.String,
-  stringArray: arrayConstructor({
-    type: DataType.StringArray,
-    length: parent.stringArray.length,
-  }),
-  i32Array: arrayConstructor({
-    type: DataType.I32Array,
-    length: parent.i32Array.length,
-  }),
-  boolTrue: DataType.Boolean,
-  boolFalse: DataType.Boolean,
-  longVal: DataType.I64,
-  byte: DataType.U8,
-  byteArray: arrayConstructor({
-    type: DataType.U8Array,
-    length: parent.byteArray.length,
-  }),
-};
-const personType = {
-  age: DataType.I32,
-  doubleArray: arrayConstructor({
-    type: DataType.DoubleArray,
-    length: person.doubleArray.length,
-  }),
-  parent: parentType,
-  doubleProps: DataType.Double,
-  name: DataType.String,
-  stringArray: arrayConstructor({
-    type: DataType.StringArray,
-    length: person.stringArray.length,
-  }),
-  i32Array: arrayConstructor({
-    type: DataType.I32Array,
-    length: person.i32Array.length,
-  }),
-  boolTrue: DataType.Boolean,
-  boolFalse: DataType.Boolean,
-  longVal: DataType.I64,
-  byte: DataType.U8,
-  byteArray: arrayConstructor({
-    type: DataType.U8Array,
-    length: person.byteArray.length,
-  }),
-};
-const personObj = load({
-  library: "libsum",
-  funcName: "getStruct",
-  retType: personType,
-  paramsType: [
-    {
-      age: DataType.I32,
-      doubleArray: DataType.DoubleArray,
-      parent: {
-        parent: {},
-        age: DataType.I32,
-        doubleProps: DataType.Double,
-        name: DataType.String,
-        stringArray: DataType.StringArray,
-        doubleArray: DataType.DoubleArray,
-        i32Array: DataType.I32Array,
-        boolTrue: DataType.Boolean,
-        boolFalse: DataType.Boolean,
-        longVal: DataType.I64,
-        byte: DataType.U8,
-        byteArray: DataType.U8Array,
-      },
-      doubleProps: DataType.Double,
-      name: DataType.String,
-      stringArray: DataType.StringArray,
-      i32Array: DataType.I32Array,
-      boolTrue: DataType.Boolean,
-      boolFalse: DataType.Boolean,
-      longVal: DataType.I64,
-      byte: DataType.U8,
-      byteArray: DataType.U8Array,
-    },
-  ],
-  paramsValue: [person],
-});
-deepStrictEqual(person, personObj);
-const createdPerson = load({
-  library: "libsum",
-  funcName: "createPerson",
-  retType: personType,
-  paramsType: [],
-  paramsValue: [],
-});
+typedef struct Person {
+  //...
+  uint8_t staticBytes[16];
+  //...
+} Person;
 
-deepStrictEqual(createdPerson, person);
-
+// use arrayConstructor and set dynamicArray field to false
+staticBytes: arrayConstructor({
+  type: DataType.U8Array,
+  length: parent.staticBytes.length,
+  dynamicArray: false
+}),
 ```
 
 ## Function
