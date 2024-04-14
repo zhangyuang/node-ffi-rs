@@ -35,7 +35,7 @@ const testNumber = () => {
       funcName: "sum",
       retType: DataType.I32,
       paramsType: [DataType.I32, DataType.I32],
-      paramsValue: [a, b],
+      paramsValue: [a, b]
     }),
     a + b,
   );
