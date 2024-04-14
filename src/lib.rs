@@ -89,7 +89,7 @@ unsafe fn wrap_pointer(env: Env, params: Vec<JsExternal>) -> Result<Vec<JsExtern
 }
 
 #[napi]
-fn open(params: OpenParams) {
+fn open(params: OpenParams) -> Result<()> {
   let OpenParams { library, path } = params;
   unsafe {
     if LIBRARY_MAP.is_none() {
@@ -100,11 +100,27 @@ fn open(params: OpenParams) {
       let lib = if path == "" {
         Library::open_self().unwrap()
       } else {
-        Library::open(path).unwrap()
+        match Library::open(&path) {
+          Ok(lib) => lib,
+          Err(e) => match e {
+            dlopen::Error::OpeningLibraryError(e) => return Err(
+              FFIError::Panic(format!(
+                "Please check whether the library has the same compilation and runtime environment \n {:?}",
+                e
+              ))
+              .into(),
+            ),
+            e => return Err(
+              FFIError::Panic(e.to_string())
+              .into(),
+            )
+          },
+        }
       };
       map.insert(library, (lib, HashMap::new()));
     }
   }
+  Ok(())
 }
 
 #[napi]
