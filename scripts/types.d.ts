@@ -90,6 +90,8 @@ export interface FFIParams<T extends DataType> {
   retType: DataFieldType<T>;
   paramsType: Array<DataRecordFieldType<T>>;
   paramsValue: Array<unknown>;
+  // whether need stdout errno
+  errno?: boolean
 }
 export interface FFIParams<T extends DataType> {
   library: string;
