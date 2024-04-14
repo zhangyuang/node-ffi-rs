@@ -22,7 +22,8 @@ This module aims to provide similar functionality to the node-ffi module but wit
 - Simpler data description and API interface 💗
 - Support more different data types between `Node.js` and `c` 😊
 - Support modify data in place 🥸
-- Provide many ways to handle pointer type directly
+- Provide many ways to handle pointer type directly 🐮
+- Support output [errno](#errno) info 🤔️
 
 ## benchmark
 
@@ -75,7 +76,7 @@ Currently, ffi-rs only supports these types of parameters and return values. How
 
 ### C++ Class
 
-If you want to call C++ function, see [tutorial](#C++)
+If you want to call C++ function whose argument type is class, you can use `pointer` type, see [tutorial](#C++)
 
 ## Support Platform
 
@@ -98,7 +99,7 @@ Here is an example of how to use ffi-rs:
 
 For the following C++ code, we compile this file into a dynamic library
 
-### write C/C++ code
+### write foreign function code
 
 Note: The return value type of a function must be of type c
 
@@ -640,4 +641,22 @@ load({
   ],
   paramsValue: [classPointer],
 })
+```
+
+## errno
+
+By default, `ffi-rs` will not output [errno](https://man7.org/linux/man-pages/man3/errno.3.html) info, developers can get it by pass `errno: true` when call open method like
+
+```js
+load({
+   library: 'libnative',
+   funcName: 'setsockopt',
+   retType: DataType.I32,
+   paramsType: [DataType.I32, DataType.I32, DataType.I32, DataType.External, DataType.I32],
+   paramsValue: [socket._handle.fd, level, option, pointer[0], 4],
+   errno: true // set errno as true
+})
+
+// The above code will return a object include three fields include errnoCode, errnoMessage, and the foreign function return value
+// { errnoCode: 22, errnoMessage: 'Invalid argument (os error 22)', value: -1 }
 ```
