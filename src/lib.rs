@@ -142,6 +142,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     ret_type,
     params_type,
     params_value,
+    errno,
   } = params;
 
   let library_map = LIBRARY_MAP.as_mut().unwrap();
@@ -210,11 +211,25 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     arg_types.as_mut_ptr(),
   );
   let result = malloc(std::mem::size_of::<*mut c_void>());
+
   ffi_call(
     &mut cif,
     Some(**func),
     result,
     arg_values_c_void.as_mut_ptr(),
   );
-  get_js_unknown_from_pointer(&env, ret_type_rs, result)
+  let call_result = get_js_unknown_from_pointer(&env, ret_type_rs, result);
+  if errno.is_some() && errno.unwrap() {
+    use std::io::Error;
+    let last_error = Error::last_os_error();
+    let error_code = last_error.raw_os_error().unwrap_or(0);
+    let error_message = last_error.to_string();
+    let mut obj = env.create_object()?;
+    obj.set_named_property("errnoCode", env.create_int32(error_code)?)?;
+    obj.set_named_property("errnoMessage", env.create_string(&error_message)?)?;
+    obj.set_named_property("value", call_result?)?;
+    Ok(obj.into_unknown())
+  } else {
+    call_result
+  }
 }
