@@ -10,15 +10,26 @@ const { resolve } = require("path");
     resolve(process.cwd(), "./index.js"),
     `
     ${entryContent}
-    module.exports.arrayConstructor = (options) => ({
+    exports.arrayConstructor = (options) => ({
       dynamicArray: true,
       ...options,
       ffiTypeTag: 'array'
     })
-    module.exports.funcConstructor = (options) => (() => ({
+    exports.funcConstructor = (options) => (() => ({
       ffiTypeTag: 'function',
       ...options,
     }))
+    exports.define = (obj) => {
+      const res = {}
+      Object.entries(obj).map(([funcName, funcDesc]) => {
+        res[funcName] = (paramsValue) => load({
+          ...obj[funcName],
+          funcName,
+          paramsValue
+        })
+      })
+      return res
+    }
     `,
   );
   const typesContent = (

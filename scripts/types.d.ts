@@ -153,3 +153,18 @@ export function load<T extends DataType, IncludeErrno extends boolean | undefine
     errno?: IncludeErrno;
   },
 ): ResultWithErrno<DataTypeToType<T>, IncludeErrno>;
+
+export function define<
+  T extends DataType,
+  Obj extends Record<string, Omit<FFIParams<T>, "retType" | 'funcName' | 'paramsValue'> & {
+    retType: T;
+    errno?: IncludeErrno;
+  }>,
+  IncludeErrno extends boolean | undefined = undefined
+>(
+  obj: Obj
+): {
+    [K in keyof Obj]: (
+      p: unknown[]
+    ) => any
+  };
