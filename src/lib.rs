@@ -120,7 +120,6 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     ret_type,
     params_type,
     params_value,
-    callback,
   } = params;
 
   let lib = LIBRARY_MAP.as_mut().unwrap();
@@ -187,22 +186,14 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     arg_types.as_mut_ptr(),
   );
   let result = malloc(std::mem::size_of::<*mut c_void>());
-  if callback.is_some() {
+  if true {
     use datatype::function::get_js_function_call_value_from_ptr;
     use datatype::object_generate::rs_value_to_js_unknown;
     use napi::threadsafe_function::{
       ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode,
     };
     use napi::{Error, Ref, Task};
-    let callback_thread_safe_fn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal> =
-      callback.unwrap().create_threadsafe_function(0, |ctx| {
-        let value: Vec<RsArgsValue> = ctx.value;
-        let js_call_params: Vec<JsUnknown> = value
-          .into_iter()
-          .map(|rs_args| rs_value_to_js_unknown(&ctx.env, rs_args))
-          .collect::<Result<Vec<JsUnknown>, _>>()?;
-        Ok(js_call_params)
-      })?;
+
     struct CountBufferLength {
       data: Ref<RsArgsValue>,
     }
