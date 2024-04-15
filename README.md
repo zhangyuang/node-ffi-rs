@@ -165,7 +165,7 @@ equal(r, a + b)
 // release library memory when you're not using it.
 close('libsum')
 
-// use define function to define a function signafuture
+// use define function to define a function signature
 
 const res = define({
   sum: {
