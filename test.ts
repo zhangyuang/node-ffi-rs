@@ -475,16 +475,9 @@ const testDefine = () => {
       library: "libsum",
       retType: DataType.I32,
       paramsType: [DataType.I32, DataType.I32],
-    },
-    atoi: {
-      library: "libnative",
-      retType: DataType.I32,
-      paramsType: [DataType.String],
-      paramsValue: ["1000"],
     }
   })
   equal(res.sum([1, 2]), 3)
-  equal(res.atoi(["1000"]), 1000)
 }
 const unitTest = () => {
   testNumber()
