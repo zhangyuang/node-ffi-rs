@@ -140,9 +140,11 @@ Then you can use `ffi-rs` to invoke the dynamic library file that contains funct
 
 ### Initialization
 
+Suggested develop with typescript to get type hints
+
 ```js
 const { equal } = require('assert')
-const { load, DataType, open, close, arrayConstructor } = require('ffi-rs')
+const { load, DataType, open, close, arrayConstructor, define } = require('ffi-rs')
 const a = 1
 const b = 100
 const dynamicLib = platform === 'win32' ? './sum.dll' : "./libsum.so"
@@ -163,6 +165,23 @@ equal(r, a + b)
 // release library memory when you're not using it.
 close('libsum')
 
+// use define function to define a function signafuture
+
+const res = define({
+  sum: {
+    library: "libsum",
+    retType: DataType.I32,
+    paramsType: [DataType.I32, DataType.I32],
+  },
+  atoi: {
+    library: "libnative",
+    retType: DataType.I32,
+    paramsType: [DataType.String],
+    paramsValue: ["1000"],
+  }
+})
+equal(res.sum([1, 2]), 3)
+equal(res.atoi(["1000"]), 1000)
 ```
 
 ### Load Main Program handle

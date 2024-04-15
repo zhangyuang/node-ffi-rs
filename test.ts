@@ -8,7 +8,8 @@ import {
   funcConstructor,
   createPointer,
   restorePointer,
-  unwrapPointer
+  unwrapPointer,
+  define
 } from "./index";
 
 const platform = process.platform;
@@ -25,6 +26,7 @@ open({
   library: "libnative",
   path: "",
 });
+
 
 const testNumber = () => {
   const a = 1;
@@ -467,6 +469,23 @@ const testMainProgram = () => {
     );
   }
 }
+const testDefine = () => {
+  const res = define({
+    sum: {
+      library: "libsum",
+      retType: DataType.I32,
+      paramsType: [DataType.I32, DataType.I32],
+    },
+    atoi: {
+      library: "libnative",
+      retType: DataType.I32,
+      paramsType: [DataType.String],
+      paramsValue: ["1000"],
+    }
+  })
+  equal(res.sum([1, 2]), 3)
+  equal(res.atoi(["1000"]), 1000)
+}
 const unitTest = () => {
   testNumber()
   logGreen('test number succeed')
@@ -488,6 +507,8 @@ const unitTest = () => {
   logGreen('test main program succeed')
   testFunction()
   logGreen('test function succeed')
+  testDefine()
+  logGreen('test define succeed')
 };
 
 unitTest();
