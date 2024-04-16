@@ -15,10 +15,10 @@ const { resolve } = require("path");
       ...options,
       ffiTypeTag: 'array'
     })
-    exports.funcConstructor = (options) => (() => ({
+    exports.funcConstructor = (options) => ({
       ffiTypeTag: 'function',
       ...options,
-    }))
+    })
     exports.define = (obj) => {
       const res = {}
       Object.entries(obj).map(([funcName, funcDesc]) => {

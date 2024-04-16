@@ -1,4 +1,3 @@
-/* eslint-disable */
 export const enum DataType {
   String = 0,
   I32 = 1,
@@ -43,83 +42,43 @@ type DataTypeToType<T extends DataType> = T extends DataType.String
   ? undefined
   : never;
 
-type DataFieldTypeToType<T extends DataFieldType<DataType>> = T extends DataType
-  ? DataTypeToType<T>
-  : T extends ArrayConstructorOptions<infer U>
-  ? DataTypeToType<U>
-  : never;
 
-export type ArrayConstructorOptions<T extends DataType> = {
-  type: T;
+export type ArrayConstructorOptions = {
+  type: DataType;
   length: number;
   ffiTypeTag?: string;
   dynamicArray?: boolean
 };
 
-export type FuncConstructorOptions<T extends DataType> = {
-  paramsType: Array<DataRecordFieldType<T>>;
-  retType: DataFieldType<T>;
+export type FuncConstructorOptions = {
+  paramsType: Array<FieldType>;
+  retType: FieldType;
 };
 
-export function arrayConstructor<T extends DataType>(
-  options: ArrayConstructorOptions<T>,
-): ArrayConstructorOptions<T>;
+export function arrayConstructor<T extends ArrayConstructorOptions>(
+  options: T,
+): T;
 
-export function funcConstructor<T extends DataType>(
-  options: FuncConstructorOptions<T>,
-): Func;
+export function funcConstructor<T extends FuncConstructorOptions>(
+  options: T,
+): T;
 
-
-type Func = <T extends DataType>() => FuncConstructorOptions<T>;
-
-export type DataFieldType<T extends DataType> =
-  | DataType
-  | Record<string, DataType>
-  | ArrayConstructorOptions<T>
-  | Func
-  | {};
-
-export type DataRecordFieldType<T extends DataType> =
-  | Record<string, DataFieldType<T>>
-  | DataFieldType<T>
-  | {};
-
-export interface FFIParams<T extends DataType> {
-  library: string;
-  funcName: string;
-  retType: DataFieldType<T>;
-  paramsType: Array<DataRecordFieldType<T>>;
-  paramsValue: Array<unknown>;
-  // whether need stdout errno
-  errno?: boolean
-}
-export interface FFIParams<T extends DataType> {
-  library: string;
-  funcName: string;
-  retType: DataFieldType<T>;
-  paramsType: Array<DataRecordFieldType<T>>;
-  paramsValue: Array<unknown>;
-}
 export interface OpenParams {
   library: string;
   path: string;
 }
 export function open(params: OpenParams): void;
 export function close(library: string): void;
-export function load<T extends DataType>(
-  params: Omit<FFIParams<T>, "retType"> & {
-    retType: ArrayConstructorOptions<T>;
-  },
-): DataTypeToType<T>;
 
-export function createPointer<T extends DataType>(params: {
-  paramsType: Array<DataRecordFieldType<T>>;
+
+export function createPointer(params: {
+  paramsType: Array<FieldType>;
   paramsValue: Array<unknown>;
 }): unknown[]
 
 
 export function restorePointer<T extends DataType>(params: {
-  retType: Array<DataRecordFieldType<T>>;
+  retType: Array<FieldType>;
   paramsValue: Array<unknown>;
 }): Array<DataTypeToType<T>>
 
@@ -129,42 +88,44 @@ type ResultWithErrno<T, IncludeErrno extends boolean | undefined> = IncludeErrno
   ? { value: T; errnoCode: number; errnoMessage: string }
   : T;
 
-export function load<
-  T extends DataType,
-  U extends Record<string, DataFieldType<T>>,
-  IncludeErrno extends boolean | undefined = undefined,
->(
-  params: Omit<FFIParams<T>, "retType"> & {
-    retType?: U;
-    errno?: IncludeErrno;
-  },
-): { [K in keyof U]: ResultWithErrno<DataFieldTypeToType<U[K]>, IncludeErrno> };
 
-export function load<T extends DataType, IncludeErrno extends boolean | undefined = undefined>(
-  params: Omit<FFIParams<T>, "retType"> & {
-    retType: T;
-    errno?: IncludeErrno;
-  },
-): ResultWithErrno<DataTypeToType<T>, IncludeErrno>;
+export type FieldType =
+  | DataType
+  | ArrayConstructorOptions
+  | FuncConstructorOptions
+  | RecordFieldType
 
-export function load<T extends DataType, IncludeErrno extends boolean | undefined = undefined>(
-  params: Omit<FFIParams<T>, "retType"> & {
-    retType: ArrayConstructorOptions<T>;
-    errno?: IncludeErrno;
-  },
-): ResultWithErrno<DataTypeToType<T>, IncludeErrno>;
+interface RecordFieldType extends Record<string, FieldType> { }
 
-export function define<
-  T extends DataType,
-  Obj extends Record<string, Omit<FFIParams<T>, "retType" | 'funcName' | 'paramsValue'> & {
-    retType: T;
-    errno?: IncludeErrno;
-  }>,
-  IncludeErrno extends boolean | undefined = undefined
->(
-  obj: Obj
-): {
-    [K in keyof Obj]: (
-      p: unknown[]
-    ) => any
-  };
+type FieldTypeToType<T extends FieldType> = T extends DataType
+  ? DataTypeToType<T>
+  : T extends ArrayConstructorOptions
+  ? DataTypeToType<T['type']>
+  : T extends RecordFieldType
+  ? { [K in keyof T]: FieldTypeToType<T[K]> }
+  : never;
+
+
+export type FFIParams<T extends FieldType, U extends boolean | undefined> = {
+  library: string;
+  funcName: string;
+  retType: T;
+  paramsType: Array<FieldType>;
+  paramsValue: Array<unknown>;
+  // whether need output errno
+  errno?: U
+}
+export function load<T extends FieldType, U extends boolean | undefined>(
+  params: FFIParams<T, U>,
+): ResultWithErrno<FieldTypeToType<T>, U>
+
+type FuncObj<
+  T extends FieldType,
+  U extends boolean | undefined
+> = Record<string, Omit<FFIParams<T, U>, 'paramsValue' | 'funcName'>>
+
+type DefineFunc<T extends FuncObj<any, any>> = {
+  [K in keyof T]: (...paramsValue: Array<unknown>) => ResultWithErrno<FieldTypeToType<T[K]['retType']>, T[K]['errno']>;
+};
+
+export function define<T extends FuncObj<FieldType, boolean | undefined>>(funcs: T): DefineFunc<T>
