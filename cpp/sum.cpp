@@ -53,6 +53,7 @@ typedef struct Person {
   const char *name;
   char **stringArray;
   int *i32Array;
+  uint8_t staticBytes[16];
   bool boolTrue;
   bool boolFalse;
   int64_t longVal;
@@ -74,6 +75,10 @@ extern "C" Person *createPerson() {
   person->age = 23;
   person->doubleProps = 1.1;
   person->byte = 'A';
+  uint8_t bytes[16];
+  memset(bytes, 99, sizeof(bytes));
+
+  memcpy(person->staticBytes, bytes, sizeof(bytes));
 
   // Allocate and initialize name
   person->name = strdup("tom");
@@ -105,6 +110,9 @@ extern "C" Person *createPerson() {
   person->parent->age = 43;
   person->parent->doubleProps = 3.3;
   person->parent->name = strdup("tom father");
+  uint8_t pbytes[16];
+  memset(pbytes, 88, sizeof(bytes));
+  memcpy(person->parent->staticBytes, pbytes, sizeof(pbytes));
 
   char *pstringArray[] = {strdup("tom"), strdup("father")};
   person->parent->stringArray = (char **)malloc(sizeof(pstringArray));

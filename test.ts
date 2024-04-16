@@ -8,7 +8,8 @@ import {
   funcConstructor,
   createPointer,
   restorePointer,
-  unwrapPointer
+  unwrapPointer,
+  define
 } from "./index";
 
 const platform = process.platform;
@@ -26,6 +27,7 @@ open({
   path: "",
 });
 
+
 const testNumber = () => {
   const a = 1;
   const b = 100;
@@ -35,7 +37,7 @@ const testNumber = () => {
       funcName: "sum",
       retType: DataType.I32,
       paramsType: [DataType.I32, DataType.I32],
-      paramsValue: [a, b],
+      paramsValue: [a, b]
     }),
     a + b,
   );
@@ -202,6 +204,7 @@ const parent = {
   name: "tom father",
   stringArray: ["tom", "father"],
   i32Array: [5, 6, 7],
+  staticBytes: Buffer.from(new Array(16).fill(88)),
   boolTrue: true,
   boolFalse: false,
   longVal: 5294967296,
@@ -216,6 +219,7 @@ const person = {
   name: "tom",
   stringArray: ["tom"],
   i32Array: [1, 2, 3, 4],
+  staticBytes: Buffer.from(new Array(16).fill(99)),
   boolTrue: true,
   boolFalse: false,
   longVal: 4294967296,
@@ -238,6 +242,11 @@ const parentType = {
   i32Array: arrayConstructor({
     type: DataType.I32Array,
     length: parent.i32Array.length,
+  }),
+  staticBytes: arrayConstructor({
+    type: DataType.U8Array,
+    length: parent.staticBytes.length,
+    dynamicArray: false
   }),
   boolTrue: DataType.Boolean,
   boolFalse: DataType.Boolean,
@@ -265,6 +274,11 @@ const personType = {
     type: DataType.I32Array,
     length: person.i32Array.length,
   }),
+  staticBytes: arrayConstructor({
+    type: DataType.U8Array,
+    length: person.staticBytes.length,
+    dynamicArray: false
+  }),
   boolTrue: DataType.Boolean,
   boolFalse: DataType.Boolean,
   longVal: DataType.I64,
@@ -286,9 +300,14 @@ const testObject = () => {
       stringArray: DataType.StringArray,
       doubleArray: DataType.DoubleArray,
       i32Array: DataType.I32Array,
+      staticBytes: arrayConstructor({
+        type: DataType.U8Array,
+        length: parent.staticBytes.length,
+        dynamicArray: false
+      }),
       boolTrue: DataType.Boolean,
       boolFalse: DataType.Boolean,
-      longVal: DataType.I64,
+      longVal: DataType.U64,
       byte: DataType.U8,
       byteArray: DataType.U8Array,
     },
@@ -296,12 +315,26 @@ const testObject = () => {
     name: DataType.String,
     stringArray: DataType.StringArray,
     i32Array: DataType.I32Array,
+    staticBytes: arrayConstructor({
+      type: DataType.U8Array,
+      length: person.staticBytes.length,
+      dynamicArray: false
+    }),
     boolTrue: DataType.Boolean,
     boolFalse: DataType.Boolean,
-    longVal: DataType.I64,
+    longVal: DataType.U64,
     byte: DataType.U8,
     byteArray: DataType.U8Array,
   }
+  const createdPerson = load({
+    library: "libsum",
+    funcName: "createPerson",
+    retType: personType,
+    paramsType: [],
+    paramsValue: [],
+  });
+  deepStrictEqual(createdPerson, person);
+  logGreen('test createdPerson succeed')
   const personObj = load({
     library: "libsum",
     funcName: "getStruct",
@@ -337,14 +370,7 @@ const testObject = () => {
     retType: [personType]
   })
   deepStrictEqual(person, restorePersonObjByPointer[0])
-  const createdPerson = load({
-    library: "libsum",
-    funcName: "createPerson",
-    retType: personType,
-    paramsType: [],
-    paramsValue: [],
-  });
-  deepStrictEqual(createdPerson, person);
+
 }
 
 const testAsyncCall = () => {
@@ -460,6 +486,16 @@ const testMainProgram = () => {
     );
   }
 }
+const testDefine = () => {
+  const res = define({
+    sum: {
+      library: "libsum",
+      retType: DataType.I32,
+      paramsType: [DataType.I32, DataType.I32],
+    }
+  })
+  equal(res.sum([1, 2]), 3)
+}
 const unitTest = () => {
   testNumber()
   logGreen('test number succeed')
@@ -484,6 +520,8 @@ const unitTest = () => {
   testAsyncCall()
   logGreen('test async call succeed')
 
+  testDefine()
+  logGreen('test define succeed')
 };
 
 unitTest();

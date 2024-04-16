@@ -53,6 +53,7 @@ export type ArrayConstructorOptions<T extends DataType> = {
   type: T;
   length: number;
   ffiTypeTag?: string;
+  dynamicArray?: boolean
 };
 
 export type FuncConstructorOptions<T extends DataType> = {
@@ -89,6 +90,8 @@ export interface FFIParams<T extends DataType> {
   retType: DataFieldType<T>;
   paramsType: Array<DataRecordFieldType<T>>;
   paramsValue: Array<unknown>;
+  // whether need stdout errno
+  errno?: boolean
 }
 export interface FFIParams<T extends DataType> {
   library: string;
@@ -122,23 +125,46 @@ export function restorePointer<T extends DataType>(params: {
 
 export function unwrapPointer(params: Array<unknown>): Array<unknown>
 
+type ResultWithErrno<T, IncludeErrno extends boolean | undefined> = IncludeErrno extends true
+  ? { value: T; errnoCode: number; errnoMessage: string }
+  : T;
+
 export function load<
   T extends DataType,
   U extends Record<string, DataFieldType<T>>,
+  IncludeErrno extends boolean | undefined = undefined,
 >(
   params: Omit<FFIParams<T>, "retType"> & {
     retType?: U;
+    errno?: IncludeErrno;
   },
-): { [K in keyof U]: DataFieldTypeToType<U[K]> };
+): { [K in keyof U]: ResultWithErrno<DataFieldTypeToType<U[K]>, IncludeErrno> };
 
-export function load<T extends DataType>(
+export function load<T extends DataType, IncludeErrno extends boolean | undefined = undefined>(
   params: Omit<FFIParams<T>, "retType"> & {
     retType: T;
+    errno?: IncludeErrno;
   },
-): DataTypeToType<T>;
+): ResultWithErrno<DataTypeToType<T>, IncludeErrno>;
 
-export function load<T extends DataType>(
+export function load<T extends DataType, IncludeErrno extends boolean | undefined = undefined>(
   params: Omit<FFIParams<T>, "retType"> & {
     retType: ArrayConstructorOptions<T>;
+    errno?: IncludeErrno;
   },
-): DataTypeToType<T>;
+): ResultWithErrno<DataTypeToType<T>, IncludeErrno>;
+
+export function define<
+  T extends DataType,
+  Obj extends Record<string, Omit<FFIParams<T>, "retType" | 'funcName' | 'paramsValue'> & {
+    retType: T;
+    errno?: IncludeErrno;
+  }>,
+  IncludeErrno extends boolean | undefined = undefined
+>(
+  obj: Obj
+): {
+    [K in keyof Obj]: (
+      p: unknown[]
+    ) => any
+  };

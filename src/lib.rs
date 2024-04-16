@@ -13,7 +13,7 @@ use libffi_sys::{
   ffi_type_pointer, ffi_type_sint32, ffi_type_sint64, ffi_type_uint64, ffi_type_uint8,
   ffi_type_void,
 };
-use napi::{Env, JsExternal, JsUnknown, Result};
+use napi::{Env, Error, JsExternal, JsUnknown, Result};
 
 use std::collections::HashMap;
 use std::ffi::c_void;
@@ -23,7 +23,13 @@ use utils::dataprocess::{
 };
 
 static mut LIBRARY_MAP: Option<
-  HashMap<String, (Library, HashMap<String, Symbol<unsafe extern "C" fn()>>)>,
+  HashMap<
+    String,
+    (
+      Library,
+      HashMap<String, Result<Symbol<unsafe extern "C" fn()>>>,
+    ),
+  >,
 > = None;
 
 #[napi]
@@ -83,7 +89,7 @@ unsafe fn wrap_pointer(env: Env, params: Vec<JsExternal>) -> Result<Vec<JsExtern
 }
 
 #[napi]
-fn open(params: OpenParams) {
+fn open(params: OpenParams) -> Result<()> {
   let OpenParams { library, path } = params;
   unsafe {
     if LIBRARY_MAP.is_none() {
@@ -94,11 +100,27 @@ fn open(params: OpenParams) {
       let lib = if path == "" {
         Library::open_self().unwrap()
       } else {
-        Library::open(path).unwrap()
+        match Library::open(&path) {
+          Ok(lib) => lib,
+          Err(e) => match e {
+            dlopen::Error::OpeningLibraryError(e) => return Err(
+              FFIError::Panic(format!(
+                "Please check whether the library has the same compilation and runtime environment \n {:?}",
+                e
+              ))
+              .into(),
+            ),
+            e => return Err(
+              FFIError::Panic(e.to_string())
+              .into(),
+            )
+          },
+        }
       };
       map.insert(library, (lib, HashMap::new()));
     }
   }
+  Ok(())
 }
 
 #[napi]
@@ -120,33 +142,36 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     ret_type,
     params_type,
     params_value,
+    errno,
   } = params;
 
-  let lib = LIBRARY_MAP.as_mut().unwrap();
-  let (lib, func_map) = lib
+  let library_map = LIBRARY_MAP.as_mut().unwrap();
+  let (lib, func_map) = library_map
     .get_mut(&library)
     .ok_or(FFIError::LibraryNotFound(format!(
       "Before calling load, you need to open the file {:?} with the open method",
       library
     )))?;
-  let func_name_str = func_name.as_str();
-  let func = if func_map.get(func_name_str).is_some() {
-    *(func_map.get(func_name_str).unwrap())
-  } else {
-    let func = lib.symbol(func_name_str).map_err(|_| {
-      FFIError::FunctionNotFound(format!(
-        "Cannot find {:?} function in share library",
-        func_name_str
-      ))
-    })?;
-    func_map.insert(func_name, func);
-    func
-  };
-  let params_type_len = params_type.len();
 
+  let func = func_map
+    .entry(func_name.clone())
+    .or_insert_with(|| {
+      lib
+        .symbol::<unsafe extern "C" fn()>(&func_name)
+        .map_err(|_| {
+          FFIError::FunctionNotFound(format!(
+            "Cannot find {:?} function in shared library",
+            &func_name
+          ))
+          .into()
+        })
+    })
+    .as_ref()
+    .unwrap();
+
+  let params_type_len = params_type.len();
   let (mut arg_types, arg_values) = get_arg_types_values(&env, params_type, params_value)?;
   let mut arg_values_c_void = get_value_pointer(&env, arg_values)?;
-
   let ret_type_rs = type_define_to_rs_args(ret_type)?;
   let r_type: *mut ffi_type = match ret_type_rs {
     RsArgsValue::I32(number) => {
@@ -186,6 +211,12 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     arg_types.as_mut_ptr(),
   );
   let result = malloc(std::mem::size_of::<*mut c_void>());
+  // ffi_call(
+  //   &mut cif,
+  //   Some(**func),
+  //   result,
+  //   arg_values_c_void.as_mut_ptr(),
+  // );
   if true {
     use datatype::function::get_js_function_call_value_from_ptr;
     use datatype::object_generate::rs_value_to_js_unknown;
@@ -194,27 +225,33 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     };
     use napi::{Error, Ref, Task};
 
+    struct FFICALL {
+      cif: ffi_cif,
+      func: unsafe extern "C" fn(),
+      result: *mut c_void,
+      arg_values_c_void: Vec<*mut c_void>,
+    }
     struct CountBufferLength {
-      data: Ref<RsArgsValue>,
+      data: Ref<FFICALL>,
     }
 
     impl CountBufferLength {
-      pub fn new(data: Ref<RsArgsValue>) -> Self {
+      pub fn new(data: Ref<FFICALL>) -> Self {
         Self { data }
       }
     }
 
     impl Task for CountBufferLength {
-      type Output = RsArgsValue;
+      type Output = FFICALL;
       type JsValue = JsUnknown;
 
-      unsafe fn compute(&mut self) -> Result<Self::Output> {
-        ffi_call(
-          &mut cif,
-          Some(*func),
-          result,
-          arg_values_c_void.as_mut_ptr(),
-        );
+      unsafe fn compute(&mut self) -> Result<*mut c_void> {
+        // ffi_call(
+        //   &mut cif,
+        //   Some(*func),
+        //   result,
+        //   arg_values_c_void.as_mut_ptr(),
+        // );
       }
 
       fn resolve(&mut self, env: Env, output: Self::Output) -> Result<Self::JsValue> {
@@ -230,14 +267,26 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
         Ok(())
       }
     }
-    Ok(env.create_int32(0).unwrap().into_unknown())
   } else {
     ffi_call(
       &mut cif,
-      Some(*func),
+      Some(**func),
       result,
       arg_values_c_void.as_mut_ptr(),
     );
-    get_js_unknown_from_pointer(&env, ret_type_rs, result)
+  }
+  let call_result = get_js_unknown_from_pointer(&env, ret_type_rs, result);
+  if errno.is_some() && errno.unwrap() {
+    use std::io::Error;
+    let last_error = Error::last_os_error();
+    let error_code = last_error.raw_os_error().unwrap_or(0);
+    let error_message = last_error.to_string();
+    let mut obj = env.create_object()?;
+    obj.set_named_property("errnoCode", env.create_int32(error_code)?)?;
+    obj.set_named_property("errnoMessage", env.create_string(&error_message)?)?;
+    obj.set_named_property("value", call_result?)?;
+    Ok(obj.into_unknown())
+  } else {
+    call_result
   }
 }
