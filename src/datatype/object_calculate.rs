@@ -1,7 +1,7 @@
-use crate::define::{RsArgsValue, FFIARRARYDESC};
-use crate::utils::dataprocess::{get_array_desc, get_js_external_wrap_data};
+use crate::define::*;
+use crate::utils::dataprocess::{get_array_desc, get_ffi_tag, get_js_external_wrap_data};
 use crate::utils::object_utils::get_size_align;
-use crate::{FFIError, RefDataType};
+use crate::RefDataType;
 use indexmap::IndexMap;
 use libc::{c_ulonglong, c_void};
 use napi::{Env, Result};
@@ -43,13 +43,13 @@ pub fn calculate_struct_size(map: &IndexMap<String, RsArgsValue>) -> (usize, usi
         RsArgsValue::Boolean(_) => calculate_boolean(size, align, offset),
         RsArgsValue::Void(_) => calculate_void(size, align, offset),
         RsArgsValue::Object(obj) => {
-          let array_desc = get_array_desc(obj);
-          if array_desc.is_some() {
+          if let FFITag::Array = get_ffi_tag(obj) {
+            let array_desc = get_array_desc(obj);
             let FFIARRARYDESC {
               array_type,
               array_len,
               ..
-            } = array_desc.unwrap();
+            } = array_desc;
             let (mut type_size, type_align) = match array_type {
               RefDataType::U8Array => get_size_align::<u8>(),
               RefDataType::I32Array => get_size_align::<i32>(),
@@ -208,8 +208,8 @@ pub unsafe fn generate_c_struct(
         size
       }
       RsArgsValue::Object(val) => {
-        let array_desc = get_array_desc(&val);
-        if array_desc.is_some() {
+        if let FFITag::Array = get_ffi_tag(&val) {
+          let array_desc = get_array_desc(&val);
           // write static array data to struct
           let FFIARRARYDESC {
             array_type,
@@ -217,7 +217,7 @@ pub unsafe fn generate_c_struct(
             array_value,
             dynamic_array,
             ..
-          } = array_desc.unwrap();
+          } = array_desc;
           if dynamic_array {
             panic!("generate struct field unsupport use object describe array")
           }

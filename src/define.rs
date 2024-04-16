@@ -193,7 +193,7 @@ pub enum RsArgsValue {
   Object(IndexMap<String, RsArgsValue>),
   Boolean(bool),
   Void(()),
-  Function(JsFunction, JsFunction),
+  Function(JsObject, JsFunction),
   External(JsExternal),
 }
 
@@ -256,3 +256,13 @@ pub const ARRAY_LENGTH_TAG: &str = "length";
 pub const ARRAY_TYPE_TAG: &str = "type";
 pub const ARRAY_DYNAMIC_TAG: &str = "dynamicArray";
 pub const ARRAY_VALUE_TAG: &str = "value";
+
+pub const FFI_TAG_FIELD: &str = "ffiTypeTag";
+pub const ARRAY_FFI_TAG: &str = "array";
+pub const FUNCTION_FFI_TAG: &str = "function";
+#[derive(Debug)]
+pub enum FFITag {
+  Array,
+  Function,
+  Unknown,
+}

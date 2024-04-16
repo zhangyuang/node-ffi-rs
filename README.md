@@ -403,11 +403,11 @@ deepStrictEqual(
 For the code above, we can use `createPointer` function to wrap a pointer data and send it as paramsValue
 
 ```js
-const funcExternal: unknown[] = createPointer({
+const ptrArr: unknown[] = createPointer({
   paramsType: [DataType.DoubleArray],
   paramsValue: [[1.1,2.2]]
 })
-const ptr = funcExternal[0]
+
 load({
   library: "libsum",
   funcName: "createArrayDouble",
@@ -416,7 +416,7 @@ load({
     length: bigDoubleArr.length,
   }),
   paramsType: [DataType.External, DataType.I32],
-  paramsValue: [ptr, bigDoubleArr.length],
+  paramsValue: [unwrapPointer(ptrArr)[0], bigDoubleArr.length],
 })
 ```
 

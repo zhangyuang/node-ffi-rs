@@ -23,10 +23,23 @@ pub unsafe fn get_js_external_wrap_data(env: &Env, js_external: JsExternal) -> R
   Ok(*external)
 }
 
-pub fn get_array_desc(obj: &IndexMap<String, RsArgsValue>) -> Option<FFIARRARYDESC> {
-  if obj.get(ARRAY_LENGTH_TAG).is_none() {
-    return None;
+pub fn get_ffi_tag(obj: &IndexMap<String, RsArgsValue>) -> FFITag {
+  if obj.get(FFI_TAG_FIELD).is_none() {
+    return FFITag::Unknown;
   }
+  if let RsArgsValue::String(ffitypetag) = obj.get(FFI_TAG_FIELD).unwrap() {
+    if ffitypetag == &ARRAY_FFI_TAG {
+      return FFITag::Array;
+    }
+    if ffitypetag == &FUNCTION_FFI_TAG {
+      return FFITag::Function;
+    }
+    FFITag::Unknown
+  } else {
+    FFITag::Unknown
+  }
+}
+pub fn get_array_desc(obj: &IndexMap<String, RsArgsValue>) -> FFIARRARYDESC {
   let (mut array_len, mut array_type, mut array_dynamic) = (0, 0, true);
   if let RsArgsValue::I32(number) = obj.get(ARRAY_LENGTH_TAG).unwrap() {
     array_len = *number as usize
@@ -39,12 +52,12 @@ pub fn get_array_desc(obj: &IndexMap<String, RsArgsValue>) -> Option<FFIARRARYDE
   }
   let array_type = number_to_ref_data_type(array_type);
 
-  Some(FFIARRARYDESC {
+  FFIARRARYDESC {
     array_len,
     dynamic_array: array_dynamic,
     array_type,
     array_value: obj.get(ARRAY_VALUE_TAG),
-  })
+  }
 }
 
 pub fn js_string_to_string(js_string: JsString) -> String {
@@ -159,20 +172,21 @@ pub unsafe fn get_arg_types_values(
         }
         ValueType::Object => {
           let params_type_object: JsObject = param.coerce_to_object()?;
+          let params_type_object_rs = type_object_to_rs_struct(&params_type_object)?;
           let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-          let params_value_object = value.coerce_to_object()?;
-          let index_map =
-            get_params_value_rs_struct(&env, &params_type_object, &params_value_object);
-          (arg_type, RsArgsValue::Object(index_map.unwrap()))
-        }
-        ValueType::Function => {
-          let params_type_function: JsFunction = param.try_into()?;
-          let params_val_function: JsFunction = value.try_into()?;
-          let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-          (
-            arg_type,
-            RsArgsValue::Function(params_type_function, params_val_function),
-          )
+          if let FFITag::Function = get_ffi_tag(&params_type_object_rs) {
+            let params_val_function: JsFunction = value.try_into()?;
+            let arg_type = &mut ffi_type_pointer as *mut ffi_type;
+            (
+              arg_type,
+              RsArgsValue::Function(params_type_object, params_val_function),
+            )
+          } else {
+            let params_value_object = value.coerce_to_object()?;
+            let index_map =
+              get_params_value_rs_struct(&env, &params_type_object, &params_value_object);
+            (arg_type, RsArgsValue::Object(index_map.unwrap()))
+          }
         }
         _ => panic!("unsupported params type {:?}", value_type),
       };
@@ -280,12 +294,7 @@ pub unsafe fn get_value_pointer(
       RsArgsValue::Function(func_desc, js_function) => {
         use libffi::low;
         use libffi::middle::*;
-        let func_desc_obj = func_desc
-          .call_without_args(None)
-          .unwrap()
-          .coerce_to_object()
-          .unwrap();
-        let func_args_type: JsObject = func_desc_obj
+        let func_args_type: JsObject = func_desc
           .get_property(env.create_string("paramsType").unwrap())
           .unwrap();
         let func_args_type_rs = type_object_to_rs_vector(&func_args_type)?;
@@ -439,9 +448,9 @@ pub fn get_params_value_rs_struct(
           let params_type = field_type.coerce_to_object()?;
           let params_value: JsObject = params_value_object.get_named_property(&field)?;
           let mut params_type_rs_value = type_object_to_rs_struct(&params_type)?;
-          let array_desc = get_array_desc(&params_type_rs_value);
-          if array_desc.is_some() {
-            let FFIARRARYDESC { array_type, .. } = array_desc.unwrap();
+          if let FFITag::Array = get_ffi_tag(&params_type_rs_value) {
+            let array_desc = get_array_desc(&params_type_rs_value);
+            let FFIARRARYDESC { array_type, .. } = array_desc;
             let array_value = match array_type {
               RefDataType::U8Array => {
                 let js_buffer: JsBuffer = params_value_object.get_named_property(&field)?;
@@ -613,14 +622,14 @@ pub unsafe fn get_js_unknown_from_pointer(
       }
     }
     RsArgsValue::Object(obj) => {
-      let array_desc = get_array_desc(&obj);
-      if array_desc.is_some() {
+      if let FFITag::Array = get_ffi_tag(&obj) {
+        let array_desc = get_array_desc(&obj);
         // array
         let FFIARRARYDESC {
           array_type,
           array_len,
           ..
-        } = array_desc.ok_or(FFIError::UnExpectedError)?;
+        } = array_desc;
         match array_type {
           RefDataType::U8Array => {
             let arr = create_array_from_pointer(*(ptr as *mut *mut c_uchar), array_len);

@@ -2,7 +2,7 @@ use super::buffer::*;
 use super::object_generate::create_rs_struct_from_pointer;
 use super::pointer::*;
 use crate::define::*;
-use crate::utils::dataprocess::get_array_desc;
+use crate::utils::dataprocess::{get_array_desc, get_ffi_tag};
 use napi::Env;
 use std::ffi::c_void;
 use std::ffi::{c_char, c_double, c_int, c_uchar, CStr};
@@ -42,13 +42,13 @@ pub unsafe fn get_js_function_call_value_from_ptr(
       data
     }
     RsArgsValue::Object(obj) => {
-      let array_desc = get_array_desc(obj);
-      if array_desc.is_some() {
+      if let FFITag::Array = get_ffi_tag(obj) {
+        let array_desc = get_array_desc(obj);
         let FFIARRARYDESC {
           array_type,
           array_len,
           ..
-        } = array_desc.unwrap();
+        } = array_desc;
         match array_type {
           RefDataType::StringArray => {
             let arr =
@@ -121,13 +121,13 @@ pub unsafe fn get_js_function_call_value(
       data
     }
     RsArgsValue::Object(obj) => {
-      let array_desc = get_array_desc(obj);
-      if array_desc.is_some() {
+      if let FFITag::Array = get_ffi_tag(obj) {
+        let array_desc = get_array_desc(obj);
         let FFIARRARYDESC {
           array_type,
           array_len,
           ..
-        } = array_desc.unwrap();
+        } = array_desc;
         match array_type {
           RefDataType::StringArray => {
             let arr = create_array_from_pointer(func_val_ptr as *mut *mut c_char, array_len);

@@ -2,6 +2,7 @@ use super::array::*;
 use super::buffer::*;
 use super::pointer::*;
 use crate::utils::dataprocess::get_array_desc;
+use crate::utils::dataprocess::get_ffi_tag;
 use crate::utils::object_utils::{create_static_array_from_pointer, get_size_align};
 
 use crate::define::*;
@@ -115,10 +116,9 @@ pub unsafe fn create_rs_struct_from_pointer(
     }
     if let RsArgsValue::Object(obj) = val {
       let field = field.clone();
-      let array_desc = get_array_desc(obj);
-      if array_desc.is_some() {
+      if let FFITag::Array = get_ffi_tag(obj) {
+        let array_desc = get_array_desc(obj);
         // array
-        let array_desc = array_desc.unwrap();
         let FFIARRARYDESC {
           array_type,
           array_len,
