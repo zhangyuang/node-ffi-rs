@@ -71,6 +71,7 @@ Currently, ffi-rs only supports these types of parameters and return values. How
 - [i32Array](#array)
 - [stringArray](#array)
 - [doubleArray](#array)
+- [floatArray](#array)
 - [object](#struct)(Nested object is also supported at the latest version)
 - [function](#function)
 
