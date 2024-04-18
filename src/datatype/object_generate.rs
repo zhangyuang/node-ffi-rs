@@ -7,6 +7,7 @@ use crate::utils::object_utils::{create_static_array_from_pointer, get_size_alig
 
 use crate::define::*;
 use indexmap::IndexMap;
+use libc::c_float;
 use napi::{Env, JsObject, JsUnknown, Result};
 use std::ffi::c_void;
 use std::ffi::{c_char, c_double, c_int, c_longlong, c_uchar, c_ulonglong, CStr};
@@ -156,6 +157,26 @@ pub unsafe fn create_rs_struct_from_pointer(
             offset += size + padding;
             field_size = size
           }
+          RefDataType::FloatArray => {
+            let (size, align) = if *dynamic_array {
+              get_size_align::<*const c_void>()
+            } else {
+              let (size, align) = get_size_align::<c_double>();
+              (size * array_len, align)
+            };
+            let padding = (align - (offset % align)) % align;
+            field_ptr = field_ptr.offset(padding as isize);
+            if *dynamic_array {
+              let type_field_ptr = field_ptr as *mut *mut c_float;
+              let arr = create_array_from_pointer(*type_field_ptr, *array_len);
+              rs_struct.insert(field, RsArgsValue::FloatArray(arr));
+            } else {
+              let arr = create_static_array_from_pointer(field_ptr as *mut c_void, &array_desc);
+              rs_struct.insert(field, arr);
+            }
+            offset += size + padding;
+            field_size = size
+          }
           RefDataType::I32Array => {
             let (size, align) = if *dynamic_array {
               get_size_align::<*const c_void>()
@@ -260,7 +281,12 @@ pub fn rs_value_to_js_unknown(env: &Env, data: RsArgsValue) -> Result<JsUnknown>
     RsArgsValue::Object(obj) => create_js_object_from_rs_map(env, obj)?.into_unknown(),
     RsArgsValue::External(val) => val.into_unknown(),
     RsArgsValue::Void(_) => env.get_undefined()?.into_unknown(),
-    RsArgsValue::Function(_, _) => panic!("function need to be improved"),
+    RsArgsValue::Function(_, _) => {
+      return Err(FFIError::Panic(format!("{}", "unsupport return function")).into())
+    }
+    RsArgsValue::FloatArray(_) => {
+      return Err(FFIError::Panic(format!("{}", "JsNumber can only be double type")).into())
+    }
   };
   Ok(res)
 }

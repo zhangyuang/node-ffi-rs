@@ -3,7 +3,7 @@ use crate::utils::dataprocess::{get_array_desc, get_ffi_tag, get_js_external_wra
 use crate::utils::object_utils::get_size_align;
 use crate::RefDataType;
 use indexmap::IndexMap;
-use libc::{c_ulonglong, c_void};
+use libc::{c_float, c_ulonglong, c_void};
 use napi::{Env, Result};
 use std::alloc::{alloc, Layout};
 use std::ffi::CString;
@@ -71,6 +71,7 @@ pub fn calculate_struct_size(map: &IndexMap<String, RsArgsValue>) -> (usize, usi
         }
         RsArgsValue::StringArray(_)
         | RsArgsValue::DoubleArray(_)
+        | RsArgsValue::FloatArray(_)
         | RsArgsValue::I32Array(_)
         | RsArgsValue::U8Array(_, _)
         | RsArgsValue::External(_) => calculate_pointer(size, align, offset),
@@ -184,6 +185,15 @@ pub unsafe fn generate_c_struct(
         let padding = (align - (offset % align)) % align;
         field_ptr = field_ptr.offset(padding as isize);
         (field_ptr as *mut *const c_double).write(arr.as_ptr());
+        std::mem::forget(arr);
+        offset += size + padding;
+        size
+      }
+      RsArgsValue::FloatArray(arr) => {
+        let (size, align) = get_size_align::<*mut c_void>();
+        let padding = (align - (offset % align)) % align;
+        field_ptr = field_ptr.offset(padding as isize);
+        (field_ptr as *mut *const c_float).write(arr.as_ptr());
         std::mem::forget(arr);
         offset += size + padding;
         size

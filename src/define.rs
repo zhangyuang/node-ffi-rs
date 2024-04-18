@@ -94,6 +94,7 @@ pub enum DataType {
   U8Array = 10,
   External = 11,
   U64 = 12,
+  FloatArray = 13,
 }
 
 #[derive(Debug)]
@@ -115,6 +116,7 @@ pub enum RefDataType {
   StringArray = 4,
   DoubleArray = 5,
   U8Array = 10,
+  FloatArray = 13,
 }
 
 pub fn number_to_data_type(value: i32) -> DataType {
@@ -132,6 +134,7 @@ pub fn number_to_data_type(value: i32) -> DataType {
     10 => DataType::U8Array,
     11 => DataType::External,
     12 => DataType::U64,
+    13 => DataType::FloatArray,
     _ => panic!("unknow DataType"),
   }
 }
@@ -175,6 +178,7 @@ pub fn number_to_ref_data_type(value: i32) -> RefDataType {
     4 => RefDataType::StringArray,
     5 => RefDataType::DoubleArray,
     10 => RefDataType::U8Array,
+    13 => RefDataType::FloatArray,
     _ => panic!("unknow DataType"),
   }
 }
@@ -190,6 +194,7 @@ pub enum RsArgsValue {
   I32Array(Vec<i32>),
   StringArray(Vec<String>),
   DoubleArray(Vec<f64>),
+  FloatArray(Vec<f32>),
   Object(IndexMap<String, RsArgsValue>),
   Boolean(bool),
   Void(()),
@@ -216,6 +221,7 @@ impl std::fmt::Debug for RsArgsValue {
       RsArgsValue::I32Array(arr) => write!(f, "I32Array({:?})", arr),
       RsArgsValue::StringArray(arr) => write!(f, "StringArray({:?})", arr),
       RsArgsValue::DoubleArray(arr) => write!(f, "DoubleArray({:?})", arr),
+      RsArgsValue::FloatArray(arr) => write!(f, "FloatArray({:?})", arr),
       RsArgsValue::Object(obj) => write!(f, "Object({:?})", obj),
       RsArgsValue::Boolean(b) => write!(f, "Boolean({})", b),
       RsArgsValue::Void(_) => write!(f, "Void"),
@@ -235,13 +241,13 @@ pub struct FFIParams {
 }
 
 #[napi(object)]
-pub struct createPointerParams {
+pub struct CreatePointerParams {
   pub params_type: Vec<JsUnknown>,
   pub params_value: Vec<JsUnknown>,
 }
 
 #[napi(object)]
-pub struct storePointerParams {
+pub struct StorePointerParams {
   pub ret_type: Vec<JsUnknown>,
   pub params_value: Vec<JsExternal>,
 }

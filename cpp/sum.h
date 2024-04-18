@@ -16,7 +16,7 @@ extern char **createArrayString(char **arr, int size);
 typedef struct {
   int bytes[2];
 } cpu_svn_t;
-
+extern float *createArrayFloat(const float *arr, int size);
 extern int pck_cert_select(const cpu_svn_t *platform_svn, int bytes[2]);
 #ifdef __cplusplus
 }

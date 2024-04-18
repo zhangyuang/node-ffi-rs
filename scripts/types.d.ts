@@ -12,6 +12,7 @@ export const enum DataType {
   U8Array = 10,
   External = 11,
   U64 = 12,
+  FloatArray = 13,
 }
 
 type DataTypeToType<T extends DataType> = T extends DataType.String
@@ -35,6 +36,8 @@ type DataTypeToType<T extends DataType> = T extends DataType.String
   : T extends DataType.StringArray
   ? string[]
   : T extends DataType.DoubleArray
+  ? number[]
+  : T extends DataType.FloatArray
   ? number[]
   : T extends DataType.Boolean
   ? boolean
@@ -124,8 +127,6 @@ type FuncObj<
   U extends boolean | undefined
 > = Record<string, Omit<FFIParams<T, U>, 'paramsValue' | 'funcName'>>
 
-type DefineFunc<T extends FuncObj<any, any>> = {
+export function define<T extends FuncObj<FieldType, boolean | undefined>>(funcs: T): {
   [K in keyof T]: (...paramsValue: Array<unknown>) => ResultWithErrno<FieldTypeToType<T[K]['retType']>, T[K]['errno']>;
-};
-
-export function define<T extends FuncObj<FieldType, boolean | undefined>>(funcs: T): DefineFunc<T>
+}

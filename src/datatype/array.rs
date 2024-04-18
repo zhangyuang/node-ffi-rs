@@ -76,6 +76,15 @@ impl ToJsArray for Vec<f64> {
     Ok(js_array)
   }
 }
+impl ToJsArray for Vec<f32> {
+  fn to_js_array(self, env: &Env) -> Result<JsObject> {
+    let mut js_array = env.create_array_with_length(self.len())?;
+    let _ = self.into_iter().enumerate().try_for_each(|(index, item)| {
+      js_array.set_element(index as u32, env.create_double(item.into())?)
+    });
+    Ok(js_array)
+  }
+}
 
 impl ToJsArray for Vec<i32> {
   fn to_js_array(self, env: &Env) -> Result<JsObject> {

@@ -13,7 +13,7 @@ use libffi_sys::{
   ffi_type_pointer, ffi_type_sint32, ffi_type_sint64, ffi_type_uint64, ffi_type_uint8,
   ffi_type_void,
 };
-use napi::{Env, Error, JsExternal, JsUnknown, Result};
+use napi::{Env, JsExternal, JsUnknown, Result};
 
 use std::collections::HashMap;
 use std::ffi::c_void;
@@ -33,8 +33,8 @@ static mut LIBRARY_MAP: Option<
 > = None;
 
 #[napi]
-unsafe fn create_pointer(env: Env, params: createPointerParams) -> Result<Vec<JsExternal>> {
-  let createPointerParams {
+unsafe fn create_pointer(env: Env, params: CreatePointerParams) -> Result<Vec<JsExternal>> {
+  let CreatePointerParams {
     params_type,
     params_value,
   } = params;
@@ -48,8 +48,8 @@ unsafe fn create_pointer(env: Env, params: createPointerParams) -> Result<Vec<Js
 }
 
 #[napi]
-unsafe fn restore_pointer(env: Env, params: storePointerParams) -> Result<Vec<JsUnknown>> {
-  let storePointerParams {
+unsafe fn restore_pointer(env: Env, params: StorePointerParams) -> Result<Vec<JsUnknown>> {
+  let StorePointerParams {
     ret_type,
     params_value,
   } = params;

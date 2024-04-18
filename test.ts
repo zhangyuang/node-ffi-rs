@@ -55,7 +55,6 @@ const testNumber = () => {
 const c = "foo";
 const d = c.repeat(200);
 const testString = () => {
-
   equal(
     c + d,
     load({

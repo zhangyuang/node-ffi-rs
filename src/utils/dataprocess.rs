@@ -1,12 +1,12 @@
 use crate::datatype::array::ToRsArray;
 use crate::datatype::buffer::get_safe_buffer;
-use crate::datatype::function::{get_js_function_call_value, get_js_function_call_value_from_ptr};
+use crate::datatype::function::get_js_function_call_value_from_ptr;
 use crate::datatype::object_calculate::generate_c_struct;
 use crate::datatype::object_generate::{create_rs_struct_from_pointer, rs_value_to_js_unknown};
 use crate::datatype::pointer::*;
 use crate::define::*;
 use indexmap::IndexMap;
-use libc::{c_char, c_double, c_int, c_uchar, c_void};
+use libc::{c_char, c_double, c_float, c_int, c_uchar, c_void};
 use libffi_sys::{
   ffi_type, ffi_type_double, ffi_type_pointer, ffi_type_sint32, ffi_type_sint64, ffi_type_uint64,
   ffi_type_uint8, ffi_type_void,
@@ -131,7 +131,6 @@ pub unsafe fn get_arg_types_values(
                   js_element.get_int32().unwrap()
                 })
                 .collect::<Vec<i32>>();
-
               (arg_type, RsArgsValue::I32Array(arg_val))
             }
             DataType::DoubleArray => {
@@ -147,6 +146,19 @@ pub unsafe fn get_arg_types_values(
                 .collect::<Vec<f64>>();
 
               (arg_type, RsArgsValue::DoubleArray(arg_val))
+            }
+            DataType::FloatArray => {
+              let arg_type = &mut ffi_type_pointer as *mut ffi_type;
+              let js_object = value.coerce_to_object()?;
+              let arg_val = vec![0; js_object.get_array_length()? as usize]
+                .iter()
+                .enumerate()
+                .map(|(index, _)| {
+                  let js_element: JsNumber = js_object.get_element(index as u32).unwrap();
+                  js_element.get_double().unwrap() as f32
+                })
+                .collect::<Vec<f32>>();
+              (arg_type, RsArgsValue::FloatArray(arg_val))
             }
             DataType::StringArray => {
               let arg_type = &mut ffi_type_pointer as *mut ffi_type;
@@ -264,6 +276,11 @@ pub unsafe fn get_value_pointer(
         Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
       }
       RsArgsValue::DoubleArray(val) => {
+        let ptr = val.as_ptr();
+        std::mem::forget(val);
+        Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
+      }
+      RsArgsValue::FloatArray(val) => {
         let ptr = val.as_ptr();
         std::mem::forget(val);
         Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
@@ -426,6 +443,15 @@ pub fn get_params_value_rs_struct(
               let arg_val: Vec<f64> = js_array.to_rs_array()?;
               RsArgsValue::DoubleArray(arg_val)
             }
+            DataType::FloatArray => {
+              let js_array: JsObject = params_value_object.get_named_property(&field)?;
+              let arg_val: Vec<f32> = js_array
+                .to_rs_array()?
+                .into_iter()
+                .map(|item: f64| item as f32)
+                .collect();
+              RsArgsValue::FloatArray(arg_val)
+            }
             DataType::I32Array => {
               let js_array: JsObject = params_value_object.get_named_property(&field)?;
               let arg_val = js_array.to_rs_array()?;
@@ -542,7 +568,6 @@ pub fn type_object_to_rs_vector(params_type: &JsObject) -> Result<Vec<RsArgsValu
           let val: i32 = number.try_into().unwrap();
           RsArgsValue::I32(val)
         }
-
         ValueType::Object => {
           // maybe jsobject or jsarray
           let args_type = field_type.coerce_to_object().unwrap();
@@ -642,6 +667,10 @@ pub unsafe fn get_js_unknown_from_pointer(
           RefDataType::DoubleArray => {
             let arr = create_array_from_pointer(*(ptr as *mut *mut c_double), array_len);
             rs_value_to_js_unknown(env, RsArgsValue::DoubleArray(arr))
+          }
+          RefDataType::FloatArray => {
+            let arr = create_array_from_pointer(*(ptr as *mut *mut c_float), array_len);
+            rs_value_to_js_unknown(env, RsArgsValue::FloatArray(arr))
           }
           RefDataType::StringArray => {
             let arr = create_array_from_pointer(*(ptr as *mut *mut *mut c_char), array_len);
