@@ -24,6 +24,7 @@ pub unsafe fn get_js_function_call_value_from_ptr(
         }
         BasicDataType::I64 => RsArgsValue::I64(*(func_val_ptr as *mut i64)),
         BasicDataType::U64 => RsArgsValue::U64(*(func_val_ptr as *mut u64)),
+        BasicDataType::Float => RsArgsValue::Float(*(func_val_ptr as *mut f32)),
         BasicDataType::Double => RsArgsValue::Double(*(func_val_ptr as *mut f64)),
         BasicDataType::Boolean => RsArgsValue::Boolean(if *(func_val_ptr as *mut i32) == 0 {
           false

@@ -10,8 +10,8 @@ use dlopen::symbor::{Library, Symbol};
 use libc::malloc;
 use libffi_sys::{
   ffi_abi_FFI_DEFAULT_ABI, ffi_call, ffi_cif, ffi_prep_cif, ffi_type, ffi_type_double,
-  ffi_type_pointer, ffi_type_sint32, ffi_type_sint64, ffi_type_uint64, ffi_type_uint8,
-  ffi_type_void,
+  ffi_type_float, ffi_type_pointer, ffi_type_sint32, ffi_type_sint64, ffi_type_uint64,
+  ffi_type_uint8, ffi_type_void,
 };
 use napi::{Env, JsExternal, JsUnknown, Result};
 
@@ -183,6 +183,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
         BasicDataType::U64 => &mut ffi_type_uint64 as *mut ffi_type,
         BasicDataType::String => &mut ffi_type_pointer as *mut ffi_type,
         BasicDataType::Void => &mut ffi_type_void as *mut ffi_type,
+        BasicDataType::Float => &mut ffi_type_float as *mut ffi_type,
         BasicDataType::Double => &mut ffi_type_double as *mut ffi_type,
         BasicDataType::Boolean => &mut ffi_type_uint8 as *mut ffi_type,
         BasicDataType::External => &mut ffi_type_pointer as *mut ffi_type,

@@ -13,6 +13,7 @@ export const enum DataType {
   External = 11,
   U64 = 12,
   FloatArray = 13,
+  Float = 14,
 }
 
 type DataTypeToType<T extends DataType> = T extends DataType.String
@@ -87,7 +88,7 @@ export function restorePointer<T extends DataType>(params: {
 
 export function unwrapPointer(params: Array<unknown>): Array<unknown>
 
-type ResultWithErrno<T, IncludeErrno extends boolean | undefined> = IncludeErrno extends true
+type ResultWithErrno<T, IncludeErrno extends boolean | undefined = undefined> = IncludeErrno extends true
   ? { value: T; errnoCode: number; errnoMessage: string }
   : T;
 
@@ -109,7 +110,7 @@ type FieldTypeToType<T extends FieldType> = T extends DataType
   : never;
 
 
-export type FFIParams<T extends FieldType, U extends boolean | undefined> = {
+export type FFIParams<T extends FieldType, U extends boolean | undefined = undefined> = {
   library: string;
   funcName: string;
   retType: T;
@@ -118,13 +119,13 @@ export type FFIParams<T extends FieldType, U extends boolean | undefined> = {
   // whether need output errno
   errno?: U
 }
-export function load<T extends FieldType, U extends boolean | undefined>(
+export function load<T extends FieldType, U extends boolean | undefined = undefined>(
   params: FFIParams<T, U>,
 ): ResultWithErrno<FieldTypeToType<T>, U>
 
 type FuncObj<
   T extends FieldType,
-  U extends boolean | undefined
+  U extends boolean | undefined = undefined
 > = Record<string, Omit<FFIParams<T, U>, 'paramsValue' | 'funcName'>>
 
 export function define<T extends FuncObj<FieldType, boolean | undefined>>(funcs: T): {

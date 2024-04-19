@@ -95,6 +95,7 @@ pub enum DataType {
   External = 11,
   U64 = 12,
   FloatArray = 13,
+  Float = 14,
 }
 
 #[derive(Debug)]
@@ -108,6 +109,7 @@ pub enum BasicDataType {
   U8 = 9,
   External = 11,
   U64 = 12,
+  Float = 14,
 }
 
 #[derive(Debug)]
@@ -135,6 +137,7 @@ pub fn number_to_data_type(value: i32) -> DataType {
     11 => DataType::External,
     12 => DataType::U64,
     13 => DataType::FloatArray,
+    14 => DataType::Float,
     _ => panic!("unknow DataType"),
   }
 }
@@ -149,6 +152,7 @@ pub fn rs_value_to_ffi_type(value: &RsArgsValue) -> Type {
         BasicDataType::I32 => Type::i32(),
         BasicDataType::I64 => Type::i64(),
         BasicDataType::U64 => Type::u64(),
+        BasicDataType::Float => Type::f32(),
         BasicDataType::Double => Type::f64(),
         BasicDataType::Void => Type::void(),
         BasicDataType::External => Type::pointer(),
@@ -169,6 +173,7 @@ pub fn number_to_basic_data_type(value: i32) -> BasicDataType {
     9 => BasicDataType::U8,
     11 => BasicDataType::External,
     12 => BasicDataType::U64,
+    14 => BasicDataType::Float,
     _ => panic!("unknow DataType"),
   }
 }
@@ -189,6 +194,7 @@ pub enum RsArgsValue {
   I32(i32),
   I64(i64),
   U64(u64),
+  Float(f32),
   Double(f64),
   U8Array(Option<JsBufferValue>, Option<Vec<u8>>),
   I32Array(Vec<i32>),
@@ -210,6 +216,7 @@ impl std::fmt::Debug for RsArgsValue {
       RsArgsValue::I32(i) => write!(f, "I32({})", i),
       RsArgsValue::I64(i) => write!(f, "I64({})", i),
       RsArgsValue::U64(i) => write!(f, "U64({})", i),
+      RsArgsValue::Float(d) => write!(f, "Float({})", d),
       RsArgsValue::Double(d) => write!(f, "Double({})", d),
       RsArgsValue::U8Array(buffer, v) => {
         if buffer.is_some() {

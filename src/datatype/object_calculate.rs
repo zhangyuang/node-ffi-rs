@@ -24,6 +24,7 @@ macro_rules! calculate_layout_for {
 calculate_layout_for!(calculate_u8, c_uchar);
 calculate_layout_for!(calculate_i32, c_int);
 calculate_layout_for!(calculate_i64, c_longlong);
+calculate_layout_for!(calculate_float, c_float);
 calculate_layout_for!(calculate_double, c_double);
 calculate_layout_for!(calculate_boolean, bool);
 calculate_layout_for!(calculate_void, ());
@@ -38,6 +39,7 @@ pub fn calculate_struct_size(map: &IndexMap<String, RsArgsValue>) -> (usize, usi
         RsArgsValue::U8(_) => calculate_u8(size, align, offset),
         RsArgsValue::I32(_) => calculate_i32(size, align, offset),
         RsArgsValue::I64(_) | RsArgsValue::U64(_) => calculate_i64(size, align, offset),
+        RsArgsValue::Float(_) => calculate_float(size, align, offset),
         RsArgsValue::Double(_) => calculate_double(size, align, offset),
         RsArgsValue::String(_) => calculate_string(size, align, offset),
         RsArgsValue::Boolean(_) => calculate_boolean(size, align, offset),
@@ -133,6 +135,14 @@ pub unsafe fn generate_c_struct(
         let padding = (align - (offset % align)) % align;
         field_ptr = field_ptr.offset(padding as isize);
         (field_ptr as *mut c_ulonglong).write(number);
+        offset += size + padding;
+        size
+      }
+      RsArgsValue::Float(number) => {
+        let (size, align) = get_size_align::<c_float>();
+        let padding = (align - (offset % align)) % align;
+        field_ptr = field_ptr.offset(padding as isize);
+        (field_ptr as *mut c_float).write(number);
         offset += size + padding;
         size
       }

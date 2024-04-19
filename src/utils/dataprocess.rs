@@ -8,8 +8,8 @@ use crate::define::*;
 use indexmap::IndexMap;
 use libc::{c_char, c_double, c_float, c_int, c_uchar, c_void};
 use libffi_sys::{
-  ffi_type, ffi_type_double, ffi_type_pointer, ffi_type_sint32, ffi_type_sint64, ffi_type_uint64,
-  ffi_type_uint8, ffi_type_void,
+  ffi_type, ffi_type_double, ffi_type_float, ffi_type_pointer, ffi_type_sint32, ffi_type_sint64,
+  ffi_type_uint64, ffi_type_uint8, ffi_type_void,
 };
 use napi::threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi::{
@@ -101,6 +101,11 @@ pub unsafe fn get_arg_types_values(
               let arg_type = &mut ffi_type_uint64 as *mut ffi_type;
               let arg_val: i64 = value.coerce_to_number()?.try_into()?;
               (arg_type, RsArgsValue::U64(arg_val as u64))
+            }
+            DataType::Float => {
+              let arg_type = &mut ffi_type_float as *mut ffi_type;
+              let arg_val: f64 = value.coerce_to_number()?.try_into()?;
+              (arg_type, RsArgsValue::Float(arg_val as f32))
             }
             DataType::Double => {
               let arg_type = &mut ffi_type_double as *mut ffi_type;
@@ -259,6 +264,10 @@ pub unsafe fn get_value_pointer(
         let ptr = c_string.as_ptr();
         std::mem::forget(c_string);
         Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
+      }
+      RsArgsValue::Float(val) => {
+        let c_float = Box::new(val);
+        Ok(Box::into_raw(c_float) as *mut c_void)
       }
       RsArgsValue::Double(val) => {
         let c_double = Box::new(val);
@@ -427,6 +436,11 @@ pub fn get_params_value_rs_struct(
               let val: JsBoolean = params_value_object.get_named_property(&field)?;
               let val: bool = val.get_value()?;
               RsArgsValue::Boolean(val)
+            }
+            DataType::Float => {
+              let val: JsNumber = params_value_object.get_named_property(&field)?;
+              let val: f64 = val.try_into()?;
+              RsArgsValue::Float(val as f32)
             }
             DataType::Double => {
               let val: JsNumber = params_value_object.get_named_property(&field)?;
@@ -634,6 +648,7 @@ pub unsafe fn get_js_unknown_from_pointer(
         BasicDataType::I64 => rs_value_to_js_unknown(env, RsArgsValue::I64(*(ptr as *mut i64))),
         BasicDataType::U64 => rs_value_to_js_unknown(env, RsArgsValue::U64(*(ptr as *mut u64))),
         BasicDataType::Void => rs_value_to_js_unknown(env, RsArgsValue::Void(())),
+        BasicDataType::Float => rs_value_to_js_unknown(env, RsArgsValue::Float(*(ptr as *mut f32))),
         BasicDataType::Double => {
           rs_value_to_js_unknown(env, RsArgsValue::Double(*(ptr as *mut f64)))
         }
