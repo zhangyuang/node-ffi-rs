@@ -37,7 +37,7 @@ const testNumber = () => {
       funcName: "sum",
       retType: DataType.I32,
       paramsType: [DataType.I32, DataType.I32],
-      paramsValue: [a, b]
+      paramsValue: [a, b],
     }),
     a + b,
   );
@@ -49,6 +49,16 @@ const testNumber = () => {
       retType: DataType.Double,
       paramsType: [DataType.Double, DataType.Double],
       paramsValue: [1.1, 2.2],
+    }),
+  );
+  equal(
+    1.5 + 2.5,
+    load({
+      library: "libsum",
+      funcName: "floatSum",
+      retType: DataType.Double,
+      paramsType: [DataType.Float, DataType.Float],
+      paramsValue: [1.5, 2.5],
     }),
   );
 }

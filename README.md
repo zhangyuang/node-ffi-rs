@@ -60,7 +60,8 @@ Currently, ffi-rs only supports these types of parameters and return values. How
 - [i32](#basic-types)
 - [i64](#basic-types)
 - [u64](#basic-types)
-- [void](#basic-types)(undefined)
+- [void](#basic-types)(like js undefined)
+- [float](#basic-types)(can only be used as paramsType instead of retType)
 - [double](#basic-types)
 - [boolean](#basic-types)
 
@@ -71,7 +72,7 @@ Currently, ffi-rs only supports these types of parameters and return values. How
 - [i32Array](#array)
 - [stringArray](#array)
 - [doubleArray](#array)
-- [floatArray](#array)
+- [floatArray](#array)(can only be used as paramsType instead of retType)
 - [object](#struct)(Nested object is also supported at the latest version)
 - [function](#function)
 
