@@ -1,6 +1,6 @@
 use crate::datatype::array::ToRsArray;
 use crate::datatype::buffer::get_safe_buffer;
-use crate::datatype::function::{get_js_function_call_value, get_js_function_call_value_from_ptr};
+use crate::datatype::function::{get_js_function_call_value, get_rs_value_from_pointer};
 use crate::datatype::object_calculate::generate_c_struct;
 use crate::datatype::object_generate::{create_rs_struct_from_pointer, rs_value_to_js_unknown};
 use crate::datatype::pointer::*;

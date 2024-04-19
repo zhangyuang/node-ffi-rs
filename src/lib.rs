@@ -210,15 +210,8 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     r_type,
     arg_types.as_mut_ptr(),
   );
-  let result = malloc(std::mem::size_of::<*mut c_void>());
-  // ffi_call(
-  //   &mut cif,
-  //   Some(**func),
-  //   result,
-  //   arg_values_c_void.as_mut_ptr(),
-  // );
   if true {
-    use datatype::function::get_js_function_call_value_from_ptr;
+    use datatype::function::get_rs_value_from_pointer;
     use datatype::object_generate::rs_value_to_js_unknown;
     use napi::threadsafe_function::{
       ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode,
@@ -228,46 +221,59 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     struct FFICALL {
       cif: ffi_cif,
       func: unsafe extern "C" fn(),
-      result: *mut c_void,
       arg_values_c_void: Vec<*mut c_void>,
+      ret_type_rs: RsArgsValue,
+      env: Env,
     }
+    unsafe impl Send for FFICALL {};
+    unsafe impl Sync for FFICALL {};
+
     struct CountBufferLength {
-      data: Ref<FFICALL>,
+      data: FFICALL,
     }
 
     impl CountBufferLength {
-      pub fn new(data: Ref<FFICALL>) -> Self {
+      pub fn new(data: FFICALL) -> Self {
         Self { data }
       }
     }
 
     impl Task for CountBufferLength {
-      type Output = FFICALL;
+      type Output = RsArgsValue;
       type JsValue = JsUnknown;
 
-      unsafe fn compute(&mut self) -> Result<*mut c_void> {
-        // ffi_call(
-        //   &mut cif,
-        //   Some(*func),
-        //   result,
-        //   arg_values_c_void.as_mut_ptr(),
-        // );
+      unsafe fn compute(&mut self) -> Result<RsArgsValue> {
+        let mut foo = self.data;
+        let result = malloc(std::mem::size_of::<*mut c_void>());
+        ffi_call(
+          &mut foo.cif,
+          Some(foo.func),
+          result,
+          foo.arg_values_c_void.as_mut_ptr(),
+        );
+        Ok(get_rs_value_from_pointer(
+          &foo.env,
+          &foo.ret_type_rs,
+          result,
+          false,
+        ))
       }
 
       fn resolve(&mut self, env: Env, output: Self::Output) -> Result<Self::JsValue> {
         // env.create_uint32(output as _)
       }
 
-      fn reject(&mut self, env: Env, err: Error) -> Result<Self::JsValue> {
-        Err(err)
-      }
+      // fn reject(&mut self, env: Env, err: Error) -> Result<Self::JsValue> {
+      //   Err(err)
+      // }
 
-      fn finally(&mut self, env: Env) -> Result<()> {
-        self.data.unref(env)?;
-        Ok(())
-      }
+      // fn finally(&mut self, env: Env) -> Result<()> {
+      //   self.data.unref(env)?;
+      //   Ok(())
+      // }
     }
   } else {
+    let result = malloc(std::mem::size_of::<*mut c_void>());
     ffi_call(
       &mut cif,
       Some(**func),
