@@ -1,6 +1,6 @@
 {
   "name": "@yuuang/ffi-rs-linux-arm64-musl",
-  "version": "1.0.63",
+  "version": "1.0.64",
   "os": [
     "linux"
   ],
