@@ -407,7 +407,9 @@ const testFunction = () => {
     count++;
     if (count === 4) {
       logGreen("test succeed");
-      close("libsum");
+      if (!process.env.MEMORY) {
+        close("libsum");
+      }
       process.exit(0);
     }
   };
@@ -528,9 +530,5 @@ const unitTest = () => {
 };
 
 unitTest();
-
-if (!process.env.MEMORY && !process.env.TEST) {
-  close("libsum");
-}
 
 exports.unitTest = unitTest;
