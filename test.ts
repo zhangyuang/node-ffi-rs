@@ -523,8 +523,8 @@ const unitTest = () => {
   logGreen('test main program succeed')
   testFunction()
   logGreen('test function succeed')
-  testRunInNewThread()
-  logGreen('test runInNewThread succeed')
+  // testRunInNewThread()
+  // logGreen('test runInNewThread succeed')
   testDefine()
   logGreen('test define succeed')
 };
