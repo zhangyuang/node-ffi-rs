@@ -53,7 +53,7 @@
     "build": "node scripts/build.js",
     "build:debug": "napi build --platform",
     "publish:npm": "OPTIONAL=1 node scripts/publish.js && napi prepublish -t npm && MAIN=1 node scripts/publish.js",
-    "test": "TEST=1 esno ./test.ts",
+    "test": "esno ./test.ts",
     "universal": "napi universal",
     "version": "napi version",
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0"
