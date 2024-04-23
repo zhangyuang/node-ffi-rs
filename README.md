@@ -23,6 +23,7 @@ This module aims to provide similar functionality to the node-ffi module but wit
 - Support more different data types between `Node.js` and `c` 😊
 - Support modify data in place 🥸
 - Provide many ways to handle pointer type directly 🐮
+- Support running ffi task [in a new thread](#runInNewThread) 🤩️
 - Support output [errno](#errno) info 🤔️
 
 ## benchmark
@@ -60,7 +61,8 @@ Currently, ffi-rs only supports these types of parameters and return values. How
 - [i32](#basic-types)
 - [i64](#basic-types)
 - [u64](#basic-types)
-- [void](#basic-types)(undefined)
+- [void](#basic-types)(like js undefined)
+- [float](#basic-types)(can only be used as paramsType instead of retType)
 - [double](#basic-types)
 - [boolean](#basic-types)
 
@@ -71,6 +73,7 @@ Currently, ffi-rs only supports these types of parameters and return values. How
 - [i32Array](#array)
 - [stringArray](#array)
 - [doubleArray](#array)
+- [floatArray](#array)(can only be used as paramsType instead of retType)
 - [object](#struct)(Nested object is also supported at the latest version)
 - [function](#function)
 
@@ -403,11 +406,11 @@ deepStrictEqual(
 For the code above, we can use `createPointer` function to wrap a pointer data and send it as paramsValue
 
 ```js
-const funcExternal: unknown[] = createPointer({
+const ptrArr: unknown[] = createPointer({
   paramsType: [DataType.DoubleArray],
   paramsValue: [[1.1,2.2]]
 })
-const ptr = funcExternal[0]
+
 load({
   library: "libsum",
   funcName: "createArrayDouble",
@@ -416,7 +419,7 @@ load({
     length: bigDoubleArr.length,
   }),
   paramsType: [DataType.External, DataType.I32],
-  paramsValue: [ptr, bigDoubleArr.length],
+  paramsValue: [unwrapPointer(ptrArr)[0], bigDoubleArr.length],
 })
 ```
 
@@ -678,4 +681,26 @@ load({
 
 // The above code will return a object include three fields include errnoCode, errnoMessage, and the foreign function return value
 // { errnoCode: 22, errnoMessage: 'Invalid argument (os error 22)', value: -1 }
+```
+
+## runInNewThread
+
+`ffi-rs` support running ffi task in a new thread without blocking the main thread which is useful for cpu intensive task.
+
+To use the feature, you can pass `runInNewThread` option to load method
+
+```js
+const testRunInNewThread = async () => {
+  // will return a promise but the task will run in a new thread
+  load({
+    library: "libsum",
+    funcName: "sum",
+    retType: DataType.I32,
+    paramsType: [DataType.I32, DataType.I32],
+    paramsValue: [1, 2],
+    runInNewThread: true,
+  }).then(res => {
+    equal(res, 3)
+  })
+}
 ```

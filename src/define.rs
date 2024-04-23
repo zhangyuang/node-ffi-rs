@@ -96,6 +96,8 @@ pub enum DataType {
   U8Array = 10,
   External = 11,
   U64 = 12,
+  FloatArray = 13,
+  Float = 14,
 }
 
 #[derive(Debug)]
@@ -109,6 +111,7 @@ pub enum BasicDataType {
   U8 = 9,
   External = 11,
   U64 = 12,
+  Float = 14,
 }
 
 #[derive(Debug)]
@@ -117,6 +120,7 @@ pub enum RefDataType {
   StringArray = 4,
   DoubleArray = 5,
   U8Array = 10,
+  FloatArray = 13,
 }
 
 pub fn number_to_data_type(value: i32) -> DataType {
@@ -134,6 +138,8 @@ pub fn number_to_data_type(value: i32) -> DataType {
     10 => DataType::U8Array,
     11 => DataType::External,
     12 => DataType::U64,
+    13 => DataType::FloatArray,
+    14 => DataType::Float,
     _ => panic!("unknow DataType"),
   }
 }
@@ -148,6 +154,7 @@ pub fn rs_value_to_ffi_type(value: &RsArgsValue) -> Type {
         BasicDataType::I32 => Type::i32(),
         BasicDataType::I64 => Type::i64(),
         BasicDataType::U64 => Type::u64(),
+        BasicDataType::Float => Type::f32(),
         BasicDataType::Double => Type::f64(),
         BasicDataType::Void => Type::void(),
         BasicDataType::External => Type::pointer(),
@@ -168,6 +175,7 @@ pub fn number_to_basic_data_type(value: i32) -> BasicDataType {
     9 => BasicDataType::U8,
     11 => BasicDataType::External,
     12 => BasicDataType::U64,
+    14 => BasicDataType::Float,
     _ => panic!("unknow DataType"),
   }
 }
@@ -177,6 +185,7 @@ pub fn number_to_ref_data_type(value: i32) -> RefDataType {
     4 => RefDataType::StringArray,
     5 => RefDataType::DoubleArray,
     10 => RefDataType::U8Array,
+    13 => RefDataType::FloatArray,
     _ => panic!("unknow DataType"),
   }
 }
@@ -187,15 +196,17 @@ pub enum RsArgsValue {
   I32(i32),
   I64(i64),
   U64(u64),
+  Float(f32),
   Double(f64),
   U8Array(Option<JsBufferValue>, Option<Vec<u8>>),
   I32Array(Vec<i32>),
   StringArray(Vec<String>),
   DoubleArray(Vec<f64>),
+  FloatArray(Vec<f32>),
   Object(IndexMap<String, RsArgsValue>),
   Boolean(bool),
   Void(()),
-  Function(JsFunction, JsFunction),
+  Function(JsObject, JsFunction),
   External(JsExternal),
 }
 
@@ -210,6 +221,7 @@ impl std::fmt::Debug for RsArgsValue {
       RsArgsValue::I32(i) => write!(f, "I32({})", i),
       RsArgsValue::I64(i) => write!(f, "I64({})", i),
       RsArgsValue::U64(i) => write!(f, "U64({})", i),
+      RsArgsValue::Float(d) => write!(f, "Float({})", d),
       RsArgsValue::Double(d) => write!(f, "Double({})", d),
       RsArgsValue::U8Array(buffer, v) => {
         if buffer.is_some() {
@@ -221,6 +233,7 @@ impl std::fmt::Debug for RsArgsValue {
       RsArgsValue::I32Array(arr) => write!(f, "I32Array({:?})", arr),
       RsArgsValue::StringArray(arr) => write!(f, "StringArray({:?})", arr),
       RsArgsValue::DoubleArray(arr) => write!(f, "DoubleArray({:?})", arr),
+      RsArgsValue::FloatArray(arr) => write!(f, "FloatArray({:?})", arr),
       RsArgsValue::Object(obj) => write!(f, "Object({:?})", obj),
       RsArgsValue::Boolean(b) => write!(f, "Boolean({})", b),
       RsArgsValue::Void(_) => write!(f, "Void"),
@@ -237,6 +250,7 @@ pub struct FFIParams {
   pub params_type: Vec<JsUnknown>,
   pub params_value: Vec<JsUnknown>,
   pub errno: Option<bool>,
+  pub runInNewThread: Option<bool>,
 }
 
 pub struct FFICALLPARAMS {
@@ -257,14 +271,20 @@ pub struct FFICALL {
   pub data: FFICALLPARAMS,
 }
 
+impl FFICALL {
+  pub fn new(data: FFICALLPARAMS) -> Self {
+    Self { data }
+  }
+}
+
 #[napi(object)]
-pub struct createPointerParams {
+pub struct CreatePointerParams {
   pub params_type: Vec<JsUnknown>,
   pub params_value: Vec<JsUnknown>,
 }
 
 #[napi(object)]
-pub struct storePointerParams {
+pub struct StorePointerParams {
   pub ret_type: Vec<JsUnknown>,
   pub params_value: Vec<JsExternal>,
 }
@@ -279,3 +299,13 @@ pub const ARRAY_LENGTH_TAG: &str = "length";
 pub const ARRAY_TYPE_TAG: &str = "type";
 pub const ARRAY_DYNAMIC_TAG: &str = "dynamicArray";
 pub const ARRAY_VALUE_TAG: &str = "value";
+
+pub const FFI_TAG_FIELD: &str = "ffiTypeTag";
+pub const ARRAY_FFI_TAG: &str = "array";
+pub const FUNCTION_FFI_TAG: &str = "function";
+#[derive(Debug)]
+pub enum FFITag {
+  Array,
+  Function,
+  Unknown,
+}

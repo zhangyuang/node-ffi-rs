@@ -37,7 +37,7 @@ const testNumber = () => {
       funcName: "sum",
       retType: DataType.I32,
       paramsType: [DataType.I32, DataType.I32],
-      paramsValue: [a, b]
+      paramsValue: [a, b],
     }),
     a + b,
   );
@@ -49,6 +49,16 @@ const testNumber = () => {
       retType: DataType.Double,
       paramsType: [DataType.Double, DataType.Double],
       paramsValue: [1.1, 2.2],
+    }),
+  );
+  equal(
+    1.5 + 2.5,
+    load({
+      library: "libsum",
+      funcName: "floatSum",
+      retType: DataType.Double,
+      paramsType: [DataType.Float, DataType.Float],
+      paramsValue: [1.5, 2.5],
     }),
   );
 }
@@ -369,19 +379,18 @@ const testObject = () => {
     retType: [personType]
   })
   deepStrictEqual(person, restorePersonObjByPointer[0])
-
 }
 
-const testAsyncCall = async () => {
+const testRunInNewThread = () => {
   load({
     library: "libsum",
     funcName: "sum",
     retType: DataType.I32,
     paramsType: [DataType.I32, DataType.I32],
     paramsValue: [1, 2],
-    runInthread: true,
+    runInNewThread: true,
   }).then(res => {
-    console.log('xxx', res)
+    equal(res, 3)
   })
 }
 const testFunction = () => {
@@ -398,6 +407,7 @@ const testFunction = () => {
     count++;
     if (count === 4) {
       logGreen("test succeed");
+      close("libsum");
       process.exit(0);
     }
   };
@@ -491,36 +501,35 @@ const testDefine = () => {
   equal(res.sum([1, 2]), 3)
 }
 const unitTest = () => {
-  // testNumber()
-  // logGreen('test number succeed')
-  // testString()
-  // logGreen('test string succeed')
-  // testArray()
-  // logGreen('test array succeed')
-  // testCreatePointer()
-  // logGreen('test createPointer succeed')
-  // testVoid()
-  // logGreen('test void succeed')
-  // testBool()
-  // logGreen('test bool succeed')
-  // testObject()
-  // logGreen('test object succeed')
-  // testCpp()
-  // logGreen('test cpp succeed')
-  // testMainProgram()
-  // logGreen('test main program succeed')
-  // testFunction()
-  // logGreen('test function succeed')
-  // testAsyncCall()
-  // logGreen('test async call succeed')
-  // testDefine()
-  // logGreen('test define succeed')
-  testAsyncCall()
+  testNumber()
+  logGreen('test number succeed')
+  testString()
+  logGreen('test string succeed')
+  testArray()
+  logGreen('test array succeed')
+  testCreatePointer()
+  logGreen('test createPointer succeed')
+  testVoid()
+  logGreen('test void succeed')
+  testBool()
+  logGreen('test bool succeed')
+  testObject()
+  logGreen('test object succeed')
+  testCpp()
+  logGreen('test cpp succeed')
+  testMainProgram()
+  logGreen('test main program succeed')
+  testFunction()
+  logGreen('test function succeed')
+  testRunInNewThread()
+  logGreen('test runInNewThread succeed')
+  testDefine()
+  logGreen('test define succeed')
 };
 
 unitTest();
 
-if (!process.env.MEMORY && !process.env.NOCLOSE) {
+if (!process.env.MEMORY && !process.env.TEST) {
   close("libsum");
 }
 

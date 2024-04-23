@@ -8,6 +8,8 @@ extern "C" int sum(int a, int b) { return a + b; }
 
 extern "C" double doubleSum(double a, double b) { return a + b; }
 
+extern "C" double floatSum(float a, float b) { return a + b; }
+
 extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
   std::string result = std::string(str1) + std::string(str2);
   char *cstr = new char[result.length() + 1];
@@ -28,6 +30,14 @@ extern "C" int *createArrayi32(const int *arr, int size) {
 }
 
 extern "C" double *createArrayDouble(const double *arr, int size) {
+  double *vec = (double *)malloc((size) * sizeof(double));
+  for (int i = 0; i < size; i++) {
+    vec[i] = arr[i];
+  }
+  return vec;
+}
+
+extern "C" double *createArrayFloat(const float *arr, int size) {
   double *vec = (double *)malloc((size) * sizeof(double));
   for (int i = 0; i < size; i++) {
     vec[i] = arr[i];

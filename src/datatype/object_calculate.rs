@@ -1,9 +1,9 @@
-use crate::define::{RsArgsValue, FFIARRARYDESC};
-use crate::utils::dataprocess::{get_array_desc, get_js_external_wrap_data};
+use crate::define::*;
+use crate::utils::dataprocess::{get_array_desc, get_ffi_tag, get_js_external_wrap_data};
 use crate::utils::object_utils::get_size_align;
-use crate::{FFIError, RefDataType};
+use crate::RefDataType;
 use indexmap::IndexMap;
-use libc::{c_ulonglong, c_void};
+use libc::{c_float, c_ulonglong, c_void};
 use napi::{Env, Result};
 use std::alloc::{alloc, Layout};
 use std::ffi::CString;
@@ -24,6 +24,7 @@ macro_rules! calculate_layout_for {
 calculate_layout_for!(calculate_u8, c_uchar);
 calculate_layout_for!(calculate_i32, c_int);
 calculate_layout_for!(calculate_i64, c_longlong);
+calculate_layout_for!(calculate_float, c_float);
 calculate_layout_for!(calculate_double, c_double);
 calculate_layout_for!(calculate_boolean, bool);
 calculate_layout_for!(calculate_void, ());
@@ -38,18 +39,19 @@ pub fn calculate_struct_size(map: &IndexMap<String, RsArgsValue>) -> (usize, usi
         RsArgsValue::U8(_) => calculate_u8(size, align, offset),
         RsArgsValue::I32(_) => calculate_i32(size, align, offset),
         RsArgsValue::I64(_) | RsArgsValue::U64(_) => calculate_i64(size, align, offset),
+        RsArgsValue::Float(_) => calculate_float(size, align, offset),
         RsArgsValue::Double(_) => calculate_double(size, align, offset),
         RsArgsValue::String(_) => calculate_string(size, align, offset),
         RsArgsValue::Boolean(_) => calculate_boolean(size, align, offset),
         RsArgsValue::Void(_) => calculate_void(size, align, offset),
         RsArgsValue::Object(obj) => {
-          let array_desc = get_array_desc(obj);
-          if array_desc.is_some() {
+          if let FFITag::Array = get_ffi_tag(obj) {
+            let array_desc = get_array_desc(obj);
             let FFIARRARYDESC {
               array_type,
               array_len,
               ..
-            } = array_desc.unwrap();
+            } = array_desc;
             let (mut type_size, type_align) = match array_type {
               RefDataType::U8Array => get_size_align::<u8>(),
               RefDataType::I32Array => get_size_align::<i32>(),
@@ -71,6 +73,7 @@ pub fn calculate_struct_size(map: &IndexMap<String, RsArgsValue>) -> (usize, usi
         }
         RsArgsValue::StringArray(_)
         | RsArgsValue::DoubleArray(_)
+        | RsArgsValue::FloatArray(_)
         | RsArgsValue::I32Array(_)
         | RsArgsValue::U8Array(_, _)
         | RsArgsValue::External(_) => calculate_pointer(size, align, offset),
@@ -135,6 +138,14 @@ pub unsafe fn generate_c_struct(
         offset += size + padding;
         size
       }
+      RsArgsValue::Float(number) => {
+        let (size, align) = get_size_align::<c_float>();
+        let padding = (align - (offset % align)) % align;
+        field_ptr = field_ptr.offset(padding as isize);
+        (field_ptr as *mut c_float).write(number);
+        offset += size + padding;
+        size
+      }
       RsArgsValue::Double(double_number) => {
         let (size, align) = get_size_align::<c_double>();
         let padding = (align - (offset % align)) % align;
@@ -188,6 +199,15 @@ pub unsafe fn generate_c_struct(
         offset += size + padding;
         size
       }
+      RsArgsValue::FloatArray(arr) => {
+        let (size, align) = get_size_align::<*mut c_void>();
+        let padding = (align - (offset % align)) % align;
+        field_ptr = field_ptr.offset(padding as isize);
+        (field_ptr as *mut *const c_float).write(arr.as_ptr());
+        std::mem::forget(arr);
+        offset += size + padding;
+        size
+      }
       RsArgsValue::I32Array(arr) => {
         let (size, align) = get_size_align::<*mut c_void>();
         let padding = (align - (offset % align)) % align;
@@ -208,8 +228,8 @@ pub unsafe fn generate_c_struct(
         size
       }
       RsArgsValue::Object(val) => {
-        let array_desc = get_array_desc(&val);
-        if array_desc.is_some() {
+        if let FFITag::Array = get_ffi_tag(&val) {
+          let array_desc = get_array_desc(&val);
           // write static array data to struct
           let FFIARRARYDESC {
             array_type,
@@ -217,7 +237,7 @@ pub unsafe fn generate_c_struct(
             array_value,
             dynamic_array,
             ..
-          } = array_desc.unwrap();
+          } = array_desc;
           if dynamic_array {
             panic!("generate struct field unsupport use object describe array")
           }

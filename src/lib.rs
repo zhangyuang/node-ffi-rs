@@ -10,10 +10,10 @@ use dlopen::symbor::{Library, Symbol};
 use libc::malloc;
 use libffi_sys::{
   ffi_abi_FFI_DEFAULT_ABI, ffi_call, ffi_cif, ffi_prep_cif, ffi_type, ffi_type_double,
-  ffi_type_pointer, ffi_type_sint32, ffi_type_sint64, ffi_type_uint64, ffi_type_uint8,
-  ffi_type_void,
+  ffi_type_float, ffi_type_pointer, ffi_type_sint32, ffi_type_sint64, ffi_type_uint64,
+  ffi_type_uint8, ffi_type_void,
 };
-use napi::{Env, Error, JsExternal, JsUnknown, Result};
+use napi::{Env, JsExternal, JsUnknown, Result};
 
 use std::collections::HashMap;
 use std::ffi::c_void;
@@ -35,8 +35,8 @@ static mut LIBRARY_MAP: Option<
 static mut TEST_MAP: Option<HashMap<String, String>> = None;
 
 #[napi]
-unsafe fn create_pointer(env: Env, params: createPointerParams) -> Result<Vec<JsExternal>> {
-  let createPointerParams {
+unsafe fn create_pointer(env: Env, params: CreatePointerParams) -> Result<Vec<JsExternal>> {
+  let CreatePointerParams {
     params_type,
     params_value,
   } = params;
@@ -50,8 +50,8 @@ unsafe fn create_pointer(env: Env, params: createPointerParams) -> Result<Vec<Js
 }
 
 #[napi]
-unsafe fn restore_pointer(env: Env, params: storePointerParams) -> Result<Vec<JsUnknown>> {
-  let storePointerParams {
+unsafe fn restore_pointer(env: Env, params: StorePointerParams) -> Result<Vec<JsUnknown>> {
+  let StorePointerParams {
     ret_type,
     params_value,
   } = params;
@@ -174,6 +174,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     params_type,
     params_value,
     errno,
+    runInNewThread,
   } = params;
   let func = get_symbol(&library, &func_name)?;
   let params_type_len = params_type.len();
@@ -190,6 +191,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
         BasicDataType::U64 => &mut ffi_type_uint64 as *mut ffi_type,
         BasicDataType::String => &mut ffi_type_pointer as *mut ffi_type,
         BasicDataType::Void => &mut ffi_type_void as *mut ffi_type,
+        BasicDataType::Float => &mut ffi_type_float as *mut ffi_type,
         BasicDataType::Double => &mut ffi_type_double as *mut ffi_type,
         BasicDataType::Boolean => &mut ffi_type_uint8 as *mut ffi_type,
         BasicDataType::External => &mut ffi_type_pointer as *mut ffi_type,
@@ -210,19 +212,11 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     aarch64_nfixedargs: params_type_len as u32,
   };
 
-  if true {
+  if runInNewThread.is_some() && runInNewThread.unwrap() {
     use napi::Task;
-
-    impl FFICALL {
-      pub fn new(data: FFICALLPARAMS) -> Self {
-        Self { data }
-      }
-    }
-
     impl Task for FFICALL {
       type Output = BarePointerWrap;
       type JsValue = JsUnknown;
-
       fn compute(&mut self) -> Result<BarePointerWrap> {
         let FFICALLPARAMS {
           cif,
