@@ -174,7 +174,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     params_type,
     params_value,
     errno,
-    runInNewThread,
+    run_in_new_thread,
   } = params;
   let func = get_symbol(&library, &func_name)?;
   let params_type_len = params_type.len();
@@ -211,8 +211,16 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     #[cfg(all(target_arch = "aarch64", target_vendor = "apple"))]
     aarch64_nfixedargs: params_type_len as u32,
   };
-
-  if runInNewThread.is_some() && runInNewThread.unwrap() {
+  ffi_prep_cif(
+    &mut cif,
+    ffi_abi_FFI_DEFAULT_ABI,
+    params_type_len as u32,
+    r_type,
+    arg_types.as_mut_ptr(),
+  );
+  if run_in_new_thread.is_some() && run_in_new_thread.unwrap() {
+    Box::into_raw(Box::new(r_type));
+    Box::into_raw(Box::new(arg_types));
     use napi::Task;
     impl Task for FFICALL {
       type Output = BarePointerWrap;
@@ -220,24 +228,18 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
       fn compute(&mut self) -> Result<BarePointerWrap> {
         let FFICALLPARAMS {
           cif,
-          library,
-          func_name,
+          fn_pointer,
           arg_values_c_void,
-          r_type,
-          arg_types,
           ..
         } = &mut self.data;
         unsafe {
-          let func = get_symbol(library, func_name).unwrap();
           let result = malloc(std::mem::size_of::<*mut c_void>());
-          ffi_prep_cif(
+          ffi_call(
             *cif,
-            ffi_abi_FFI_DEFAULT_ABI,
-            arg_values_c_void.len() as u32,
-            *r_type,
-            (*arg_types).as_mut_ptr(),
+            Some(*fn_pointer),
+            result,
+            arg_values_c_void.as_mut_ptr(),
           );
-          ffi_call(*cif, Some(func), result, arg_values_c_void.as_mut_ptr());
           Ok(BarePointerWrap(result))
         }
       }
@@ -246,9 +248,8 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
         let FFICALLPARAMS {
           ret_type_rs, errno, ..
         } = &mut self.data;
-        let rs_value = output;
         unsafe {
-          let call_result = get_js_unknown_from_pointer(&env, &ret_type_rs, rs_value.0);
+          let call_result = get_js_unknown_from_pointer(&env, &ret_type_rs, output.0);
           if errno.is_some() && errno.unwrap() {
             add_errno(&env, call_result?)
           } else {
@@ -258,25 +259,16 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
       }
     }
     let task = FFICALL::new(FFICALLPARAMS {
-      cif: &mut cif as *mut ffi_cif,
+      cif: Box::into_raw(Box::new(cif)),
       arg_values_c_void,
       ret_type_rs,
-      library,
-      func_name,
-      arg_types,
-      r_type,
+      fn_pointer: func,
+
       errno,
     });
     let async_work_promise = env.spawn(task)?;
     Ok(async_work_promise.promise_object().into_unknown())
   } else {
-    ffi_prep_cif(
-      &mut cif,
-      ffi_abi_FFI_DEFAULT_ABI,
-      params_type_len as u32,
-      r_type,
-      arg_types.as_mut_ptr(),
-    );
     let result = malloc(std::mem::size_of::<*mut c_void>());
     ffi_call(&mut cif, Some(func), result, arg_values_c_void.as_mut_ptr());
     let call_result = get_js_unknown_from_pointer(&env, &ret_type_rs, result);

@@ -1,5 +1,5 @@
-const { equal, deepStrictEqual } = require("assert")
-const {
+import { equal, deepStrictEqual } from "assert"
+import {
   load,
   open,
   close,
@@ -10,7 +10,7 @@ const {
   restorePointer,
   unwrapPointer,
   define
-} = require("./index")
+} from "./index"
 
 const platform = process.platform;
 const dynamicLib = platform === "win32" ? "./sum.dll" : "./libsum.so";
@@ -391,6 +391,7 @@ const testRunInNewThread = () => {
     runInNewThread: true,
   }).then(res => {
     equal(res, 3)
+    logGreen('test runInNewThread succeed')
   })
 }
 const testFunction = () => {
@@ -521,10 +522,9 @@ const unitTest = () => {
   logGreen('test cpp succeed')
   testMainProgram()
   logGreen('test main program succeed')
-  // testFunction()
-  // logGreen('test function succeed')
+  testFunction()
+  logGreen('test function succeed')
   testRunInNewThread()
-  logGreen('test runInNewThread succeed')
   testDefine()
   logGreen('test define succeed')
 };

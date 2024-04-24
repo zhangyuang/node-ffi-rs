@@ -362,7 +362,7 @@ pub unsafe fn get_value_pointer(
               param
             })
             .collect();
-          tsfn.call(value, ThreadsafeFunctionCallMode::NonBlocking);
+          tsfn.call(value, ThreadsafeFunctionCallMode::Blocking);
         };
 
         let closure = Box::into_raw(Box::new(Closure::new(

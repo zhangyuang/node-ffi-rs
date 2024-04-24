@@ -250,17 +250,14 @@ pub struct FFIParams {
   pub params_type: Vec<JsUnknown>,
   pub params_value: Vec<JsUnknown>,
   pub errno: Option<bool>,
-  pub runInNewThread: Option<bool>,
+  pub run_in_new_thread: Option<bool>,
 }
 
 pub struct FFICALLPARAMS {
   pub cif: *mut ffi_cif,
-  pub library: String,
-  pub func_name: String,
+  pub fn_pointer: unsafe extern "C" fn(),
   pub arg_values_c_void: Vec<*mut c_void>,
   pub ret_type_rs: RsArgsValue,
-  pub r_type: *mut ffi_type,
-  pub arg_types: Vec<*mut ffi_type>,
   pub errno: Option<bool>,
 }
 pub struct BarePointerWrap(pub *mut c_void);

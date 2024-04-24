@@ -23,7 +23,7 @@ This module aims to provide similar functionality to the node-ffi module but wit
 - Support more different data types between `Node.js` and `c` 😊
 - Support modify data in place 🥸
 - Provide many ways to handle pointer type directly 🐮
-- Support running ffi task [in a new thread](#runInNewThread) 🤩️
+- Support run ffi task [in a new thread](#runInNewThread) 🤩️
 - Support output [errno](#errno) info 🤔️
 
 ## benchmark
@@ -685,7 +685,7 @@ load({
 
 ## runInNewThread
 
-`ffi-rs` support running ffi task in a new thread without blocking the main thread which is useful for cpu intensive task.
+`ffi-rs` support run ffi task in a new thread without blocking the main thread which is useful for cpu intensive task.
 
 To use the feature, you can pass `runInNewThread` option to load method
 
