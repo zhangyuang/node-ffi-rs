@@ -32,8 +32,6 @@ static mut LIBRARY_MAP: Option<
   >,
 > = None;
 
-static mut TEST_MAP: Option<HashMap<String, String>> = None;
-
 #[napi]
 unsafe fn create_pointer(env: Env, params: CreatePointerParams) -> Result<Vec<JsExternal>> {
   let CreatePointerParams {
