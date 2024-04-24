@@ -1,5 +1,5 @@
 use crate::{RefDataType, RsArgsValue, FFIARRARYDESC};
-use libc::{c_char, c_void};
+use libc::c_void;
 
 pub fn get_size_align<T: Sized>() -> (usize, usize) {
   (std::mem::size_of::<T>(), std::mem::align_of::<T>())

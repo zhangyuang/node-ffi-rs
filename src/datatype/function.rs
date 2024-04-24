@@ -8,36 +8,36 @@ use napi::Env;
 use std::ffi::c_void;
 use std::ffi::{c_char, c_double, c_int, c_uchar, CStr};
 
-pub unsafe fn get_js_function_call_value_from_ptr(
+pub unsafe fn get_rs_value_from_pointer(
   env: &Env,
-  func_arg_type: &RsArgsValue,
-  func_val_ptr: *mut c_void,
+  type_desc: &RsArgsValue,
+  pointer: *mut c_void,
   need_thread_safe: bool,
 ) -> RsArgsValue {
-  match func_arg_type {
+  match type_desc {
     RsArgsValue::I32(number) => {
       let data_type = number_to_basic_data_type(*number);
       let data = match data_type {
-        BasicDataType::U8 => RsArgsValue::U8(*(func_val_ptr as *mut u8)),
+        BasicDataType::U8 => RsArgsValue::U8(*(pointer as *mut u8)),
         BasicDataType::I32 => {
-          return RsArgsValue::I32(*(func_val_ptr as *mut i32));
+          return RsArgsValue::I32(*(pointer as *mut i32));
         }
-        BasicDataType::I64 => RsArgsValue::I64(*(func_val_ptr as *mut i64)),
-        BasicDataType::U64 => RsArgsValue::U64(*(func_val_ptr as *mut u64)),
-        BasicDataType::Float => RsArgsValue::Float(*(func_val_ptr as *mut f32)),
-        BasicDataType::Double => RsArgsValue::Double(*(func_val_ptr as *mut f64)),
-        BasicDataType::Boolean => RsArgsValue::Boolean(if *(func_val_ptr as *mut i32) == 0 {
+        BasicDataType::I64 => RsArgsValue::I64(*(pointer as *mut i64)),
+        BasicDataType::U64 => RsArgsValue::U64(*(pointer as *mut u64)),
+        BasicDataType::Float => RsArgsValue::Float(*(pointer as *mut f32)),
+        BasicDataType::Double => RsArgsValue::Double(*(pointer as *mut f64)),
+        BasicDataType::Boolean => RsArgsValue::Boolean(if *(pointer as *mut i32) == 0 {
           false
         } else {
           true
         }),
         BasicDataType::String => RsArgsValue::String(
-          CStr::from_ptr(*(func_val_ptr as *mut *mut c_char))
+          CStr::from_ptr(*(pointer as *mut *mut c_char))
             .to_string_lossy()
             .to_string(),
         ),
         BasicDataType::External => {
-          RsArgsValue::External(env.create_external(func_val_ptr, None).unwrap())
+          RsArgsValue::External(env.create_external(pointer, None).unwrap())
         }
         BasicDataType::Void => RsArgsValue::Void(()),
       };
@@ -53,24 +53,23 @@ pub unsafe fn get_js_function_call_value_from_ptr(
         } = array_desc;
         match array_type {
           RefDataType::StringArray => {
-            let arr =
-              create_array_from_pointer(*(func_val_ptr as *mut *mut *mut c_char), array_len);
+            let arr = create_array_from_pointer(*(pointer as *mut *mut *mut c_char), array_len);
             RsArgsValue::StringArray(arr)
           }
           RefDataType::I32Array => {
-            let arr = create_array_from_pointer(*(func_val_ptr as *mut *mut c_int), array_len);
+            let arr = create_array_from_pointer(*(pointer as *mut *mut c_int), array_len);
             RsArgsValue::I32Array(arr)
           }
           RefDataType::U8Array => {
-            let arr = create_array_from_pointer(*(func_val_ptr as *mut *mut c_uchar), array_len);
+            let arr = create_array_from_pointer(*(pointer as *mut *mut c_uchar), array_len);
             get_safe_buffer(env, arr, need_thread_safe)
           }
           RefDataType::DoubleArray => {
-            let arr = create_array_from_pointer(*(func_val_ptr as *mut *mut c_double), array_len);
+            let arr = create_array_from_pointer(*(pointer as *mut *mut c_double), array_len);
             RsArgsValue::DoubleArray(arr)
           }
           RefDataType::FloatArray => {
-            let arr = create_array_from_pointer(*(func_val_ptr as *mut *mut c_float), array_len);
+            let arr = create_array_from_pointer(*(pointer as *mut *mut c_float), array_len);
             RsArgsValue::FloatArray(arr)
           }
         }
@@ -78,14 +77,14 @@ pub unsafe fn get_js_function_call_value_from_ptr(
         // function | raw object
         RsArgsValue::Object(create_rs_struct_from_pointer(
           env,
-          *(func_val_ptr as *mut *mut c_void),
+          *(pointer as *mut *mut c_void),
           obj,
           true,
         ))
       }
     }
 
-    _ => panic!("get_js_function_call_value{:?}", func_arg_type),
+    _ => panic!("get_js_function_call_value{:?}", type_desc),
   }
 }
 

@@ -1,6 +1,6 @@
 use crate::datatype::array::ToRsArray;
 use crate::datatype::buffer::get_safe_buffer;
-use crate::datatype::function::get_js_function_call_value_from_ptr;
+use crate::datatype::function::get_rs_value_from_pointer;
 use crate::datatype::object_calculate::generate_c_struct;
 use crate::datatype::object_generate::{create_rs_struct_from_pointer, rs_value_to_js_unknown};
 use crate::datatype::pointer::*;
@@ -358,11 +358,11 @@ pub unsafe fn get_value_pointer(
             .enumerate()
             .map(|(index, c_param)| {
               let arg_type = &(func_args_type_rs)[index];
-              let param = get_js_function_call_value_from_ptr(env, arg_type, c_param, true);
+              let param = get_rs_value_from_pointer(env, arg_type, c_param, true);
               param
             })
             .collect();
-          tsfn.call(value, ThreadsafeFunctionCallMode::NonBlocking);
+          tsfn.call(value, ThreadsafeFunctionCallMode::Blocking);
         };
 
         let closure = Box::into_raw(Box::new(Closure::new(
@@ -630,12 +630,12 @@ pub fn type_define_to_rs_args(type_define: JsUnknown) -> Result<RsArgsValue> {
 
 pub unsafe fn get_js_unknown_from_pointer(
   env: &Env,
-  ret_type_rs: RsArgsValue,
+  ret_type_rs: &RsArgsValue,
   ptr: *mut c_void,
 ) -> Result<JsUnknown> {
   match ret_type_rs {
     RsArgsValue::I32(number) => {
-      let ret_data_type = number_to_basic_data_type(number);
+      let ret_data_type = number_to_basic_data_type(*number);
       match ret_data_type {
         BasicDataType::String => {
           let ptr_str = CStr::from_ptr(*(ptr as *mut *const c_char))

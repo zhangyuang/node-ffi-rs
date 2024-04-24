@@ -1,4 +1,6 @@
 use indexmap::IndexMap;
+use libc::c_void;
+use libffi_sys::{ffi_cif, ffi_type};
 use napi::bindgen_prelude::{Error, Result, Status as NapiStatus};
 use napi::{bindgen_prelude::*, JsBufferValue};
 use napi::{Env, JsExternal, JsObject, JsUnknown};
@@ -208,6 +210,9 @@ pub enum RsArgsValue {
   External(JsExternal),
 }
 
+unsafe impl Send for RsArgsValue {}
+unsafe impl Sync for RsArgsValue {}
+
 impl std::fmt::Debug for RsArgsValue {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
@@ -245,6 +250,28 @@ pub struct FFIParams {
   pub params_type: Vec<JsUnknown>,
   pub params_value: Vec<JsUnknown>,
   pub errno: Option<bool>,
+  pub run_in_new_thread: Option<bool>,
+}
+
+pub struct FFICALLPARAMS {
+  pub cif: *mut ffi_cif,
+  pub fn_pointer: unsafe extern "C" fn(),
+  pub arg_values_c_void: Vec<*mut c_void>,
+  pub ret_type_rs: RsArgsValue,
+  pub errno: Option<bool>,
+}
+pub struct BarePointerWrap(pub *mut c_void);
+unsafe impl Send for FFICALL {}
+unsafe impl Send for BarePointerWrap {}
+
+pub struct FFICALL {
+  pub data: FFICALLPARAMS,
+}
+
+impl FFICALL {
+  pub fn new(data: FFICALLPARAMS) -> Self {
+    Self { data }
+  }
 }
 
 #[napi(object)]
