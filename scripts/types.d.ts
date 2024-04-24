@@ -92,6 +92,10 @@ type ResultWithErrno<T, IncludeErrno extends boolean | undefined = undefined> = 
   ? { value: T; errnoCode: number; errnoMessage: string }
   : T;
 
+type ResultWithPromise<T, U extends boolean | undefined = undefined> = U extends true
+  ? Promise<T>
+  : T;
+
 
 export type FieldType =
   | DataType
@@ -110,7 +114,7 @@ type FieldTypeToType<T extends FieldType> = T extends DataType
   : never;
 
 
-export type FFIParams<T extends FieldType, U extends boolean | undefined = undefined> = {
+export type FFIParams<T extends FieldType, U extends boolean | undefined = undefined, RunInNewThread extends boolean | undefined = undefined> = {
   library: string;
   funcName: string;
   retType: T;
@@ -118,16 +122,18 @@ export type FFIParams<T extends FieldType, U extends boolean | undefined = undef
   paramsValue: Array<unknown>;
   // whether need output errno
   errno?: U
+  runInNewThread?: RunInNewThread
 }
-export function load<T extends FieldType, U extends boolean | undefined = undefined>(
-  params: FFIParams<T, U>,
-): ResultWithErrno<FieldTypeToType<T>, U>
+export function load<T extends FieldType, U extends boolean | undefined = undefined, RunInNewThread extends boolean | undefined = undefined>(
+  params: FFIParams<T, U, RunInNewThread>,
+): ResultWithPromise<ResultWithErrno<FieldTypeToType<T>, U>, RunInNewThread>
 
 type FuncObj<
   T extends FieldType,
-  U extends boolean | undefined = undefined
-> = Record<string, Omit<FFIParams<T, U>, 'paramsValue' | 'funcName'>>
+  U extends boolean | undefined = undefined,
+  RunInNewThread extends boolean | undefined = undefined
+> = Record<string, Omit<FFIParams<T, U, RunInNewThread>, 'paramsValue' | 'funcName'>>
 
 export function define<T extends FuncObj<FieldType, boolean | undefined>>(funcs: T): {
-  [K in keyof T]: (...paramsValue: Array<unknown>) => ResultWithErrno<FieldTypeToType<T[K]['retType']>, T[K]['errno']>;
+  [K in keyof T]: (...paramsValue: Array<unknown>) => ResultWithPromise<ResultWithErrno<FieldTypeToType<T[K]['retType']>, T[K]['errno']>, T[K]['runInNewThread']>;
 }

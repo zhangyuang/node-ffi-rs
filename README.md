@@ -23,6 +23,7 @@ This module aims to provide similar functionality to the node-ffi module but wit
 - Support more different data types between `Node.js` and `c` 😊
 - Support modify data in place 🥸
 - Provide many ways to handle pointer type directly 🐮
+- Support run ffi task [in a new thread](#runInNewThread) 🤩️
 - Support output [errno](#errno) info 🤔️
 
 ## benchmark
@@ -680,4 +681,26 @@ load({
 
 // The above code will return a object include three fields include errnoCode, errnoMessage, and the foreign function return value
 // { errnoCode: 22, errnoMessage: 'Invalid argument (os error 22)', value: -1 }
+```
+
+## runInNewThread
+
+`ffi-rs` support run ffi task in a new thread without blocking the main thread which is useful for cpu intensive task.
+
+To use the feature, you can pass `runInNewThread` option to load method
+
+```js
+const testRunInNewThread = async () => {
+  // will return a promise but the task will run in a new thread
+  load({
+    library: "libsum",
+    funcName: "sum",
+    retType: DataType.I32,
+    paramsType: [DataType.I32, DataType.I32],
+    paramsValue: [1, 2],
+    runInNewThread: true,
+  }).then(res => {
+    equal(res, 3)
+  })
+}
 ```

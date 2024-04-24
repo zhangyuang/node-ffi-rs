@@ -1,4 +1,4 @@
-import { equal, deepStrictEqual } from "assert";
+import { equal, deepStrictEqual } from "assert"
 import {
   load,
   open,
@@ -10,11 +10,11 @@ import {
   restorePointer,
   unwrapPointer,
   define
-} from "./index";
+} from "./index"
 
 const platform = process.platform;
 const dynamicLib = platform === "win32" ? "./sum.dll" : "./libsum.so";
-const logGreen = (text: string) => {
+const logGreen = (text) => {
   console.log('\x1b[32m%s\x1b[0m', text);
 }
 open({
@@ -379,9 +379,21 @@ const testObject = () => {
     retType: [personType]
   })
   deepStrictEqual(person, restorePersonObjByPointer[0])
-
 }
 
+const testRunInNewThread = () => {
+  load({
+    library: "libsum",
+    funcName: "sum",
+    retType: DataType.I32,
+    paramsType: [DataType.I32, DataType.I32],
+    paramsValue: [1, 2],
+    runInNewThread: true,
+  }).then(res => {
+    equal(res, 3)
+    logGreen('test runInNewThread succeed')
+  })
+}
 const testFunction = () => {
   let count = 0;
   const func = (a, b, c, d, e, f, g) => {
@@ -396,6 +408,9 @@ const testFunction = () => {
     count++;
     if (count === 4) {
       logGreen("test succeed");
+      if (!process.env.MEMORY) {
+        close("libsum");
+      }
       process.exit(0);
     }
   };
@@ -509,14 +524,11 @@ const unitTest = () => {
   logGreen('test main program succeed')
   testFunction()
   logGreen('test function succeed')
+  testRunInNewThread()
   testDefine()
   logGreen('test define succeed')
 };
 
 unitTest();
-
-if (!process.env.MEMORY) {
-  close("libsum");
-}
 
 exports.unitTest = unitTest;
