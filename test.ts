@@ -410,8 +410,8 @@ const testFunction = () => {
       logGreen("test succeed");
       if (!process.env.MEMORY) {
         close("libsum");
+        process.exit(0);
       }
-      process.exit(0);
     }
   };
   const funcExternal = createPointer({
