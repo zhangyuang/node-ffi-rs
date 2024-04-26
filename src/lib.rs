@@ -4,7 +4,6 @@ extern crate napi_derive;
 mod datatype;
 mod define;
 mod utils;
-
 use define::*;
 use dlopen::symbor::{Library, Symbol};
 use libc::malloc;
@@ -59,7 +58,7 @@ unsafe fn restore_pointer(env: Env, params: StorePointerParams) -> Result<Vec<Js
     .zip(params_value.into_iter())
     .map(|(ret_type_item, js_external)| {
       let ptr = get_js_external_wrap_data(&env, js_external)?;
-      let ret_type_rs = type_define_to_rs_args(ret_type_item)?;
+      let ret_type_rs = type_define_to_rs_args(&env, ret_type_item)?;
       get_js_unknown_from_pointer(&env, &ret_type_rs, ptr)
     })
     .collect()
@@ -178,7 +177,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
   let params_type_len = params_type.len();
   let (mut arg_types, arg_values) = get_arg_types_values(&env, params_type, params_value)?;
   let mut arg_values_c_void = get_value_pointer(&env, arg_values)?;
-  let ret_type_rs = type_define_to_rs_args(ret_type)?;
+  let ret_type_rs = type_define_to_rs_args(&env, ret_type)?;
   let r_type: *mut ffi_type = match ret_type_rs {
     RsArgsValue::I32(number) => {
       let ret_data_type = number_to_basic_data_type(number);

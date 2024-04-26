@@ -1,3 +1,4 @@
+use super::jsValue::create_js_value_unchecked;
 use crate::datatype::array::ToRsArray;
 use crate::datatype::buffer::get_safe_buffer;
 use crate::datatype::function::get_rs_value_from_pointer;
@@ -80,41 +81,44 @@ pub unsafe fn get_arg_types_values(
       let value_type = param.get_type()?;
       let res = match value_type {
         ValueType::Number => {
-          let param_data_type = number_to_data_type(param.coerce_to_number()?.try_into()?);
+          let param_data_type =
+            number_to_data_type(create_js_value_unchecked::<JsNumber>(env, param).try_into()?);
           match param_data_type {
             DataType::I32 => {
               let arg_type = &mut ffi_type_sint32 as *mut ffi_type;
-              let arg_val: i32 = value.coerce_to_number()?.try_into()?;
+              let arg_val: i32 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
               (arg_type, RsArgsValue::I32(arg_val))
             }
             DataType::U8 => {
               let arg_type = &mut ffi_type_sint32 as *mut ffi_type;
-              let arg_val: u32 = value.coerce_to_number()?.try_into()?;
+              let arg_val: u32 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
               (arg_type, RsArgsValue::U8(arg_val as u8))
             }
             DataType::I64 => {
               let arg_type = &mut ffi_type_sint64 as *mut ffi_type;
-              let arg_val: i64 = value.coerce_to_number()?.try_into()?;
+              let arg_val: i64 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
               (arg_type, RsArgsValue::I64(arg_val))
             }
             DataType::U64 => {
               let arg_type = &mut ffi_type_uint64 as *mut ffi_type;
-              let arg_val: i64 = value.coerce_to_number()?.try_into()?;
+              let arg_val: i64 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
               (arg_type, RsArgsValue::U64(arg_val as u64))
             }
             DataType::Float => {
               let arg_type = &mut ffi_type_float as *mut ffi_type;
-              let arg_val: f64 = value.coerce_to_number()?.try_into()?;
+              let arg_val: f64 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
               (arg_type, RsArgsValue::Float(arg_val as f32))
             }
             DataType::Double => {
               let arg_type = &mut ffi_type_double as *mut ffi_type;
-              let arg_val: f64 = value.coerce_to_number()?.try_into()?;
+              let arg_val: f64 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
               (arg_type, RsArgsValue::Double(arg_val))
             }
             DataType::String => {
               let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-              let arg_val: String = value.coerce_to_string()?.into_utf8()?.try_into()?;
+              let arg_val: String = create_js_value_unchecked::<JsString>(env, value)
+                .into_utf8()?
+                .try_into()?;
               (arg_type, RsArgsValue::String(arg_val))
             }
             DataType::U8Array => {
@@ -127,7 +131,7 @@ pub unsafe fn get_arg_types_values(
             }
             DataType::I32Array => {
               let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-              let js_object = value.coerce_to_object()?;
+              let js_object = create_js_value_unchecked::<JsObject>(env, value);
               let arg_val = vec![0; js_object.get_array_length()? as usize]
                 .iter()
                 .enumerate()
@@ -140,7 +144,7 @@ pub unsafe fn get_arg_types_values(
             }
             DataType::DoubleArray => {
               let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-              let js_object = value.coerce_to_object()?;
+              let js_object = create_js_value_unchecked::<JsObject>(env, value);
               let arg_val = vec![0; js_object.get_array_length()? as usize]
                 .iter()
                 .enumerate()
@@ -154,7 +158,7 @@ pub unsafe fn get_arg_types_values(
             }
             DataType::FloatArray => {
               let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-              let js_object = value.coerce_to_object()?;
+              let js_object = create_js_value_unchecked::<JsObject>(env, value);
               let arg_val = vec![0; js_object.get_array_length()? as usize]
                 .iter()
                 .enumerate()
@@ -167,13 +171,13 @@ pub unsafe fn get_arg_types_values(
             }
             DataType::StringArray => {
               let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-              let js_object = value.coerce_to_object()?;
+              let js_object = create_js_value_unchecked::<JsObject>(env, value);
               let arg_val = js_object.to_rs_array()?;
               (arg_type, RsArgsValue::StringArray(arg_val))
             }
             DataType::Boolean => {
               let arg_type = &mut ffi_type_uint8 as *mut ffi_type;
-              let arg_val: bool = value.coerce_to_bool()?.get_value()?;
+              let arg_val: bool = create_js_value_unchecked::<JsBoolean>(env, value).get_value()?;
               (arg_type, RsArgsValue::Boolean(arg_val))
             }
             DataType::Void => {
@@ -188,8 +192,8 @@ pub unsafe fn get_arg_types_values(
           }
         }
         ValueType::Object => {
-          let params_type_object: JsObject = param.coerce_to_object()?;
-          let params_type_object_rs = type_object_to_rs_struct(&params_type_object)?;
+          let params_type_object: JsObject = create_js_value_unchecked::<JsObject>(env, param);
+          let params_type_object_rs = type_object_to_rs_struct(env, &params_type_object)?;
           let arg_type = &mut ffi_type_pointer as *mut ffi_type;
           if let FFITag::Function = get_ffi_tag(&params_type_object_rs) {
             let params_val_function: JsFunction = value.try_into()?;
@@ -199,7 +203,7 @@ pub unsafe fn get_arg_types_values(
               RsArgsValue::Function(params_type_object, params_val_function),
             )
           } else {
-            let params_value_object = value.coerce_to_object()?;
+            let params_value_object = create_js_value_unchecked::<JsObject>(env, value);
             let index_map =
               get_params_value_rs_struct(&env, &params_type_object, &params_value_object);
             (arg_type, RsArgsValue::Object(index_map.unwrap()))
@@ -323,7 +327,7 @@ pub unsafe fn get_value_pointer(
         let func_args_type: JsObject = func_desc
           .get_property(env.create_string("paramsType").unwrap())
           .unwrap();
-        let func_args_type_rs = type_object_to_rs_vector(&func_args_type)?;
+        let func_args_type_rs = type_object_to_rs_vector(env, &func_args_type)?;
         let tsfn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal> = (&js_function)
           .create_threadsafe_function(0, |ctx| {
             let value: Vec<RsArgsValue> = ctx.value;
@@ -393,7 +397,7 @@ pub unsafe fn get_value_pointer(
     .collect::<Result<Vec<*mut c_void>>>()
 }
 
-pub fn get_params_value_rs_struct(
+pub unsafe fn get_params_value_rs_struct(
   env: &Env,
   params_type_object: &JsObject,
   params_value_object: &JsObject,
@@ -405,7 +409,8 @@ pub fn get_params_value_rs_struct(
       let field_type: JsUnknown = params_type_object.get_named_property(&field)?;
       match field_type.get_type()? {
         ValueType::Number => {
-          let data_type: DataType = number_to_data_type(field_type.coerce_to_number()?.try_into()?);
+          let data_type: DataType =
+            number_to_data_type(create_js_value_unchecked::<JsNumber>(env, field_type).try_into()?);
           let val = match data_type {
             DataType::String => {
               let val: JsString = params_value_object.get_named_property(&field)?;
@@ -485,9 +490,9 @@ pub fn get_params_value_rs_struct(
         }
 
         ValueType::Object => {
-          let params_type = field_type.coerce_to_object()?;
+          let params_type = create_js_value_unchecked::<JsObject>(env, field_type);
           let params_value: JsObject = params_value_object.get_named_property(&field)?;
-          let mut params_type_rs_value = type_object_to_rs_struct(&params_type)?;
+          let mut params_type_rs_value = type_object_to_rs_struct(env, &params_type)?;
           if let FFITag::Array = get_ffi_tag(&params_type_rs_value) {
             let array_desc = get_array_desc(&params_type_rs_value);
             let FFIARRARYDESC { array_type, .. } = array_desc;
@@ -524,7 +529,10 @@ pub fn get_params_value_rs_struct(
   }
 }
 
-pub fn type_object_to_rs_struct(params_type: &JsObject) -> Result<IndexMap<String, RsArgsValue>> {
+pub unsafe fn type_object_to_rs_struct(
+  env: &Env,
+  params_type: &JsObject,
+) -> Result<IndexMap<String, RsArgsValue>> {
   let mut index_map = IndexMap::new();
   let parse_result: Result<()> = JsObject::keys(params_type)
     .unwrap()
@@ -543,8 +551,8 @@ pub fn type_object_to_rs_struct(params_type: &JsObject) -> Result<IndexMap<Strin
         }
         ValueType::Object => {
           // maybe jsobject or jsarray
-          let args_type = field_type.coerce_to_object()?;
-          let map = type_object_to_rs_struct(&args_type)?;
+          let args_type = create_js_value_unchecked::<JsObject>(env, field_type);
+          let map = type_object_to_rs_struct(env, &args_type)?;
           index_map.insert(field, RsArgsValue::Object(map));
         }
         ValueType::String => {
@@ -556,7 +564,7 @@ pub fn type_object_to_rs_struct(params_type: &JsObject) -> Result<IndexMap<Strin
           return Err(
             FFIError::UnsupportedValueType(format!(
               "Receive {:?} but params type can only be number or object ",
-              field_type.get_type().unwrap()
+              field_type.get_type()?
             ))
             .into(),
           );
@@ -570,26 +578,29 @@ pub fn type_object_to_rs_struct(params_type: &JsObject) -> Result<IndexMap<Strin
   }
 }
 
-pub fn type_object_to_rs_vector(params_type: &JsObject) -> Result<Vec<RsArgsValue>> {
+pub unsafe fn type_object_to_rs_vector(
+  env: &Env,
+  params_type: &JsObject,
+) -> Result<Vec<RsArgsValue>> {
   JsObject::keys(params_type)
     .unwrap()
     .into_iter()
     .map(|field| {
-      let field_type: JsUnknown = params_type.get_named_property(&field).unwrap();
+      let field_type: JsUnknown = params_type.get_named_property(&field)?;
       Ok(match field_type.get_type().unwrap() {
         ValueType::Number => {
-          let number: JsNumber = field_type.try_into().unwrap();
-          let val: i32 = number.try_into().unwrap();
+          let number: JsNumber = field_type.try_into()?;
+          let val: i32 = number.try_into()?;
           RsArgsValue::I32(val)
         }
         ValueType::Object => {
           // maybe jsobject or jsarray
-          let args_type = field_type.coerce_to_object().unwrap();
-          let map = type_object_to_rs_struct(&args_type)?;
+          let args_type = create_js_value_unchecked::<JsObject>(&env, field_type);
+          let map = type_object_to_rs_struct(env, &args_type)?;
           RsArgsValue::Object(map)
         }
         ValueType::String => {
-          let str: JsString = field_type.try_into().unwrap();
+          let str: JsString = field_type.try_into()?;
           let str = js_string_to_string(str);
           RsArgsValue::String(str)
         }
@@ -608,13 +619,17 @@ pub fn type_object_to_rs_vector(params_type: &JsObject) -> Result<Vec<RsArgsValu
 }
 
 // describe paramsType or retType, field can only be number or object
-pub fn type_define_to_rs_args(type_define: JsUnknown) -> Result<RsArgsValue> {
+pub unsafe fn type_define_to_rs_args(env: &Env, type_define: JsUnknown) -> Result<RsArgsValue> {
   let ret_value_type = type_define.get_type().unwrap();
   let ret_value = match ret_value_type {
-    ValueType::Number => RsArgsValue::I32(js_number_to_i32(type_define.coerce_to_number()?)),
-    ValueType::Object => {
-      RsArgsValue::Object(type_object_to_rs_struct(&type_define.coerce_to_object()?)?)
-    }
+    ValueType::Number => RsArgsValue::I32(js_number_to_i32(create_js_value_unchecked::<JsNumber>(
+      env,
+      type_define,
+    ))),
+    ValueType::Object => RsArgsValue::Object(type_object_to_rs_struct(
+      env,
+      &create_js_value_unchecked::<JsObject>(env, type_define),
+    )?),
     _ => {
       return Err(
         FFIError::UnsupportedValueType(format!(
