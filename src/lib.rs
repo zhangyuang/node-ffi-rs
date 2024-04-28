@@ -182,20 +182,20 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     RsArgsValue::I32(number) => {
       let ret_data_type = number_to_basic_data_type(number);
       match ret_data_type {
-        BasicDataType::U8 => &mut ffi_type_uint8 as *mut ffi_type,
-        BasicDataType::I32 => &mut ffi_type_sint32 as *mut ffi_type,
-        BasicDataType::I64 => &mut ffi_type_sint64 as *mut ffi_type,
-        BasicDataType::U64 => &mut ffi_type_uint64 as *mut ffi_type,
-        BasicDataType::String => &mut ffi_type_pointer as *mut ffi_type,
-        BasicDataType::Void => &mut ffi_type_void as *mut ffi_type,
-        BasicDataType::Float => &mut ffi_type_float as *mut ffi_type,
-        BasicDataType::Double => &mut ffi_type_double as *mut ffi_type,
-        BasicDataType::Boolean => &mut ffi_type_uint8 as *mut ffi_type,
-        BasicDataType::External => &mut ffi_type_pointer as *mut ffi_type,
+        BasicDataType::U8 => Box::into_raw(Box::new(ffi_type_uint8)) as *mut ffi_type,
+        BasicDataType::I32 => Box::into_raw(Box::new(ffi_type_sint32)) as *mut ffi_type,
+        BasicDataType::I64 => Box::into_raw(Box::new(ffi_type_sint64)) as *mut ffi_type,
+        BasicDataType::U64 => Box::into_raw(Box::new(ffi_type_uint64)) as *mut ffi_type,
+        BasicDataType::String => Box::into_raw(Box::new(ffi_type_pointer)) as *mut ffi_type,
+        BasicDataType::Void => Box::into_raw(Box::new(ffi_type_void)) as *mut ffi_type,
+        BasicDataType::Float => Box::into_raw(Box::new(ffi_type_float)) as *mut ffi_type,
+        BasicDataType::Double => Box::into_raw(Box::new(ffi_type_double)) as *mut ffi_type,
+        BasicDataType::Boolean => Box::into_raw(Box::new(ffi_type_uint8)) as *mut ffi_type,
+        BasicDataType::External => Box::into_raw(Box::new(ffi_type_pointer)) as *mut ffi_type,
       }
     }
-    RsArgsValue::Object(_) => &mut ffi_type_pointer as *mut ffi_type,
-    _ => &mut ffi_type_void as *mut ffi_type,
+    RsArgsValue::Object(_) => Box::into_raw(Box::new(ffi_type_pointer)) as *mut ffi_type,
+    _ => Box::into_raw(Box::new(ffi_type_void)) as *mut ffi_type,
   };
 
   let mut cif = ffi_cif {
@@ -260,7 +260,6 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
       arg_values_c_void,
       ret_type_rs,
       fn_pointer: func,
-
       errno,
     });
     let async_work_promise = env.spawn(task)?;
