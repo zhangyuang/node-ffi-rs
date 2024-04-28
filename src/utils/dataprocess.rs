@@ -85,44 +85,44 @@ pub unsafe fn get_arg_types_values(
             number_to_data_type(create_js_value_unchecked::<JsNumber>(env, param).try_into()?);
           match param_data_type {
             DataType::I32 => {
-              let arg_type = Box::into_raw(Box::new(ffi_type_sint32 as *mut ffi_type;
+              let arg_type = Box::into_raw(Box::new(ffi_type_sint32)) as *mut ffi_type;
               let arg_val: i32 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
               (arg_type, RsArgsValue::I32(arg_val))
             }
             DataType::U8 => {
-              let arg_type = Box::into_raw(Box::new(ffi_type_sint32 as *mut ffi_type;
+              let arg_type = Box::into_raw(Box::new(ffi_type_sint32)) as *mut ffi_type;
               let arg_val: u32 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
               (arg_type, RsArgsValue::U8(arg_val as u8))
             }
             DataType::I64 => {
-              let arg_type = Box::into_raw(Box::new(ffi_type_sint64 ))as *mut ffi_type;
+              let arg_type = Box::into_raw(Box::new(ffi_type_sint64)) as *mut ffi_type;
               let arg_val: i64 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
               (arg_type, RsArgsValue::I64(arg_val))
             }
             DataType::U64 => {
-            let arg_type = Box::into_raw(Box::new(ffi_type_uint64 ))as *mut ffi_type;
+              let arg_type = Box::into_raw(Box::new(ffi_type_uint64)) as *mut ffi_type;
               let arg_val: i64 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
               (arg_type, RsArgsValue::U64(arg_val as u64))
             }
             DataType::Float => {
-            let arg_type = Box::into_raw(Box::new(ffi_type_float ))as *mut ffi_type;
+              let arg_type = Box::into_raw(Box::new(ffi_type_float)) as *mut ffi_type;
               let arg_val: f64 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
               (arg_type, RsArgsValue::Float(arg_val as f32))
             }
             DataType::Double => {
-                let arg_type = Box::into_raw(Box::new(ffi_type_double ))as *mut ffi_type;
+              let arg_type = Box::into_raw(Box::new(ffi_type_double)) as *mut ffi_type;
               let arg_val: f64 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
               (arg_type, RsArgsValue::Double(arg_val))
             }
             DataType::String => {
-                let arg_type = Box::into_raw(Box::new(ffi_type_pointer ))as *mut ffi_type;
+              let arg_type = Box::into_raw(Box::new(ffi_type_pointer)) as *mut ffi_type;
               let arg_val: String = create_js_value_unchecked::<JsString>(env, value)
                 .into_utf8()?
                 .try_into()?;
               (arg_type, RsArgsValue::String(arg_val))
             }
             DataType::U8Array => {
-                let arg_type = Box::into_raw(Box::new(ffi_type_pointer ))as *mut ffi_type;
+              let arg_type = Box::into_raw(Box::new(ffi_type_pointer)) as *mut ffi_type;
               let js_buffer: JsBuffer = value.try_into()?;
               (
                 arg_type,
