@@ -1,10 +1,11 @@
-## [1.0.66](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.64...v1.0.66) (2024-04-25)
+## [1.0.66](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.64...v1.0.66) (2024-04-28)
 
 
 ### Features
 
 * add changelog ([403333c](https://github.com/zhangyuang/node-ffi-rs/commit/403333cad4cf9e4242a810b8d9c9df72fabd2f7e))
 * implement runInNewThread ([#31](https://github.com/zhangyuang/node-ffi-rs/issues/31)) ([f908400](https://github.com/zhangyuang/node-ffi-rs/commit/f9084008e5484a5c2bf25abca7a940f9cf99480d))
+* use unchecked napi transform improve performance ([8100d8a](https://github.com/zhangyuang/node-ffi-rs/commit/8100d8a545b0351e013b55d9ccc2f19866e4ed67))
 
 
 
