@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 
@@ -52,17 +53,11 @@ typedef struct Person {
   int *i32Array;
   bool boolTrue;
   bool boolFalse;
+  // int longVal;
 } Person;
-void printPersonAttributes(Person *person) {
-  printf("age: %d\n", person->age);
-  printf("doubleProps: %f\n", person->doubleProps);
-  printf("name: %s\n", person->name);
-  printf("boolTrue: %d\n", person->boolTrue);
-  printf("boolFalse: %d\n", person->boolFalse);
-}
+
 extern "C" Person *getStruct(Person *person) {
-  // printPersonAttributes(person);
-  // printPersonAttributes(person->parent);
+  // printf("person %d", person->longVal);
   return person;
 }
 
@@ -92,7 +87,7 @@ extern "C" Person *createPerson() {
   person->i32Array[3] = 4;
   person->boolTrue = true;
   person->boolFalse = false;
-
+  // person->longVal = 111;
   // Allocate and initialize parent
   person->parent = (Person *)malloc(sizeof(Person));
   person->parent->doubleArray = (double *)malloc(sizeof(double) * 3);
@@ -111,7 +106,7 @@ extern "C" Person *createPerson() {
   person->parent->i32Array[2] = 7;
   person->parent->boolTrue = true;
   person->parent->boolFalse = false;
-
+  // person->parent->longVal = 222;
   return person;
 }
 typedef void (*FunctionPointer)(int a, bool b, char *c, char **d, int *e,

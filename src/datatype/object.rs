@@ -3,7 +3,7 @@ use indexmap::IndexMap;
 use libc::c_void;
 use std::alloc::{alloc, Layout};
 use std::ffi::CString;
-use std::ffi::{c_char, c_double, c_int};
+use std::ffi::{c_char, c_double, c_int, c_longlong};
 
 macro_rules! calculate_layout_for {
   ($variant:ident, $type:ty) => {
@@ -18,18 +18,20 @@ macro_rules! calculate_layout_for {
   };
 }
 calculate_layout_for!(calculate_i32, c_int);
+calculate_layout_for!(calculate_i64, c_longlong);
 calculate_layout_for!(calculate_double, c_double);
 calculate_layout_for!(calculate_boolean, bool);
 calculate_layout_for!(calculate_void, ());
 calculate_layout_for!(calculate_string, *const c_char);
 calculate_layout_for!(calculate_pointer, *const c_void);
 
-pub fn calculate_layout(map: &IndexMap<String, RsArgsValue>) -> (usize, usize) {
+pub fn calculate_struct_size(map: &IndexMap<String, RsArgsValue>) -> (usize, usize) {
   let (mut size, align, _) =
     map.iter().fold(
       (0, 0, 0),
       |(size, align, offset), (_, field_val)| match field_val {
         RsArgsValue::I32(_) => calculate_i32(size, align, offset),
+        RsArgsValue::I64(_) => calculate_i64(size, align, offset),
         RsArgsValue::Double(_) => calculate_double(size, align, offset),
         RsArgsValue::String(_) => calculate_string(size, align, offset),
         RsArgsValue::Boolean(_) => calculate_boolean(size, align, offset),
@@ -43,13 +45,17 @@ pub fn calculate_layout(map: &IndexMap<String, RsArgsValue>) -> (usize, usize) {
         }
       },
     );
-  let padding = if align > 0 { align - (size % align) } else { 0 };
+  let padding = if align > 0 && size % align != 0 {
+    align - (size % align)
+  } else {
+    0
+  };
   size += padding;
   (size, align)
 }
 
-pub unsafe fn write_object_data(map: IndexMap<String, RsArgsValue>) -> *mut c_void {
-  let (size, align) = calculate_layout(&map);
+pub unsafe fn generate_c_struct(map: IndexMap<String, RsArgsValue>) -> *mut c_void {
+  let (size, align) = calculate_struct_size(&map);
   let layout = if size > 0 {
     Layout::from_size_align(size, align).unwrap()
   } else {
@@ -66,6 +72,13 @@ pub unsafe fn write_object_data(map: IndexMap<String, RsArgsValue>) -> *mut c_vo
         field_ptr = field_ptr.offset(padding as isize);
         (field_ptr as *mut c_int).write(number);
         offset = std::mem::size_of::<c_int>();
+      }
+      RsArgsValue::I64(number) => {
+        let align = std::mem::align_of::<c_longlong>();
+        let padding = (align - (offset % align)) % align;
+        field_ptr = field_ptr.offset(padding as isize);
+        (field_ptr as *mut c_longlong).write(number);
+        offset = std::mem::size_of::<c_longlong>();
       }
       RsArgsValue::Double(double_number) => {
         let align = std::mem::align_of::<c_double>();
@@ -127,11 +140,18 @@ pub unsafe fn write_object_data(map: IndexMap<String, RsArgsValue>) -> *mut c_vo
         let align = std::mem::align_of::<*const c_void>();
         let padding = (align - (offset % align)) % align;
         field_ptr = field_ptr.offset(padding as isize);
-        let obj_ptr = write_object_data(val);
+        let obj_ptr = generate_c_struct(val);
         (field_ptr as *mut *const c_void).write(obj_ptr);
         offset = std::mem::size_of::<*const c_void>();
       }
-      _ => panic!("write_data error {:?}", field_val),
+      RsArgsValue::Void(_) => {
+        let align = std::mem::align_of::<()>();
+        let padding = (align - (offset % align)) % align;
+        field_ptr = field_ptr.offset(padding as isize);
+        (field_ptr as *mut ()).write(());
+        offset = std::mem::size_of::<()>();
+      }
+      RsArgsValue::Function(_, _) => panic!("write_data error {:?}", field_val),
     }
     field_ptr = field_ptr.offset(offset as isize);
   }
