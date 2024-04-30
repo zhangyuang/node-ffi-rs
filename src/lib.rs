@@ -21,7 +21,7 @@ use pointer::*;
 use std::alloc::{alloc, Layout};
 use std::collections::HashMap;
 use std::ffi::c_void;
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use utils::*;
 
 enum FFIJsValue {
@@ -31,7 +31,8 @@ enum FFIJsValue {
 }
 
 static mut LibraryMap: Option<HashMap<String, Library>> = None;
-
+use libffi::high::ClosureOnce4;
+static mut CC: Option<ClosureOnce4<*mut c_void, *mut c_void, *mut c_void, *mut c_void, ()>> = None;
 #[napi]
 fn open(params: OpenParams) {
   let OpenParams { library, path } = params;
@@ -236,7 +237,7 @@ unsafe fn load(
           if args_len > 10 {
             panic!("The number of function parameters needs to be less than or equal to 10")
           }
-          let res = match_args_len!(args_len, func_args_type_ptr, js_function_ptr, &env,
+          match_args_len!(args_len, func_args_type_ptr, js_function_ptr, &env,
               1 => ClosureOnce1, a
               ,2 => ClosureOnce2, a,b
               ,3 => ClosureOnce3, a,b,c
@@ -247,8 +248,7 @@ unsafe fn load(
               ,8 => ClosureOnce8, a,b,c,d,e,f,g,h
               ,9 => ClosureOnce9, a,b,c,d,e,f,g,h,i
               ,10 => ClosureOnce10, a,b,c,d,e,f,g,h,i,j
-          );
-          return res;
+          )
         }
         RsArgsValue::Object(val) => {
           let (size, _) = calculate_layout(&val);
@@ -391,6 +391,9 @@ unsafe fn load(
     r_type,
     arg_types.as_mut_ptr(),
   );
+  // extern "C" {
+  //   fn CFRunLoopRun();
+  // }
   match ret_value {
     FFIJsValue::I32(number) => {
       let ret_data_type = number_to_data_type(number);
@@ -404,9 +407,7 @@ unsafe fn load(
             arg_values_c_void.as_mut_ptr(),
           );
 
-          let result_str = CString::from_raw(result)
-            .into_string()
-            .expect(format!("{} retType is not string", func_name).as_str());
+          let result_str = CStr::from_ptr(result).to_string_lossy().to_string();
 
           Either9::A(result_str)
         }
@@ -429,6 +430,21 @@ unsafe fn load(
             arg_values_c_void.as_mut_ptr(),
           );
           Either9::C(())
+          // // let mut result = ();
+          // struct SafeFfiCif(ffi_cif);
+          // unsafe impl Send for SafeFfiCif {}
+          // let mut bar = SafeFfiCif(cif);
+          // let handle = std::thread::spawn(move || {
+          //   let cif = &mut bar;
+          //   let mut cif = cif.0;
+          //   let mut result = ();
+          //   let ptr = &mut result as *mut () as *mut c_void;
+          //   ffi_call(&mut cif, Some(*func), ptr, vec![].as_mut_ptr());
+          // });
+          // CFRunLoopRun();
+          // println!("xx");
+          // handle.join().unwrap();
+          // Either9::C(())
         }
         DataType::Double => {
           let mut result: f64 = 0.0;

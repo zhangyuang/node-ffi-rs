@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 use napi::bindgen_prelude::*;
 use napi::{JsBoolean, JsNumber, JsObject, JsString, JsUnknown};
 use std::ffi::c_void;
-use std::ffi::{c_char, c_double, c_int, CString};
+use std::ffi::{c_char, c_double, c_int, CStr};
 pub unsafe fn get_js_function_call_value(
   env: &Env,
   func_arg_type: JsUnknown,
@@ -36,11 +36,7 @@ pub unsafe fn get_js_function_call_value(
           .into_unknown(),
         DataType::String => {
           return env
-            .create_string(
-              &CString::from_raw(func_arg_ptr as *mut c_char)
-                .into_string()
-                .unwrap(),
-            )
+            .create_string(&CStr::from_ptr(func_arg_ptr as *mut c_char).to_string_lossy())
             .unwrap()
             .into_unknown();
         }
