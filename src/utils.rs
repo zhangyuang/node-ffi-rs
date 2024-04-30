@@ -6,7 +6,7 @@ use napi::{JsBoolean, JsNumber, JsObject, JsString, JsUnknown};
 use std::ffi::c_void;
 use std::ffi::{c_char, c_double, c_int, CString};
 pub unsafe fn get_js_function_call_value(
-  env: Env,
+  env: &Env,
   func_arg_type: JsUnknown,
   func_arg_ptr: *mut c_void,
 ) -> JsUnknown {
@@ -20,10 +20,12 @@ pub unsafe fn get_js_function_call_value(
           .unwrap(),
       );
       let data = match data_type {
-        DataType::I32 => env
-          .create_int32(func_arg_ptr as i32)
-          .unwrap()
-          .into_unknown(),
+        DataType::I32 => {
+          return env
+            .create_int32(func_arg_ptr as i32)
+            .unwrap()
+            .into_unknown();
+        }
         DataType::Boolean => env
           .get_boolean(if func_arg_ptr as i32 == 0 {
             false
@@ -42,6 +44,7 @@ pub unsafe fn get_js_function_call_value(
             .unwrap()
             .into_unknown();
         }
+
         DataType::Double => {
           println!("{:?}", func_arg_ptr);
           return env.create_double(1.1).unwrap().into_unknown();
@@ -76,7 +79,10 @@ pub unsafe fn get_js_function_call_value(
             let arr = create_array_from_pointer(func_arg_ptr as *mut c_double, array_len);
             rs_array_to_js_array(env, ArrayType::Double(arr)).into_unknown()
           }
-          _ => panic!("{:?} as function args is unsupported ", array_type),
+          _ => panic!(
+            "{:?} as function parameter is unsupported so far",
+            array_type
+          ),
         }
       } else {
         create_object_from_pointer(env, func_arg_ptr, args_type).into_unknown()
@@ -244,7 +250,7 @@ pub fn js_unknown_to_data_type(val: JsUnknown) -> DataType {
   }
 }
 
-pub fn rs_array_to_js_array(env: Env, val: ArrayType) -> JsObject {
+pub fn rs_array_to_js_array(env: &Env, val: ArrayType) -> JsObject {
   match val {
     ArrayType::String(arr) => {
       let mut js_array = env.create_array_with_length(arr.len()).unwrap();
@@ -332,8 +338,4 @@ pub fn jsobject_to_rs_struct(
       index_map.insert(field, val);
     });
   index_map
-}
-
-pub fn get_function_constructor(obj: JsObject) {
-  let res: JsObject = obj.get_named_property("paramsType").unwrap();
 }
