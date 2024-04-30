@@ -1,3 +1,10 @@
+
+interface RawPointer { }
+
+export interface JsExternal {
+  _externalDataPlaceholder: RawPointer;
+}
+
 export const enum DataType {
   String = 0,
   I32 = 1,
@@ -29,7 +36,7 @@ type DataTypeToType<T extends DataType> = T extends DataType.String
   : T extends DataType.Double
   ? number
   : T extends DataType.External
-  ? any
+  ? JsExternal
   : T extends DataType.U8Array
   ? number[]
   : T extends DataType.I32Array
@@ -77,16 +84,18 @@ export function close(library: string): void;
 
 export function createPointer(params: {
   paramsType: Array<FieldType>;
-  paramsValue: Array<unknown>;
-}): unknown[]
+  paramsValue: Array<JsExternal>;
+}): JsExternal[]
 
 
 export function restorePointer<T extends DataType>(params: {
   retType: Array<FieldType>;
-  paramsValue: Array<unknown>;
+  paramsValue: Array<JsExternal>;
 }): Array<DataTypeToType<T>>
 
-export function unwrapPointer(params: Array<unknown>): Array<unknown>
+export function unwrapPointer(params: Array<JsExternal>): Array<JsExternal>
+
+export function wrapPointer(params: Array<JsExternal>): Array<JsExternal>
 
 type ResultWithErrno<T, IncludeErrno extends boolean | undefined = undefined> = IncludeErrno extends true
   ? { value: T; errnoCode: number; errnoMessage: string }
