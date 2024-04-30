@@ -83,6 +83,8 @@ Note: You need to make sure that the compilation environment of the dynamic libr
 
 ## Usage
 
+View [test.ts](./test.ts) get the latest usage
+
 Here is an example of how to use ffi-rs:
 
 For below c++ code, we compile this file into a dynamic library
