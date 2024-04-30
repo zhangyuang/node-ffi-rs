@@ -131,104 +131,38 @@ unsafe fn load(env: Env, params: FFIParams) -> JsUnknown {
     r_type,
     arg_types.as_mut_ptr(),
   );
-
+  let result = malloc(std::mem::size_of::<*mut c_void>());
+  ffi_call(
+    &mut cif,
+    Some(*func),
+    result,
+    arg_values_c_void.as_mut_ptr(),
+  );
   match ret_type_rs {
     RsArgsValue::I32(number) => {
       let ret_data_type = number_to_basic_data_type(number);
       match ret_data_type {
         BasicDataType::String => {
-          let mut result: *mut c_char = malloc(std::mem::size_of::<*mut c_char>()) as *mut c_char;
-          ffi_call(
-            &mut cif,
-            Some(*func),
-            &mut result as *mut *mut c_char as *mut c_void,
-            arg_values_c_void.as_mut_ptr(),
-          );
-          let result_str = CStr::from_ptr(result).to_string_lossy().to_string();
+          let result_str = CStr::from_ptr(*(result as *mut *const c_char))
+            .to_string_lossy()
+            .to_string();
           rs_value_to_js_unknown(&env, RsArgsValue::String(result_str))
         }
-        BasicDataType::U8 => {
-          let mut result: u8 = 0;
-          ffi_call(
-            &mut cif,
-            Some(*func),
-            &mut result as *mut u8 as *mut c_void,
-            arg_values_c_void.as_mut_ptr(),
-          );
-          rs_value_to_js_unknown(&env, RsArgsValue::U8(result))
-        }
-        BasicDataType::I32 => {
-          let mut result: i32 = 0;
-          ffi_call(
-            &mut cif,
-            Some(*func),
-            &mut result as *mut i32 as *mut c_void,
-            arg_values_c_void.as_mut_ptr(),
-          );
-
-          rs_value_to_js_unknown(&env, RsArgsValue::I32(result))
-        }
-        BasicDataType::I64 => {
-          let mut result: i64 = 0;
-          ffi_call(
-            &mut cif,
-            Some(*func),
-            &mut result as *mut i64 as *mut c_void,
-            arg_values_c_void.as_mut_ptr(),
-          );
-          rs_value_to_js_unknown(&env, RsArgsValue::I64(result))
-        }
-        BasicDataType::U64 => {
-          let mut result: u64 = 0;
-          ffi_call(
-            &mut cif,
-            Some(*func),
-            &mut result as *mut u64 as *mut c_void,
-            arg_values_c_void.as_mut_ptr(),
-          );
-          rs_value_to_js_unknown(&env, RsArgsValue::U64(result))
-        }
-        BasicDataType::Void => {
-          let mut result = ();
-          ffi_call(
-            &mut cif,
-            Some(*func),
-            &mut result as *mut () as *mut c_void,
-            arg_values_c_void.as_mut_ptr(),
-          );
-          env.get_undefined().unwrap().into_unknown()
-        }
+        BasicDataType::U8 => rs_value_to_js_unknown(&env, RsArgsValue::U8(*(result as *mut u8))),
+        BasicDataType::I32 => rs_value_to_js_unknown(&env, RsArgsValue::I32(*(result as *mut i32))),
+        BasicDataType::I64 => rs_value_to_js_unknown(&env, RsArgsValue::I64(*(result as *mut i64))),
+        BasicDataType::U64 => rs_value_to_js_unknown(&env, RsArgsValue::U64(*(result as *mut u64))),
+        BasicDataType::Void => env.get_undefined().unwrap().into_unknown(),
         BasicDataType::Double => {
-          let mut result: f64 = 0.0;
-          ffi_call(
-            &mut cif,
-            Some(*func),
-            &mut result as *mut f64 as *mut c_void,
-            arg_values_c_void.as_mut_ptr(),
-          );
-          rs_value_to_js_unknown(&env, RsArgsValue::Double(result))
+          rs_value_to_js_unknown(&env, RsArgsValue::Double(*(result as *mut f64)))
         }
         BasicDataType::Boolean => {
-          let mut result: bool = false;
-          ffi_call(
-            &mut cif,
-            Some(*func),
-            &mut result as *mut bool as *mut c_void,
-            arg_values_c_void.as_mut_ptr(),
-          );
-
-          rs_value_to_js_unknown(&env, RsArgsValue::Boolean(result))
+          rs_value_to_js_unknown(&env, RsArgsValue::Boolean(*(result as *mut bool)))
         }
         BasicDataType::External => {
-          let mut result: *mut c_void = malloc(std::mem::size_of::<*mut c_void>()) as *mut c_void;
-          ffi_call(
-            &mut cif,
-            Some(*func),
-            &mut result as *mut _ as *mut c_void,
-            arg_values_c_void.as_mut_ptr(),
-          );
-
-          let js_external = env.create_external(result, None).unwrap();
+          let js_external = env
+            .create_external(*(result as *mut *mut c_void), None)
+            .unwrap();
           rs_value_to_js_unknown(&env, RsArgsValue::External(js_external))
         }
       }
@@ -240,62 +174,28 @@ unsafe fn load(env: Env, params: FFIParams) -> JsUnknown {
         let (array_len, array_type) = array_desc.unwrap();
         match array_type {
           RefDataType::U8Array => {
-            let mut result: *mut c_uchar =
-              malloc(std::mem::size_of::<*mut c_uchar>()) as *mut c_uchar;
-            ffi_call(
-              &mut cif,
-              Some(*func),
-              &mut result as *mut _ as *mut c_void,
-              arg_values_c_void.as_mut_ptr(),
-            );
-
-            let arr = create_array_from_pointer(result, array_len);
-
+            let arr = create_array_from_pointer(*(result as *mut *mut c_uchar), array_len);
             if !result.is_null() {
-              libc::free(result as *mut c_void);
+              libc::free(result);
             }
             rs_value_to_js_unknown(&env, get_safe_buffer(&env, arr, false))
           }
           RefDataType::I32Array => {
-            let mut result: *mut c_int = malloc(std::mem::size_of::<*mut c_int>()) as *mut c_int;
-            ffi_call(
-              &mut cif,
-              Some(*func),
-              &mut result as *mut _ as *mut c_void,
-              arg_values_c_void.as_mut_ptr(),
-            );
-            let arr = create_array_from_pointer(result, array_len);
+            let arr = create_array_from_pointer(*(result as *mut *mut c_int), array_len);
             if !result.is_null() {
-              libc::free(result as *mut c_void);
+              libc::free(result);
             }
             rs_value_to_js_unknown(&env, RsArgsValue::I32Array(arr))
           }
           RefDataType::DoubleArray => {
-            let mut result: *mut c_double =
-              malloc(std::mem::size_of::<*mut c_double>()) as *mut c_double;
-            ffi_call(
-              &mut cif,
-              Some(*func),
-              &mut result as *mut _ as *mut c_void,
-              arg_values_c_void.as_mut_ptr(),
-            );
-            let arr = create_array_from_pointer(result, array_len);
+            let arr = create_array_from_pointer(*(result as *mut *mut c_double), array_len);
             if !result.is_null() {
-              libc::free(result as *mut c_void);
+              libc::free(result);
             }
             rs_value_to_js_unknown(&env, RsArgsValue::DoubleArray(arr))
           }
           RefDataType::StringArray => {
-            let mut result: *mut *mut c_char =
-              malloc(std::mem::size_of::<*mut *mut c_char>()) as *mut *mut c_char;
-
-            ffi_call(
-              &mut cif,
-              Some(*func),
-              &mut result as *mut _ as *mut c_void,
-              arg_values_c_void.as_mut_ptr(),
-            );
-            let arr = create_array_from_pointer(result, array_len);
+            let arr = create_array_from_pointer(*(result as *mut *mut *mut c_char), array_len);
             if !result.is_null() {
               libc::free(result as *mut c_void);
             }
@@ -304,14 +204,8 @@ unsafe fn load(env: Env, params: FFIParams) -> JsUnknown {
         }
       } else {
         // raw object
-        let mut result: *mut c_void = malloc(std::mem::size_of::<*mut *mut c_void>());
-        ffi_call(
-          &mut cif,
-          Some(*func),
-          &mut result as *mut _ as *mut c_void,
-          arg_values_c_void.as_mut_ptr(),
-        );
-        let rs_struct = create_rs_struct_from_pointer(&env, result, &obj, false);
+        let rs_struct =
+          create_rs_struct_from_pointer(&env, *(result as *mut *mut c_void), &obj, false);
         rs_value_to_js_unknown(&env, RsArgsValue::Object(rs_struct))
       }
     }
