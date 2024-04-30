@@ -69,6 +69,10 @@ Currently, ffi-rs only supports there types of parameters and return values. How
 - [object](#struct)(Nested object is also supported at the latest version)
 - [function](#function)
 
+### C++ Class
+
+If you want to call c++ function, see [turorial](#c++)
+
 ## Support Platform
 
 Note: You need to make sure that the compilation environment of the dynamic library is the same as the installation and runtime environment of the `ffi-rs` call.
@@ -674,3 +678,50 @@ load({
 The function parameters supports type are all in the example above (double type is unsupported at this time), we will support more types in the future
 
 Attention，since the vast majority of scenaros developers pass js function to c as a callback, so `ffi-rs` will create [threadsafe_function](https://nodejs.org/api/n-api.html#napi_threadsafe_function) from jsfunction which means the jsfunction will be called asynchronous, and Node.js process will not be exited automatically
+
+
+## C++
+
+We'll provide more examples from real-worl scenarios, if you have any ideas, please submit an issue
+
+### class type
+
+In C++ scene, we can use `DataType.External` to get class type pointer
+
+In the code below, we use C types to wrap C++ types such as convert `char *` to `std::string` and return class pointer
+
+```cpp
+MyClass *createMyClass(std::string name, int age) {
+  return new MyClass(name, age);
+}
+
+extern "C" MyClass *createMyClassFromC(const char *name, int age) {
+  return createMyClass(std::string(name), age);
+}
+
+extern "C" void printMyClass(MyClass *instance) { instance->print(); }
+```
+
+And then, we can call it by above code
+
+```js
+const classPointer = load({
+  library: "libsum",
+  funcName: "createMyClassFromC",
+  retType: DataType.External,
+  paramsType: [
+    DataType.String,
+    DataType.I32
+  ],
+  paramsValue: ["classString", 26],
+});
+load({
+  library: "libsum",
+  funcName: "printMyClass",
+  retType: DataType.External,
+  paramsType: [
+    DataType.External,
+  ],
+  paramsValue: [classPointer],
+})
+```
