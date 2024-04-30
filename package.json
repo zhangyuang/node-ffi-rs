@@ -1,6 +1,6 @@
 {
   "name": "ffi-rs",
-  "version": "1.0.29",
+  "version": "1.0.30",
   "main": "index.js",
   "types": "index.d.ts",
   "description": "A module written in Rust and N-API provides interface (FFI) features for Node.js",
@@ -20,8 +20,17 @@
     "type": "git",
     "url": "git+https://github.com/zhangyuang/node-ffi-rs.git"
   },
-  "keywords": ["ffi", "rust", "node.js", "napi"],
-  "files": ["index.js", "index.d.ts", "README.md"],
+  "keywords": [
+    "ffi",
+    "rust",
+    "node.js",
+    "napi"
+  ],
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "README.md"
+  ],
   "license": "MIT",
   "dependencies": {
     "@napi-rs/cli": "^2.15.2",

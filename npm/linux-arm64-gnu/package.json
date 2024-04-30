@@ -1,13 +1,21 @@
 {
   "name": "@yuuang/ffi-rs-linux-arm64-gnu",
-  "version": "1.0.29",
-  "os": ["linux"],
-  "cpu": ["arm64"],
+  "version": "1.0.30",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "arm64"
+  ],
   "main": "ffi-rs.linux-arm64-gnu.node",
-  "files": ["ffi-rs.linux-arm64-gnu.node"],
+  "files": [
+    "ffi-rs.linux-arm64-gnu.node"
+  ],
   "license": "MIT",
   "engines": {
     "node": ">= 12"
   },
-  "libc": ["glibc"]
+  "libc": [
+    "glibc"
+  ]
 }

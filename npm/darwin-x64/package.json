@@ -1,10 +1,16 @@
 {
   "name": "@yuuang/ffi-rs-darwin-x64",
-  "version": "1.0.29",
-  "os": ["darwin"],
-  "cpu": ["x64"],
+  "version": "1.0.30",
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "x64"
+  ],
   "main": "ffi-rs.darwin-x64.node",
-  "files": ["ffi-rs.darwin-x64.node"],
+  "files": [
+    "ffi-rs.darwin-x64.node"
+  ],
   "license": "MIT",
   "engines": {
     "node": ">= 12"
