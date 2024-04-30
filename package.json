@@ -1,6 +1,6 @@
 {
   "name": "ffi-rs",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "main": "index.js",
   "types": "index.d.ts",
   "description": "A module written in Rust and N-API provides interface (FFI) features for Node.js",
@@ -51,11 +51,11 @@
     "version": "napi version"
   },
   "optionalDependencies": {
-    "ffi-rs-win32-x64-msvc": "1.0.6",
-    "ffi-rs-darwin-x64": "1.0.6",
-    "ffi-rs-linux-x64-gnu": "1.0.6",
-    "ffi-rs-darwin-arm64": "1.0.6",
-    "ffi-rs-linux-arm64-gnu": "1.0.6",
-    "ffi-rs-linux-arm64-musl": "1.0.6"
+    "@yuuang/ffi-rs-win32-x64-msvc": "1.0.6",
+    "@yuuang/ffi-rs-darwin-x64": "1.0.6",
+    "@yuuang/ffi-rs-linux-x64-gnu": "1.0.6",
+    "@yuuang/ffi-rs-darwin-arm64": "1.0.6",
+    "@yuuang/ffi-rs-linux-arm64-gnu": "1.0.6",
+    "@yuuang/ffi-rs-linux-arm64-musl": "1.0.6"
   }
 }
