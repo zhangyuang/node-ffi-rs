@@ -11,6 +11,7 @@ export const enum DataType {
   Void = 7,
   I64 = 8,
   U8 = 9,
+  U8Array = 10,
 }
 
 type DataTypeToType<T extends DataType> = T extends DataType.String
@@ -23,17 +24,19 @@ type DataTypeToType<T extends DataType> = T extends DataType.String
         ? number
         : T extends DataType.Double
           ? number
-          : T extends DataType.I32Array
-            ? number[]
-            : T extends DataType.StringArray
-              ? string[]
-              : T extends DataType.DoubleArray
-                ? number[]
-                : T extends DataType.Boolean
-                  ? boolean
-                  : T extends DataType.Void
-                    ? undefined
-                    : never;
+          : T extends DataType.U8Array
+            ? number
+            : T extends DataType.I32Array
+              ? number[]
+              : T extends DataType.StringArray
+                ? string[]
+                : T extends DataType.DoubleArray
+                  ? number[]
+                  : T extends DataType.Boolean
+                    ? boolean
+                    : T extends DataType.Void
+                      ? undefined
+                      : never;
 
 type DataFieldTypeToType<T extends DataFieldType<DataType>> = T extends DataType
   ? DataTypeToType<T>

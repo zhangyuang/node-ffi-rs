@@ -8,7 +8,7 @@ mod datatype;
 mod define;
 use define::*;
 use libc::malloc;
-use libc::{c_char, c_double, c_int};
+use libc::{c_char, c_double, c_int, c_uchar};
 use libffi_sys::{
   ffi_abi_FFI_DEFAULT_ABI, ffi_call, ffi_cif, ffi_prep_cif, ffi_type, ffi_type_double,
   ffi_type_pointer, ffi_type_sint32, ffi_type_sint64, ffi_type_uint8, ffi_type_void,
@@ -114,6 +114,20 @@ unsafe fn load(
                 .unwrap();
               (arg_type, RsArgsValue::String(arg_val))
             }
+            DataType::U8Array => {
+              let arg_type = &mut ffi_type_pointer as *mut ffi_type;
+              let js_object = value.coerce_to_object().unwrap();
+              let arg_val = vec![0; js_object.get_array_length().unwrap() as usize]
+                .iter()
+                .enumerate()
+                .map(|(index, _)| {
+                  let js_element: JsNumber = js_object.get_element(index as u32).unwrap();
+                  return js_element.get_uint32().unwrap() as u8;
+                })
+                .collect::<Vec<u8>>();
+
+              (arg_type, RsArgsValue::U8Array(arg_val))
+            }
             DataType::I32Array => {
               let arg_type = &mut ffi_type_pointer as *mut ffi_type;
               let js_object = value.coerce_to_object().unwrap();
@@ -201,6 +215,13 @@ unsafe fn load(
       RsArgsValue::Double(val) => {
         let c_double = Box::new(val);
         Box::into_raw(c_double) as *mut c_void
+      }
+      RsArgsValue::U8Array(val) => {
+        let ptr = val.as_ptr();
+        let boxed_ptr = Box::new(ptr);
+        let raw_ptr = Box::into_raw(boxed_ptr);
+        std::mem::forget(val);
+        return raw_ptr as *mut c_void;
       }
       RsArgsValue::I32Array(val) => {
         let ptr = val.as_ptr();
@@ -415,6 +436,24 @@ unsafe fn load(
         // array
         let (array_len, array_type) = array_desc.unwrap();
         match array_type {
+          RefDataType::U8Array => {
+            let mut result: *mut c_uchar =
+              malloc(std::mem::size_of::<*mut c_uchar>()) as *mut c_uchar;
+            ffi_call(
+              &mut cif,
+              Some(*func),
+              &mut result as *mut _ as *mut c_void,
+              arg_values_c_void.as_mut_ptr(),
+            );
+            let arr = create_array_from_pointer(result, array_len)
+              .into_iter()
+              .map(|item| env.create_uint32(item as u32).unwrap())
+              .collect();
+            if !result.is_null() {
+              libc::free(result as *mut c_void);
+            }
+            Either7::D(arr)
+          }
           RefDataType::I32Array => {
             let mut result: *mut c_int = malloc(std::mem::size_of::<*mut c_int>()) as *mut c_int;
             ffi_call(

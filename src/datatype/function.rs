@@ -2,7 +2,7 @@ use super::object_generate::create_rs_struct_from_pointer;
 use super::pointer::*;
 use crate::define::*;
 use std::ffi::c_void;
-use std::ffi::{c_char, c_double, c_int, CStr};
+use std::ffi::{c_char, c_double, c_int, c_uchar, CStr};
 
 // change c function call value to RsArgsValue from bare pointer
 pub unsafe fn get_js_function_call_value(
@@ -56,6 +56,10 @@ pub unsafe fn get_js_function_call_value(
           RefDataType::I32Array => {
             let arr = create_array_from_pointer(func_val_ptr as *mut c_int, array_len);
             return RsArgsValue::I32Array(arr);
+          }
+          RefDataType::U8Array => {
+            let arr = create_array_from_pointer(func_val_ptr as *mut c_uchar, array_len);
+            return RsArgsValue::U8Array(arr);
           }
           RefDataType::DoubleArray => {
             let arr = create_array_from_pointer(func_val_ptr as *mut c_double, array_len);

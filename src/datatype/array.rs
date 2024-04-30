@@ -26,6 +26,7 @@ where
 }
 
 pub enum ArrayType {
+  U8(Vec<u8>),
   I32(Vec<i32>),
   Double(Vec<f64>),
   String(Vec<String>),
@@ -64,6 +65,15 @@ pub fn rs_array_to_js_array(env: &Env, val: ArrayType) -> JsObject {
       arr.into_iter().enumerate().for_each(|(index, item)| {
         js_array
           .set_element(index as u32, env.create_int32(item).unwrap())
+          .unwrap();
+      });
+      js_array
+    }
+    ArrayType::U8(arr) => {
+      let mut js_array = env.create_array_with_length(arr.len()).unwrap();
+      arr.into_iter().enumerate().for_each(|(index, item)| {
+        js_array
+          .set_element(index as u32, env.create_uint32(item as u32).unwrap())
           .unwrap();
       });
       js_array
