@@ -50,65 +50,58 @@ pub unsafe fn get_arg_types_values(
   env: &Env,
   params_type: Vec<JsUnknown>,
   params_value: Vec<JsUnknown>,
-) -> (Vec<*mut ffi_type>, Vec<RsArgsValue>) {
-  let (arg_types, arg_values): (Vec<*mut ffi_type>, Vec<RsArgsValue>) = params_type
+) -> napi::Result<(Vec<*mut ffi_type>, Vec<RsArgsValue>)> {
+  return params_type
     .into_iter()
     .zip(params_value.into_iter())
     .map(|(param, value)| {
-      let value_type = param.get_type().unwrap();
-      match value_type {
+      let value_type = param.get_type()?;
+      let res = match value_type {
         ValueType::Number => {
-          let param_data_type =
-            number_to_data_type(param.coerce_to_number().unwrap().try_into().unwrap());
+          let param_data_type = number_to_data_type(param.coerce_to_number()?.try_into()?);
           match param_data_type {
             DataType::I32 => {
               let arg_type = &mut ffi_type_sint32 as *mut ffi_type;
-              let arg_val: i32 = value.coerce_to_number().unwrap().try_into().unwrap();
+              let arg_val: i32 = value.coerce_to_number()?.try_into()?;
               (arg_type, RsArgsValue::I32(arg_val))
             }
             DataType::U8 => {
               let arg_type = &mut ffi_type_sint32 as *mut ffi_type;
-              let arg_val: u32 = value.coerce_to_number().unwrap().try_into().unwrap();
+              let arg_val: u32 = value.coerce_to_number()?.try_into()?;
               (arg_type, RsArgsValue::U8(arg_val as u8))
             }
             DataType::I64 => {
               let arg_type = &mut ffi_type_sint64 as *mut ffi_type;
-              let arg_val: i64 = value.coerce_to_number().unwrap().try_into().unwrap();
+              let arg_val: i64 = value.coerce_to_number()?.try_into()?;
               (arg_type, RsArgsValue::I64(arg_val))
             }
             DataType::U64 => {
               let arg_type = &mut ffi_type_uint64 as *mut ffi_type;
-              let arg_val: i64 = value.coerce_to_number().unwrap().try_into().unwrap();
+              let arg_val: i64 = value.coerce_to_number()?.try_into()?;
               (arg_type, RsArgsValue::U64(arg_val as u64))
             }
             DataType::Double => {
               let arg_type = &mut ffi_type_double as *mut ffi_type;
-              let arg_val: f64 = value.coerce_to_number().unwrap().try_into().unwrap();
+              let arg_val: f64 = value.coerce_to_number()?.try_into()?;
               (arg_type, RsArgsValue::Double(arg_val))
             }
             DataType::String => {
               let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-              let arg_val: String = value
-                .coerce_to_string()
-                .unwrap()
-                .into_utf8()
-                .unwrap()
-                .try_into()
-                .unwrap();
+              let arg_val: String = value.coerce_to_string()?.into_utf8()?.try_into()?;
               (arg_type, RsArgsValue::String(arg_val))
             }
             DataType::U8Array => {
               let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-              let js_buffer: JsBuffer = value.try_into().unwrap();
+              let js_buffer: JsBuffer = value.try_into()?;
               (
                 arg_type,
-                RsArgsValue::U8Array(Some(js_buffer.into_value().unwrap()), None),
+                RsArgsValue::U8Array(Some(js_buffer.into_value()?), None),
               )
             }
             DataType::I32Array => {
               let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-              let js_object = value.coerce_to_object().unwrap();
-              let arg_val = vec![0; js_object.get_array_length().unwrap() as usize]
+              let js_object = value.coerce_to_object()?;
+              let arg_val = vec![0; js_object.get_array_length()? as usize]
                 .iter()
                 .enumerate()
                 .map(|(index, _)| {
@@ -121,8 +114,8 @@ pub unsafe fn get_arg_types_values(
             }
             DataType::DoubleArray => {
               let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-              let js_object = value.coerce_to_object().unwrap();
-              let arg_val = vec![0; js_object.get_array_length().unwrap() as usize]
+              let js_object = value.coerce_to_object()?;
+              let arg_val = vec![0; js_object.get_array_length()? as usize]
                 .iter()
                 .enumerate()
                 .map(|(index, _)| {
@@ -135,13 +128,13 @@ pub unsafe fn get_arg_types_values(
             }
             DataType::StringArray => {
               let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-              let js_object = value.coerce_to_object().unwrap();
+              let js_object = value.coerce_to_object()?;
               let arg_val = js_array_to_string_array(js_object);
               (arg_type, RsArgsValue::StringArray(arg_val))
             }
             DataType::Boolean => {
               let arg_type = &mut ffi_type_uint8 as *mut ffi_type;
-              let arg_val: bool = value.coerce_to_bool().unwrap().get_value().unwrap();
+              let arg_val: bool = value.coerce_to_bool()?.get_value()?;
               (arg_type, RsArgsValue::Boolean(arg_val))
             }
             DataType::Void => {
@@ -150,22 +143,22 @@ pub unsafe fn get_arg_types_values(
             }
             DataType::External => {
               let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-              let js_external: JsExternal = value.try_into().unwrap();
+              let js_external: JsExternal = value.try_into()?;
               (arg_type, RsArgsValue::External(js_external))
             }
           }
         }
         ValueType::Object => {
-          let params_type_object: JsObject = param.coerce_to_object().unwrap();
+          let params_type_object: JsObject = param.coerce_to_object()?;
           let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-          let params_value_object = value.coerce_to_object().unwrap();
+          let params_value_object = value.coerce_to_object()?;
           let index_map =
             get_params_value_rs_struct(&env, &params_type_object, &params_value_object);
           (arg_type, RsArgsValue::Object(index_map))
         }
         ValueType::Function => {
-          let params_type_function: JsFunction = param.try_into().unwrap();
-          let params_val_function: JsFunction = value.try_into().unwrap();
+          let params_type_function: JsFunction = param.try_into()?;
+          let params_val_function: JsFunction = value.try_into()?;
           let arg_type = &mut ffi_type_pointer as *mut ffi_type;
           (
             arg_type,
@@ -173,11 +166,16 @@ pub unsafe fn get_arg_types_values(
           )
         }
         _ => panic!("unsupported params type {:?}", value_type),
-      }
+      };
+      Ok(res)
     })
-    .unzip();
-  (arg_types, arg_values)
+    .collect::<napi::Result<Vec<(*mut ffi_type, RsArgsValue)>>>()
+    .map(|pairs| {
+      let (arg_types, arg_values) = pairs.into_iter().unzip();
+      (arg_types, arg_values)
+    });
 }
+
 #[macro_export]
 macro_rules! match_args_len {
  ($env:ident, $args_len:ident, $tsfn_ptr:expr, $func_args_type_rs_ptr:expr,  $($num:literal => $closure:ident, $($arg:ident),*),*) => {
