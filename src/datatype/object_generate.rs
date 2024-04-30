@@ -2,6 +2,7 @@ use super::array::*;
 use super::buffer::*;
 use super::object_calculate::get_size_align;
 use super::pointer::*;
+use crate::utils::dataprocess::get_array_desc;
 
 use crate::define::*;
 use indexmap::IndexMap;
@@ -185,20 +186,6 @@ pub unsafe fn create_rs_struct_from_pointer(
   rs_struct
 }
 
-pub fn get_array_desc(obj: &IndexMap<String, RsArgsValue>) -> Option<(usize, RefDataType)> {
-  if obj.get(ARRAY_LENGTH_TAG).is_none() {
-    return None;
-  }
-  let (mut array_len, mut array_type) = (0, 0);
-  if let RsArgsValue::I32(number) = obj.get(ARRAY_LENGTH_TAG).unwrap() {
-    array_len = *number as usize
-  }
-  if let RsArgsValue::I32(number) = obj.get(ARRAY_TYPE_TAG).unwrap() {
-    array_type = *number
-  }
-  let array_type = number_to_ref_data_type(array_type);
-  Some((array_len, array_type))
-}
 pub fn create_js_object_from_rs_map(
   env: &Env,
   rs_struct: IndexMap<String, RsArgsValue>,
@@ -239,7 +226,7 @@ pub fn rs_value_to_js_unknown(env: &Env, data: RsArgsValue) -> JsUnknown {
     }
     RsArgsValue::Object(obj) => create_js_object_from_rs_map(env, obj).into_unknown(),
     RsArgsValue::External(val) => val.into_unknown(),
-    RsArgsValue::Void(_) => panic!("void cannot be as a call param type"),
+    RsArgsValue::Void(_) => env.get_undefined().unwrap().into_unknown(),
     RsArgsValue::Function(_, _) => panic!("function need to be improved"),
   };
 }
