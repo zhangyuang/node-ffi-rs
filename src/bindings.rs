@@ -74,9 +74,9 @@ fn bindgen_test_layout_Parent() {
   );
 }
 pub type FunctionPointer =
-  ::std::option::Option<unsafe extern "C" fn(arg1: *const ::std::os::raw::c_char)>;
+  ::std::option::Option<unsafe extern "C" fn(a: ::std::os::raw::c_int, b: ::std::os::raw::c_int)>;
 extern "C" {
-  pub fn callFunction(func: FunctionPointer);
+  pub fn callFunction(func: FunctionPointer) -> ::std::os::raw::c_int;
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]

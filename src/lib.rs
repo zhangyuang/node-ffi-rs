@@ -1,6 +1,10 @@
 #[macro_use]
 extern crate napi_derive;
+mod define;
+mod utils;
+use define::{number_to_data_type, DataType};
 use napi::bindgen_prelude::*;
+use utils::get_js_function_call_value;
 
 use indexmap::IndexMap;
 use libc::malloc;
@@ -26,36 +30,9 @@ pub enum RsArgsValue {
   Object(IndexMap<String, RsArgsValue>),
   Boolean(bool),
   Void(()),
-  Function(JsFunction),
+  Function(JsFunction, JsFunction),
 }
 
-#[napi]
-#[derive(Debug)]
-pub enum DataType {
-  String = 0,
-  I32 = 1,
-  Double = 2,
-  I32Array = 3,
-  StringArray = 4,
-  DoubleArray = 5,
-  Boolean = 6,
-  Function = 7,
-  Void = 8,
-}
-pub fn number_to_data_type(value: i32) -> DataType {
-  match value {
-    0 => DataType::String,
-    1 => DataType::I32,
-    2 => DataType::Double,
-    3 => DataType::I32Array,
-    4 => DataType::StringArray,
-    5 => DataType::DoubleArray,
-    6 => DataType::Boolean,
-    7 => DataType::Function,
-    8 => DataType::Void,
-    _ => panic!("unknow DataType"),
-  }
-}
 enum FFIJsValue {
   I32(i32),
   JsObject(JsObject),
@@ -202,11 +179,6 @@ fn load(
                 let arg_type = &mut ffi_type_void as *mut ffi_type;
                 (arg_type, RsArgsValue::Void(()))
               }
-              DataType::Function => {
-                let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-                let arg_val: JsFunction = value.try_into().unwrap();
-                (arg_type, RsArgsValue::Function(arg_val))
-              }
               _ => panic!(""),
             }
           }
@@ -253,6 +225,15 @@ fn load(
             }
             let index_map = jsobject_to_rs_struct(params_type_object, params_value_object);
             (arg_type, RsArgsValue::Object(index_map))
+          }
+          ValueType::Function => {
+            let params_type_function: JsFunction = param.try_into().unwrap();
+            let params_val_function: JsFunction = value.try_into().unwrap();
+            let arg_type = &mut ffi_type_pointer as *mut ffi_type;
+            (
+              arg_type,
+              RsArgsValue::Function(params_type_function, params_val_function),
+            )
           }
           _ => panic!("unknow params type"),
         }
@@ -308,23 +289,33 @@ fn load(
           Box::into_raw(c_bool) as *mut c_void
         }
         RsArgsValue::Void(_) => Box::into_raw(Box::new(())) as *mut c_void,
-        RsArgsValue::Function(js_function) => {
-          use libffi::high::{Closure2, Closure4};
-          // let lambda = |x: *mut c_void, y: *const c_void| {
-          //   let foo = env.create_int32(x as i32).unwrap().into_unknown();
-          //   let bar = env.create_string("bar").unwrap().into_unknown();
-          //   js_function.call(None, &[foo, bar]).unwrap();
-          //   return x as i32 + y as i32;
-          // };
-          // let closure = Box::into_raw(Box::new(Closure2::new(&lambda)));
-          let lambda = |a: *mut c_void, b: *const c_void, c: *const c_void, d: *const c_void| {
-            // let a = env.create_int32(a as i32);
-            // let b = env.create_string(&CString::from_raw(b as *mut c_char).into_string().unwrap());
-            // let c = env.create_string(&CString::from_raw(c as *mut c_char).into_string().unwrap());
-            println!("rust{:?}", a as i32)
+        RsArgsValue::Function(func_desc, js_function) => {
+          let func_desc_obj = func_desc
+            .call_without_args(None)
+            .unwrap()
+            .coerce_to_object()
+            .unwrap();
+          let func_args: JsObject = func_desc_obj.get_named_property("paramsType").unwrap();
+          match func_args.get_array_length().unwrap() {
+            0 => {
+              use libffi::high::Closure0;
+              let lambda = || {
+                js_function.call_without_args(None).unwrap();
+              };
+              let closure = Box::into_raw(Box::new(Closure0::new(&lambda)));
+              return std::mem::transmute((*closure).code_ptr());
+            }
+            1 => {
+              use libffi::high::Closure1;
+              let lambda = |a: *mut c_void| {
+                let value = func_args.get_element::<JsUnknown>(0).unwrap();
+                let foo = get_js_function_call_value(env, value, a);
+              };
+              let closure = Box::into_raw(Box::new(Closure1::new(&lambda)));
+              return std::mem::transmute((*closure).code_ptr());
+            }
+            _ => panic!("func_args get array error"),
           };
-          let closure = Box::into_raw(Box::new(Closure4::new(&lambda)));
-          return std::mem::transmute((*closure).code_ptr());
         }
         RsArgsValue::Object(val) => {
           fn calculate_layout(map: &IndexMap<String, RsArgsValue>) -> (usize, usize) {
