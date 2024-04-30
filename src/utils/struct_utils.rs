@@ -62,19 +62,10 @@ pub unsafe fn create_rs_struct_from_pointer(
       }
     }
     if let RsArgsValue::Object(obj) = val {
-      if obj.get(ARRAY_LENGTH_TAG).is_some() {
+      let array_desc = get_array_desc(obj);
+      if array_desc.is_some() {
         // array
-        let array_len = if let RsArgsValue::I32(number) = obj.get(ARRAY_LENGTH_TAG).unwrap() {
-          *number as usize
-        } else {
-          0 as usize
-        };
-        let array_type = if let RsArgsValue::I32(number) = obj.get(ARRAY_TYPE_TAG).unwrap() {
-          *number
-        } else {
-          -1
-        };
-        let array_type = number_to_ref_data_type(array_type);
+        let (array_len, array_type) = array_desc.unwrap();
         match array_type {
           RefDataType::StringArray => {
             let align = std::mem::align_of::<*const *const c_char>();
@@ -173,8 +164,9 @@ pub fn get_params_value_rs_struct(
         }
 
         ValueType::Object => {
-          let args_type = field_type.coerce_to_object().unwrap();
-          let map = get_params_value_rs_struct(&args_type, &args_type);
+          let params_type = field_type.coerce_to_object().unwrap();
+          let params_value: JsObject = params_value_object.get_named_property(&field).unwrap();
+          let map = get_params_value_rs_struct(&params_type, &params_value);
           index_map.insert(field, RsArgsValue::Object(map));
         }
         _ => panic!(
@@ -220,7 +212,21 @@ pub fn type_define_to_rs_struct(params_type: &JsObject) -> IndexMap<String, RsAr
   index_map
 }
 
-pub unsafe fn rs_value_to_js_unknown(env: &Env, data: RsArgsValue) -> JsUnknown {
+pub fn get_array_desc(obj: &IndexMap<String, RsArgsValue>) -> Option<(usize, RefDataType)> {
+  if obj.get(ARRAY_LENGTH_TAG).is_none() {
+    return None;
+  }
+  let (mut array_len, mut array_type) = (0, 0);
+  if let RsArgsValue::I32(number) = obj.get(ARRAY_LENGTH_TAG).unwrap() {
+    array_len = *number as usize
+  }
+  if let RsArgsValue::I32(number) = obj.get(ARRAY_TYPE_TAG).unwrap() {
+    array_type = *number
+  }
+  let array_type = number_to_ref_data_type(array_type);
+  Some((array_len, array_type))
+}
+pub fn rs_value_to_js_unknown(env: &Env, data: RsArgsValue) -> JsUnknown {
   return match data {
     RsArgsValue::I32(number) => env.create_int32(number as i32).unwrap().into_unknown(),
     RsArgsValue::Boolean(val) => env.get_boolean(val).unwrap().into_unknown(),
