@@ -2,9 +2,12 @@
 extern crate napi_derive;
 mod define;
 mod utils;
-use define::{number_to_data_type, DataType};
+use define::{number_to_data_type, DataType, RsArgsValue};
 use napi::bindgen_prelude::*;
-use utils::{align_ptr, get_js_function_call_value, js_array_to_string_array};
+use utils::{
+  align_ptr, calculate_layout, get_data_type_size_align, get_js_function_call_value,
+  js_array_to_string_array,
+};
 
 use indexmap::IndexMap;
 use libc::malloc;
@@ -19,19 +22,6 @@ use std::alloc::{alloc, Layout};
 use std::collections::HashMap;
 use std::ffi::c_void;
 use std::ffi::CString;
-
-pub enum RsArgsValue {
-  String(String),
-  I32(i32),
-  Double(f64),
-  I32Array(Vec<i32>),
-  StringArray(Vec<String>),
-  DoubleArray(Vec<f64>),
-  Object(IndexMap<String, RsArgsValue>),
-  Boolean(bool),
-  Void(()),
-  Function(JsFunction, JsFunction),
-}
 
 enum FFIJsValue {
   I32(i32),
@@ -317,41 +307,6 @@ fn load(
           };
         }
         RsArgsValue::Object(val) => {
-          fn calculate_layout(map: &IndexMap<String, RsArgsValue>) -> (usize, usize) {
-            let (size, align) =
-              map
-                .iter()
-                .fold((0, 0), |(size, align), (_, field_val)| match field_val {
-                  RsArgsValue::I32(_) => {
-                    let align = align.max(std::mem::align_of::<c_int>());
-                    let size = size + std::mem::size_of::<c_int>();
-                    (size, align)
-                  }
-                  RsArgsValue::Double(_) => {
-                    let align = align.max(std::mem::align_of::<c_double>());
-                    let size = size + std::mem::size_of::<c_double>();
-                    (size, align)
-                  }
-                  RsArgsValue::String(_) => {
-                    let align = align.max(std::mem::align_of::<*const c_char>());
-                    let size = size + std::mem::size_of::<*const c_char>();
-                    (size, align)
-                  }
-                  RsArgsValue::Object(val) => {
-                    let (obj_size, obj_align) = calculate_layout(val);
-                    let align = align.max(obj_align);
-                    let size = size + obj_size;
-                    (size, align)
-                  }
-                  RsArgsValue::StringArray(_) => {
-                    let align = align.max(std::mem::align_of::<*const *const c_char>());
-                    let size = size + std::mem::size_of::<*const *const c_char>();
-                    (size, align)
-                  }
-                  _ => panic!("calculate_layout"),
-                });
-            (size, align)
-          }
           let (size, align) = calculate_layout(&val);
           let layout = if size > 0 && align > 0 {
             Layout::from_size_align(size, align).unwrap()
@@ -601,27 +556,8 @@ fn load(
             let (size, mut field_vec, mut align) = pre;
             let val: JsNumber = ret_object.get_named_property(&current).unwrap();
             let data_type = number_to_data_type(val.try_into().unwrap());
-            let field_size = match data_type {
-              DataType::I32 => {
-                align = align.max(std::mem::align_of::<c_int>());
-                std::mem::size_of::<c_int>()
-              }
-              DataType::String => {
-                align = align.max(std::mem::align_of::<*const c_char>());
-                std::mem::size_of::<*const c_char>()
-              }
-              DataType::Double => {
-                align = align.max(std::mem::align_of::<c_double>());
-                std::mem::size_of::<c_double>()
-              }
-              DataType::StringArray => {
-                align = align.max(std::mem::align_of::<*const *const c_char>());
-                std::mem::size_of::<*const *const c_char>()
-              }
-              _ => {
-                panic!("{:?} Not available as a field type at this time", data_type)
-              }
-            };
+            let (field_size, field_align) = get_data_type_size_align(data_type);
+            align = align.max(field_align);
             field_vec.push(current);
             (size + field_size, field_vec, align)
           });
@@ -633,7 +569,6 @@ fn load(
           arg_values_c_void.as_mut_ptr(),
         );
         let mut js_object = env.create_object().unwrap();
-        let mut offset = 0;
         let mut field_ptr = result;
         field_vec.into_iter().for_each(|field| {
           let val: JsNumber = ret_object.get_named_property(&field).unwrap();
