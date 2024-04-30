@@ -1,8 +1,10 @@
 #[macro_use]
 extern crate napi_derive;
+
 #[macro_use]
 mod ffi_macro;
-
+#[macro_use]
+extern crate lazy_static;
 mod define;
 mod utils;
 use define::*;
@@ -14,7 +16,7 @@ use libffi_sys::{
   ffi_type_pointer, ffi_type_sint32, ffi_type_uint8, ffi_type_void,
 };
 use libloading::{Library, Symbol};
-use napi::bindgen_prelude::*;
+use napi::{bindgen_prelude::*, JsBoolean};
 use napi::{Env, JsFunction, JsNumber, JsObject, JsString, JsUnknown};
 
 use std::alloc::{alloc, Layout};
@@ -22,12 +24,17 @@ use std::collections::HashMap;
 use std::ffi::c_void;
 use std::ffi::{CStr, CString};
 
+use napi::threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use utils::calculate::*;
 use utils::pointer::*;
 use utils::struct_utils::*;
 use utils::transform::*;
-
 static mut LibraryMap: Option<HashMap<String, Library>> = None;
+
+static mut FUNC_DESC: Option<HashMap<String, IndexMap<String, RsArgsValue>>> = None;
+static mut TS_FN: Option<
+  HashMap<String, ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal>>,
+> = None;
 
 #[napi]
 fn open(params: OpenParams) {
@@ -233,32 +240,99 @@ unsafe fn load(
           if args_len > 10 {
             panic!("The number of function parameters needs to be less than or equal to 10")
           }
-          use napi::threadsafe_function::{
-            ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode,
-          };
+
           let tsfn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal> = (&js_function)
             .create_threadsafe_function(0, |ctx| {
-              let value: Vec<RsArgsValue> = ctx.value;
-              let js_call_params: Vec<JsUnknown> = value
+              let mut value: Vec<RsArgsValue> = ctx.value;
+              let last_two = value.split_off(value.len() - 2);
+
+              let rest = value;
+              let js_call_params: Vec<JsUnknown> = rest
                 .into_iter()
                 .map(|rs_args| return rs_value_to_js_unknown(&ctx.env, rs_args))
                 .collect();
-
+              let uuid = &last_two[0];
+              let status = &last_two[1];
+              if let RsArgsValue::Boolean(status) = status {
+                if !*status {
+                  if let RsArgsValue::String(uuid) = uuid {
+                    println!("clear");
+                    FUNC_DESC.as_mut().unwrap().remove(uuid);
+                    TS_FN.as_mut().unwrap().remove(uuid);
+                  }
+                }
+              }
               Ok(js_call_params)
             })
             .unwrap();
+          if FUNC_DESC.is_none() {
+            FUNC_DESC = Some(HashMap::new())
+          }
+          if TS_FN.is_none() {
+            TS_FN = Some(HashMap::new())
+          }
+          let func_id: JsString = func_desc_obj
+            .get_property(env.create_string("uuid").unwrap())
+            .unwrap();
+          let func_status: JsBoolean = func_desc_obj
+            .get_property(env.create_string("permanent").unwrap())
+            .unwrap();
+          let func_id = js_string_to_string(func_id);
+          let status: bool = func_status.try_into().unwrap();
+
+          FUNC_DESC
+            .as_mut()
+            .unwrap()
+            .insert(func_id.clone(), func_args_type_rs);
+          TS_FN.as_mut().unwrap().insert(func_id.clone(), tsfn);
+
+          use std::sync::Mutex;
+          lazy_static! {
+            static ref UUID: Mutex<Option<String>> = Mutex::new(None);
+            static ref STATUS: Mutex<Option<bool>> = Mutex::new(None);
+          }
+          let mut uuid = UUID.lock().unwrap();
+          *uuid = Some(func_id);
+          let mut func_status = STATUS.lock().unwrap();
+          *func_status = Some(status);
+          // if args_len == 4 {
+          //   let lambda = |a: *mut c_void, b: *mut c_void, c: *mut c_void, d: *mut c_void| {
+          //     let uuid = UUID.lock().unwrap();
+          //     let uuid = &*uuid;
+          //     let uuid = uuid.as_ref().unwrap();
+          //     let func_args_type_rs = FUNC_DESC.as_ref().unwrap().get(uuid).unwrap();
+
+          //     let func_status = STATUS.lock().unwrap();
+          //     let func_status = func_status.unwrap();
+          //     let tsfn = TS_FN.as_ref().unwrap().get(uuid).unwrap();
+          //     let arg_arr = [a, b, c, d];
+          //     let mut value: Vec<RsArgsValue> = (0..4)
+          //       .map(|index| {
+          //         let c_param = arg_arr[index as usize];
+          //         let arg_type = func_args_type_rs.get(&index.to_string()).unwrap();
+          //         let param = get_js_function_call_value(arg_type, c_param);
+          //         param
+          //       })
+          //       .collect();
+          //     value.push(RsArgsValue::String(uuid.clone()));
+          //     value.push(RsArgsValue::Boolean(func_status.clone()));
+          //     tsfn.call(value, ThreadsafeFunctionCallMode::NonBlocking);
+          //   };
+          //   let closure = Box::into_raw(Box::new(Closure4::new(&lambda)));
+          //   return std::mem::transmute((*closure).code_ptr());
+          // }
 
           return match_args_len!(args_len, tsfn, func_args_type_rs, js_function,
-              1 => ClosureOnce1, a
-              ,2 => ClosureOnce2, a,b
-              ,3 => ClosureOnce3, a,b,c
-              ,4 => ClosureOnce4, a,b,c,d
-              ,5 => ClosureOnce5, a,b,c,d,e
-              ,6 => ClosureOnce6, a,b,c,d,e,f
-              ,7 => ClosureOnce7, a,b,c,d,e,f,g
-              ,8 => ClosureOnce8, a,b,c,d,e,f,g,h
-              ,9 => ClosureOnce9, a,b,c,d,e,f,g,h,i
-              ,10 => ClosureOnce10, a,b,c,d,e,f,g,h,i,j
+              1 => Closure1, a
+              ,2 => Closure2, a,b
+              ,3 => Closure3, a,b,c
+              ,4 => Closure4, a,b,c,d
+              ,5 => Closure5, a,b,c,d,e
+              ,6 => Closure6, a,b,c,d,e,f
+              ,7 => Closure7, a,b,c,d,e,f,g
+              ,8 => Closure8, a,b,c,d,e,f,g,h
+              ,9 => Closure9, a,b,c,d,e,f,g,h,i
+              ,10 => Closure10, a,b,c,d,e,f,g,h,i,j
           );
         }
         RsArgsValue::Object(val) => {

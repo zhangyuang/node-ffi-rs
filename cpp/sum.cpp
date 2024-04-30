@@ -1,6 +1,6 @@
 #include <cstdio>
 #include <cstring>
-#include <future>
+
 #include <string>
 
 extern "C" int sum(int a, int b) { return a + b; }
@@ -97,20 +97,26 @@ typedef void (*FunctionPointer)(int a, bool b, char *c, char **d, int *e,
 
 extern "C" void callFunction(FunctionPointer func) {
   printf("callFunction\n");
-  int a = 100;
-  bool b = false;
-  char *c = (char *)malloc(14 * sizeof(char));
-  strcpy(c, "Hello, World!");
-  double ddd = 100.11;
-  char **stringArray = (char **)malloc(sizeof(char *) * 2);
-  stringArray[0] = strdup("Hello");
-  stringArray[1] = strdup("world");
-  int *i32Array = (int *)malloc(sizeof(int) * 3);
-  i32Array[0] = 101;
-  i32Array[1] = 202;
-  i32Array[2] = 303;
-  Person *p = createPerson();
-  func(a, b, c, stringArray, i32Array, p);
+
+  for (int i = 0; i < 2; i++) {
+    int a = 100;
+    bool b = false;
+    double ddd = 100.11;
+    char *c = (char *)malloc(14 * sizeof(char));
+    strcpy(c, "Hello, World!");
+
+    char **stringArray = (char **)malloc(sizeof(char *) * 2);
+    stringArray[0] = strdup("Hello");
+    stringArray[1] = strdup("world");
+
+    int *i32Array = (int *)malloc(sizeof(int) * 3);
+    i32Array[0] = 101;
+    i32Array[1] = 202;
+    i32Array[2] = 303;
+
+    Person *p = createPerson();
+    func(a, b, c, stringArray, i32Array, p);
+  }
 }
 
 extern "C" void bufferToFill(double bufferToFill[3]) {
@@ -120,7 +126,7 @@ extern "C" void bufferToFill(double bufferToFill[3]) {
   printf("%f", bufferToFill[0]);
 }
 
-typedef void (*CallbackType)(const char *);
+// typedef void (*CallbackType)(const char *);
 // extern "C" void call_callback_async() {
 //   dispatch_async(dispatch_get_main_queue(), ^{
 //     printf("dispatch_async\n");
