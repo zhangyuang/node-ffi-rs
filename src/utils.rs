@@ -1,14 +1,14 @@
 use crate::define::{number_to_data_type, DataType, RsArgsValue};
+use crate::pointer::{create_array_from_pointer, create_object_from_pointer};
 use indexmap::IndexMap;
 use napi::bindgen_prelude::*;
 use napi::{JsBoolean, JsNumber, JsObject, JsString, JsUnknown};
 use std::ffi::c_void;
 use std::ffi::{c_char, c_double, c_int, CString};
-use std::mem::{transmute, transmute_copy};
 pub unsafe fn get_js_function_call_value(
   env: Env,
   func_arg_type: JsUnknown,
-  func_arg_val: *mut c_void,
+  func_arg_ptr: *mut c_void,
 ) -> JsUnknown {
   return match func_arg_type.get_type().unwrap() {
     ValueType::Number => {
@@ -21,13 +21,21 @@ pub unsafe fn get_js_function_call_value(
       );
       let data = match data_type {
         DataType::I32 => env
-          .create_int32(func_arg_val as i32)
+          .create_int32(func_arg_ptr as i32)
+          .unwrap()
+          .into_unknown(),
+        DataType::Boolean => env
+          .get_boolean(if func_arg_ptr as i32 == 0 {
+            false
+          } else {
+            true
+          })
           .unwrap()
           .into_unknown(),
         DataType::String => {
           return env
             .create_string(
-              &CString::from_raw(func_arg_val as *mut c_char)
+              &CString::from_raw(func_arg_ptr as *mut c_char)
                 .into_string()
                 .unwrap(),
             )
@@ -35,12 +43,44 @@ pub unsafe fn get_js_function_call_value(
             .into_unknown();
         }
         DataType::Double => {
-          println!("{:?}", func_arg_val);
+          println!("{:?}", func_arg_ptr);
           return env.create_double(1.1).unwrap().into_unknown();
         }
-        _ => panic!("get_js_function_call_value err"),
+        _ => panic!(
+          "{:?} data_type as function args is unsupported at this time",
+          data_type
+        ),
       };
       data
+    }
+    ValueType::Object => {
+      let args_type = func_arg_type.coerce_to_object().unwrap();
+      let ffi_tag = args_type.has_named_property("ffiTypeTag").unwrap();
+      if ffi_tag {
+        let array_len: usize =
+          js_nunmber_to_i32(args_type.get_named_property::<JsNumber>("length").unwrap()) as usize;
+        let array_type: i32 =
+          js_nunmber_to_i32(args_type.get_named_property::<JsNumber>("type").unwrap());
+        let array_type = number_to_data_type(array_type);
+
+        match array_type {
+          DataType::StringArray => {
+            let arr = create_array_from_pointer(func_arg_ptr as *mut *mut c_char, array_len);
+            rs_array_to_js_array(env, ArrayType::String(arr)).into_unknown()
+          }
+          DataType::I32Array => {
+            let arr = create_array_from_pointer(func_arg_ptr as *mut c_int, array_len);
+            rs_array_to_js_array(env, ArrayType::I32(arr)).into_unknown()
+          }
+          DataType::DoubleArray => {
+            let arr = create_array_from_pointer(func_arg_ptr as *mut c_double, array_len);
+            rs_array_to_js_array(env, ArrayType::Double(arr)).into_unknown()
+          }
+          _ => panic!("{:?} as function args is unsupported ", array_type),
+        }
+      } else {
+        create_object_from_pointer(env, func_arg_ptr, args_type).into_unknown()
+      }
     }
     _ => panic!("get_js_function_call_value err "),
   };
