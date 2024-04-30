@@ -42,15 +42,27 @@ pub enum RsArgsValue {
 }
 
 #[napi]
+#[derive(Debug)]
 pub enum ParamsType {
-  String,
-  I32,
-  Double,
-  I32Array,
-  StringArray,
-  DoubleArray,
-  Object,
-  Boolean,
+  String = 0,
+  I32 = 1,
+  Double = 2,
+  I32Array = 3,
+  StringArray = 4,
+  DoubleArray = 5,
+  Boolean = 6,
+}
+pub fn number_to_params_type(value: i32) -> ParamsType {
+  match value {
+    0 => ParamsType::String,
+    1 => ParamsType::I32,
+    2 => ParamsType::Double,
+    3 => ParamsType::I32Array,
+    4 => ParamsType::StringArray,
+    5 => ParamsType::DoubleArray,
+    6 => ParamsType::Boolean,
+    _ => panic!("unknow ParamsType"),
+  }
 }
 
 #[napi(object)]
@@ -59,7 +71,7 @@ struct FFIParams {
   pub func_name: String,
   pub ret_type: RetType,
   pub ret_type_len: Option<u32>,
-  pub params_type: Vec<ParamsType>,
+  pub params_type: Vec<JsUnknown>,
   pub params_value: Vec<JsUnknown>,
   pub ret_fields: Option<NapiIndexMap<String, ParamsType>>,
 }
@@ -81,122 +93,133 @@ fn load(
   unsafe {
     let lib = Library::new(library).unwrap();
     let func: Symbol<unsafe extern "C" fn()> = lib.get(func_name.as_str().as_bytes()).unwrap();
+    let params_type_len = params_type.len();
     let (mut arg_types, arg_values): (Vec<*mut ffi_type>, Vec<RsArgsValue>) = params_type
-      .iter()
+      .into_iter()
       .zip(params_value.into_iter())
-      .map(|(param, value)| match param {
-        ParamsType::I32 => {
-          let arg_type = &mut ffi_type_sint32 as *mut ffi_type;
-          let arg_val: i32 = value.coerce_to_number().unwrap().try_into().unwrap();
-          (arg_type, RsArgsValue::I32(arg_val))
-        }
-        ParamsType::Double => {
-          let arg_type = &mut ffi_type_double as *mut ffi_type;
-          let arg_val: f64 = value.coerce_to_number().unwrap().try_into().unwrap();
-          (arg_type, RsArgsValue::Double(arg_val))
-        }
-        ParamsType::String => {
-          let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-          let arg_val: String = value
-            .coerce_to_string()
-            .unwrap()
-            .into_utf8()
-            .unwrap()
-            .try_into()
-            .unwrap();
-          (arg_type, RsArgsValue::String(arg_val))
-        }
-        ParamsType::I32Array => {
-          let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-          let js_object = value.coerce_to_object().unwrap();
-          let arg_val = vec![0; js_object.get_array_length().unwrap() as usize]
-            .iter()
-            .enumerate()
-            .map(|(index, _)| {
-              let js_element: JsNumber = js_object.get_element(index as u32).unwrap();
-              return js_element.get_int32().unwrap();
-            })
-            .collect::<Vec<i32>>();
+      .map(|(param, value)| {
+        let value_type = param.get_type().unwrap();
+        match value_type {
+          ValueType::Number => {
+            let params_number =
+              number_to_params_type(param.coerce_to_number().unwrap().try_into().unwrap());
+            match params_number {
+              ParamsType::I32 => {
+                let arg_type = &mut ffi_type_sint32 as *mut ffi_type;
+                let arg_val: i32 = value.coerce_to_number().unwrap().try_into().unwrap();
+                (arg_type, RsArgsValue::I32(arg_val))
+              }
+              ParamsType::Double => {
+                let arg_type = &mut ffi_type_double as *mut ffi_type;
+                let arg_val: f64 = value.coerce_to_number().unwrap().try_into().unwrap();
+                (arg_type, RsArgsValue::Double(arg_val))
+              }
+              ParamsType::String => {
+                let arg_type = &mut ffi_type_pointer as *mut ffi_type;
+                let arg_val: String = value
+                  .coerce_to_string()
+                  .unwrap()
+                  .into_utf8()
+                  .unwrap()
+                  .try_into()
+                  .unwrap();
+                (arg_type, RsArgsValue::String(arg_val))
+              }
+              ParamsType::I32Array => {
+                let arg_type = &mut ffi_type_pointer as *mut ffi_type;
+                let js_object = value.coerce_to_object().unwrap();
+                let arg_val = vec![0; js_object.get_array_length().unwrap() as usize]
+                  .iter()
+                  .enumerate()
+                  .map(|(index, _)| {
+                    let js_element: JsNumber = js_object.get_element(index as u32).unwrap();
+                    return js_element.get_int32().unwrap();
+                  })
+                  .collect::<Vec<i32>>();
 
-          (arg_type, RsArgsValue::I32Array(arg_val))
-        }
-        ParamsType::DoubleArray => {
-          let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-          let js_object = value.coerce_to_object().unwrap();
-          let arg_val = vec![0; js_object.get_array_length().unwrap() as usize]
-            .iter()
-            .enumerate()
-            .map(|(index, _)| {
-              let js_element: JsNumber = js_object.get_element(index as u32).unwrap();
-              return js_element.get_double().unwrap();
-            })
-            .collect::<Vec<f64>>();
+                (arg_type, RsArgsValue::I32Array(arg_val))
+              }
+              ParamsType::DoubleArray => {
+                let arg_type = &mut ffi_type_pointer as *mut ffi_type;
+                let js_object = value.coerce_to_object().unwrap();
+                let arg_val = vec![0; js_object.get_array_length().unwrap() as usize]
+                  .iter()
+                  .enumerate()
+                  .map(|(index, _)| {
+                    let js_element: JsNumber = js_object.get_element(index as u32).unwrap();
+                    return js_element.get_double().unwrap();
+                  })
+                  .collect::<Vec<f64>>();
 
-          (arg_type, RsArgsValue::DoubleArray(arg_val))
-        }
-        ParamsType::StringArray => {
-          let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-          let js_object = value.coerce_to_object().unwrap();
-          let arg_val = vec![0; js_object.get_array_length().unwrap() as usize]
-            .iter()
-            .enumerate()
-            .map(|(index, _)| {
-              let js_element: JsString = js_object.get_element(index as u32).unwrap();
-              return js_element.into_utf8().unwrap().try_into().unwrap();
-            })
-            .collect::<Vec<String>>();
-          (arg_type, RsArgsValue::StringArray(arg_val))
-        }
-        ParamsType::Boolean => {
-          let arg_type = &mut ffi_type_uint8 as *mut ffi_type;
-          let arg_val: bool = value.coerce_to_bool().unwrap().try_into().unwrap();
-          (arg_type, RsArgsValue::Boolean(arg_val))
-        }
-        ParamsType::Object => {
-          let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-          let js_object = value.coerce_to_object().unwrap();
-          fn jsobject_to_rs_struct(js_object: JsObject) -> IndexMap<String, RsArgsValue> {
-            let mut index_map = IndexMap::new();
-            JsObject::keys(&js_object)
-              .unwrap()
-              .into_iter()
-              .filter(|field| !field.ends_with("Type"))
-              .for_each(|field| {
-                let field_type = field.clone() + "Type";
-                let val_type: ParamsType = (&js_object).get_named_property(&field_type).unwrap();
-                let val = match val_type {
-                  ParamsType::String => {
-                    let val: JsString = js_object.get_named_property(&field).unwrap();
-                    let val: String = val.into_utf8().unwrap().try_into().unwrap();
-                    RsArgsValue::String(val)
-                  }
-                  ParamsType::I32 => {
-                    let val: JsNumber = js_object.get_named_property(&field).unwrap();
-                    let val: i32 = val.try_into().unwrap();
-                    RsArgsValue::I32(val)
-                  }
-                  ParamsType::Double => {
-                    let val: JsNumber = js_object.get_named_property(&field).unwrap();
-                    let val: f64 = val.try_into().unwrap();
-                    RsArgsValue::Double(val)
-                  }
-                  ParamsType::Object => {
-                    let val: JsObject = js_object.get_named_property(&field).unwrap();
-                    let index_map = jsobject_to_rs_struct(val);
-                    RsArgsValue::Object(index_map)
-                  }
-
-                  _ => panic!(
-                    "Other types except string and i32 are not supported
-                  "
-                  ),
-                };
-                index_map.insert(field, val);
-              });
-            index_map
+                (arg_type, RsArgsValue::DoubleArray(arg_val))
+              }
+              ParamsType::StringArray => {
+                let arg_type = &mut ffi_type_pointer as *mut ffi_type;
+                let js_object = value.coerce_to_object().unwrap();
+                let arg_val = vec![0; js_object.get_array_length().unwrap() as usize]
+                  .iter()
+                  .enumerate()
+                  .map(|(index, _)| {
+                    let js_element: JsString = js_object.get_element(index as u32).unwrap();
+                    return js_element.into_utf8().unwrap().try_into().unwrap();
+                  })
+                  .collect::<Vec<String>>();
+                (arg_type, RsArgsValue::StringArray(arg_val))
+              }
+              ParamsType::Boolean => {
+                let arg_type = &mut ffi_type_uint8 as *mut ffi_type;
+                let arg_val: bool = value.coerce_to_bool().unwrap().try_into().unwrap();
+                (arg_type, RsArgsValue::Boolean(arg_val))
+              }
+            }
           }
-          let index_map = jsobject_to_rs_struct(js_object);
-          (arg_type, RsArgsValue::Object(index_map))
+          ValueType::Object => {
+            let params_type_object: JsObject = param.coerce_to_object().unwrap();
+
+            let arg_type = &mut ffi_type_pointer as *mut ffi_type;
+            let params_value_object = value.coerce_to_object().unwrap();
+            fn jsobject_to_rs_struct(
+              params_type_object: JsObject,
+              params_value_object: JsObject,
+            ) -> IndexMap<String, RsArgsValue> {
+              let mut index_map = IndexMap::new();
+              JsObject::keys(&params_value_object)
+                .unwrap()
+                .into_iter()
+                .for_each(|field| {
+                  let field_type: ParamsType =
+                    params_type_object.get_named_property(&field).unwrap();
+                  let val = match field_type {
+                    ParamsType::String => {
+                      let val: JsString = params_value_object.get_named_property(&field).unwrap();
+                      let val: String = val.into_utf8().unwrap().try_into().unwrap();
+                      RsArgsValue::String(val)
+                    }
+                    ParamsType::I32 => {
+                      let val: JsNumber = params_value_object.get_named_property(&field).unwrap();
+                      let val: i32 = val.try_into().unwrap();
+                      RsArgsValue::I32(val)
+                    }
+                    ParamsType::Double => {
+                      let val: JsNumber = params_value_object.get_named_property(&field).unwrap();
+                      let val: f64 = val.try_into().unwrap();
+                      RsArgsValue::Double(val)
+                    }
+                    // ParamsType::Object => {
+                    //   let val: JsObject = js_object.get_named_property(&field).unwrap();
+                    //   let index_map = jsobject_to_rs_struct(val);
+                    //   RsArgsValue::Object(index_map)
+                    // }
+                    _ => panic!("jsobject_to_rs_struct"),
+                  };
+                  index_map.insert(field, val);
+                });
+              index_map
+            }
+            let index_map = jsobject_to_rs_struct(params_type_object, params_value_object);
+            (arg_type, RsArgsValue::Object(index_map))
+          }
+          _ => panic!("unknow params type"),
         }
       })
       .unzip();
@@ -298,7 +321,7 @@ fn load(
                 RsArgsValue::Object(val) => {
                   let (size, _) = calculate_layout(&val);
                   write_data(val, field_ptr);
-                  field_ptr = field_ptr.offset(size as isize) as *mut c_void; // Add this line
+                  field_ptr = field_ptr.offset(size as isize) as *mut c_void;
                 }
                 _ => panic!("write_data"),
               }
@@ -324,19 +347,19 @@ fn load(
 
     let mut cif = ffi_cif {
       abi: ffi_abi_FFI_DEFAULT_ABI,
-      nargs: params_type.len() as u32,
+      nargs: params_type_len as u32,
       arg_types: arg_types.as_mut_ptr(),
       rtype: r_type,
       bytes: 0,
       flags: 0,
       #[cfg(all(target_arch = "aarch64", target_vendor = "apple"))]
-      aarch64_nfixedargs: params_type.len() as u32,
+      aarch64_nfixedargs: params_type_len as u32,
     };
 
     ffi_prep_cif(
       &mut cif as *mut ffi_cif,
       ffi_abi_FFI_DEFAULT_ABI,
-      params_type.len() as u32,
+      params_type_len as u32,
       r_type,
       arg_types.as_mut_ptr(),
     );
