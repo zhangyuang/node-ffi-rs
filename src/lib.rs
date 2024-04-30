@@ -87,12 +87,14 @@ static mut LibraryMap: Option<HashMap<String, Library>> = None;
 fn open(params: OpenParams) {
   let OpenParams { library, path } = params;
   unsafe {
-    let lib = Library::new(path).unwrap();
     if LibraryMap.is_none() {
       LibraryMap = Some(HashMap::new());
     }
     let map = LibraryMap.as_mut().unwrap();
-    map.insert(library, lib);
+    if map.get(&library).is_none() {
+      let lib = Library::new(path).unwrap();
+      map.insert(library, lib);
+    }
   }
 }
 
