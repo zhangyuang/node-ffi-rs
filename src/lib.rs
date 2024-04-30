@@ -88,18 +88,19 @@ unsafe fn wrap_pointer(env: Env, params: Vec<JsExternal>) -> Result<Vec<JsExtern
 }
 
 #[napi]
-fn open(params: OpenParams) -> Result<()> {
+unsafe fn open(params: OpenParams) -> Result<()> {
   let OpenParams { library, path } = params;
-  unsafe {
-    if LIBRARY_MAP.is_none() {
-      LIBRARY_MAP = Some(HashMap::new());
-    }
-    let map = LIBRARY_MAP.as_mut().unwrap();
-    if map.get(&library).is_none() {
-      let lib = if path == "" {
-        Library::open_self().unwrap()
-      } else {
-        match Library::open(&path) {
+  if LIBRARY_MAP.is_none() {
+    LIBRARY_MAP = Some(HashMap::new());
+  }
+  let map = LIBRARY_MAP.as_mut().unwrap();
+  if map.get(&library).is_none() {
+    let lib = if path == "" {
+      Library::open_self().unwrap()
+    } else if !std::path::Path::new(&path).exists() {
+      return Err(FFIError::Panic(format!("{} no such file", path)).into());
+    } else {
+      match Library::open(&path) {
           Ok(lib) => lib,
           Err(e) => match e {
             dlopen::Error::OpeningLibraryError(e) => return Err(
@@ -115,9 +116,8 @@ fn open(params: OpenParams) -> Result<()> {
             )
           },
         }
-      };
-      map.insert(library, (lib, HashMap::new()));
-    }
+    };
+    map.insert(library, (lib, HashMap::new()));
   }
   Ok(())
 }
