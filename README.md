@@ -420,7 +420,7 @@ const parent = {
   boolFalse: false,
   longVal: 5294967296,
   byte: 66,
-  byteArray: [103, 104],
+  byteArray: Buffer.from([103, 104]),
 };
 const person = {
   age: 23,
@@ -434,7 +434,7 @@ const person = {
   boolFalse: false,
   longVal: 4294967296,
   byte: 65,
-  byteArray: [101, 102],
+  byteArray: Buffer.from([101, 102]),
 };
 const parentType = {
   age: DataType.I32,
