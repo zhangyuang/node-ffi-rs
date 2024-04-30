@@ -3,6 +3,7 @@ extern crate napi_derive;
 
 mod datatype;
 mod define;
+mod utils;
 
 use define::*;
 use libc::malloc;
@@ -13,16 +14,16 @@ use libffi_sys::{
   ffi_type_void,
 };
 use libloading::{Library, Symbol};
-use napi::{bindgen_prelude::*, Env, JsBuffer, JsBufferValue, JsExternal, JsObject, JsUnknown};
+use napi::{Env, JsExternal, JsUnknown};
 
 use std::collections::HashMap;
 use std::ffi::c_void;
-use std::ffi::{CStr, CString};
+use std::ffi::CStr;
 
-use datatype::array::*;
 use datatype::buffer::*;
 use datatype::object_generate::*;
 use datatype::pointer::*;
+use utils::dataprocess::type_define_to_rs_args;
 
 static mut LIBRARY_MAP: Option<HashMap<String, Library>> = None;
 
@@ -38,6 +39,14 @@ unsafe fn create_external(env: Env, params: CreateExternalParams) -> Vec<JsExter
     .into_iter()
     .map(|p| env.create_external(*(p as *mut *mut c_void), None).unwrap())
     .collect()
+}
+
+#[napi]
+unsafe fn restore_external(env: Env, params: ReStoreExternalParams) {
+  let ReStoreExternalParams {
+    ret_type,
+    params_value,
+  } = params;
 }
 
 #[napi]
@@ -67,7 +76,7 @@ fn close(library: String) {
 }
 
 #[napi]
-unsafe fn load(env: Env, params: FFIParams) -> Either<JsUnknown, ()> {
+unsafe fn load(env: Env, params: FFIParams) -> JsUnknown {
   let FFIParams {
     library,
     func_name,
@@ -80,20 +89,12 @@ unsafe fn load(env: Env, params: FFIParams) -> Either<JsUnknown, ()> {
   let lib = lib.get(&library).unwrap();
   let func: Symbol<unsafe extern "C" fn()> = lib.get(func_name.as_str().as_bytes()).unwrap();
   let params_type_len = params_type.len();
+
   let (mut arg_types, arg_values) = get_arg_types_values(&env, params_type, params_value);
   let mut arg_values_c_void = get_value_pointer(&env, arg_values);
-  let ret_value_type = ret_type.get_type().unwrap();
-  let ret_value = match ret_value_type {
-    ValueType::Number => RsArgsValue::I32(js_number_to_i32(ret_type.coerce_to_number().unwrap())),
-    ValueType::Object => RsArgsValue::Object(type_define_to_rs_struct(
-      &ret_type.coerce_to_object().unwrap(),
-    )),
-    _ => panic!(
-      "ret_value_type can only be number or object but receive {}",
-      ret_value_type
-    ),
-  };
-  let r_type: *mut ffi_type = match ret_value {
+
+  let ret_type_rs = type_define_to_rs_args(ret_type);
+  let r_type: *mut ffi_type = match ret_type_rs {
     RsArgsValue::I32(number) => {
       let ret_data_type = number_to_basic_data_type(number);
       match ret_data_type {
@@ -131,7 +132,7 @@ unsafe fn load(env: Env, params: FFIParams) -> Either<JsUnknown, ()> {
     arg_types.as_mut_ptr(),
   );
 
-  match ret_value {
+  match ret_type_rs {
     RsArgsValue::I32(number) => {
       let ret_data_type = number_to_basic_data_type(number);
       match ret_data_type {
@@ -144,10 +145,7 @@ unsafe fn load(env: Env, params: FFIParams) -> Either<JsUnknown, ()> {
             arg_values_c_void.as_mut_ptr(),
           );
           let result_str = CStr::from_ptr(result).to_string_lossy().to_string();
-          Either::A(rs_value_to_js_unknown(
-            &env,
-            RsArgsValue::String(result_str),
-          ))
+          rs_value_to_js_unknown(&env, RsArgsValue::String(result_str))
         }
         BasicDataType::U8 => {
           let mut result: u8 = 0;
@@ -157,7 +155,7 @@ unsafe fn load(env: Env, params: FFIParams) -> Either<JsUnknown, ()> {
             &mut result as *mut u8 as *mut c_void,
             arg_values_c_void.as_mut_ptr(),
           );
-          Either::A(rs_value_to_js_unknown(&env, RsArgsValue::U8(result)))
+          rs_value_to_js_unknown(&env, RsArgsValue::U8(result))
         }
         BasicDataType::I32 => {
           let mut result: i32 = 0;
@@ -168,7 +166,7 @@ unsafe fn load(env: Env, params: FFIParams) -> Either<JsUnknown, ()> {
             arg_values_c_void.as_mut_ptr(),
           );
 
-          Either::A(rs_value_to_js_unknown(&env, RsArgsValue::I32(result)))
+          rs_value_to_js_unknown(&env, RsArgsValue::I32(result))
         }
         BasicDataType::I64 => {
           let mut result: i64 = 0;
@@ -178,7 +176,7 @@ unsafe fn load(env: Env, params: FFIParams) -> Either<JsUnknown, ()> {
             &mut result as *mut i64 as *mut c_void,
             arg_values_c_void.as_mut_ptr(),
           );
-          Either::A(rs_value_to_js_unknown(&env, RsArgsValue::I64(result)))
+          rs_value_to_js_unknown(&env, RsArgsValue::I64(result))
         }
         BasicDataType::U64 => {
           let mut result: u64 = 0;
@@ -188,7 +186,7 @@ unsafe fn load(env: Env, params: FFIParams) -> Either<JsUnknown, ()> {
             &mut result as *mut u64 as *mut c_void,
             arg_values_c_void.as_mut_ptr(),
           );
-          Either::A(rs_value_to_js_unknown(&env, RsArgsValue::U64(result)))
+          rs_value_to_js_unknown(&env, RsArgsValue::U64(result))
         }
         BasicDataType::Void => {
           let mut result = ();
@@ -198,7 +196,7 @@ unsafe fn load(env: Env, params: FFIParams) -> Either<JsUnknown, ()> {
             &mut result as *mut () as *mut c_void,
             arg_values_c_void.as_mut_ptr(),
           );
-          Either::B(())
+          env.get_undefined().unwrap().into_unknown()
         }
         BasicDataType::Double => {
           let mut result: f64 = 0.0;
@@ -208,7 +206,7 @@ unsafe fn load(env: Env, params: FFIParams) -> Either<JsUnknown, ()> {
             &mut result as *mut f64 as *mut c_void,
             arg_values_c_void.as_mut_ptr(),
           );
-          Either::A(rs_value_to_js_unknown(&env, RsArgsValue::Double(result)))
+          rs_value_to_js_unknown(&env, RsArgsValue::Double(result))
         }
         BasicDataType::Boolean => {
           let mut result: bool = false;
@@ -219,7 +217,7 @@ unsafe fn load(env: Env, params: FFIParams) -> Either<JsUnknown, ()> {
             arg_values_c_void.as_mut_ptr(),
           );
 
-          Either::A(rs_value_to_js_unknown(&env, RsArgsValue::Boolean(result)))
+          rs_value_to_js_unknown(&env, RsArgsValue::Boolean(result))
         }
         BasicDataType::External => {
           let mut result: *mut c_void = malloc(std::mem::size_of::<*mut c_void>()) as *mut c_void;
@@ -231,10 +229,7 @@ unsafe fn load(env: Env, params: FFIParams) -> Either<JsUnknown, ()> {
           );
 
           let js_external = env.create_external(result, None).unwrap();
-          Either::A(rs_value_to_js_unknown(
-            &env,
-            RsArgsValue::External(js_external),
-          ))
+          rs_value_to_js_unknown(&env, RsArgsValue::External(js_external))
         }
       }
     }
@@ -259,10 +254,7 @@ unsafe fn load(env: Env, params: FFIParams) -> Either<JsUnknown, ()> {
             if !result.is_null() {
               libc::free(result as *mut c_void);
             }
-            Either::A(rs_value_to_js_unknown(
-              &env,
-              get_safe_buffer(&env, arr, false),
-            ))
+            rs_value_to_js_unknown(&env, get_safe_buffer(&env, arr, false))
           }
           RefDataType::I32Array => {
             let mut result: *mut c_int = malloc(std::mem::size_of::<*mut c_int>()) as *mut c_int;
@@ -276,7 +268,7 @@ unsafe fn load(env: Env, params: FFIParams) -> Either<JsUnknown, ()> {
             if !result.is_null() {
               libc::free(result as *mut c_void);
             }
-            Either::A(rs_value_to_js_unknown(&env, RsArgsValue::I32Array(arr)))
+            rs_value_to_js_unknown(&env, RsArgsValue::I32Array(arr))
           }
           RefDataType::DoubleArray => {
             let mut result: *mut c_double =
@@ -291,7 +283,7 @@ unsafe fn load(env: Env, params: FFIParams) -> Either<JsUnknown, ()> {
             if !result.is_null() {
               libc::free(result as *mut c_void);
             }
-            Either::A(rs_value_to_js_unknown(&env, RsArgsValue::DoubleArray(arr)))
+            rs_value_to_js_unknown(&env, RsArgsValue::DoubleArray(arr))
           }
           RefDataType::StringArray => {
             let mut result: *mut *mut c_char =
@@ -307,7 +299,7 @@ unsafe fn load(env: Env, params: FFIParams) -> Either<JsUnknown, ()> {
             if !result.is_null() {
               libc::free(result as *mut c_void);
             }
-            Either::A(rs_value_to_js_unknown(&env, RsArgsValue::StringArray(arr)))
+            rs_value_to_js_unknown(&env, RsArgsValue::StringArray(arr))
           }
         }
       } else {
@@ -320,9 +312,9 @@ unsafe fn load(env: Env, params: FFIParams) -> Either<JsUnknown, ()> {
           arg_values_c_void.as_mut_ptr(),
         );
         let rs_struct = create_rs_struct_from_pointer(&env, result, &obj, false);
-        Either::A(rs_value_to_js_unknown(&env, RsArgsValue::Object(rs_struct)))
+        rs_value_to_js_unknown(&env, RsArgsValue::Object(rs_struct))
       }
     }
-    _ => panic!("ret_type err {:?}", ret_value),
+    _ => panic!("ret_type err {:?}", ret_type_rs),
   }
 }
