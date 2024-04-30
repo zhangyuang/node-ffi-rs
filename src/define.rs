@@ -130,7 +130,7 @@ pub enum RsArgsValue {
   I32(i32),
   I64(i64),
   Double(f64),
-  U8Array(JsBufferValue),
+  U8Array(Option<JsBufferValue>, Option<Vec<u8>>),
   I32Array(Vec<i32>),
   StringArray(Vec<String>),
   DoubleArray(Vec<f64>),
@@ -140,6 +140,7 @@ pub enum RsArgsValue {
   Function(JsFunction, JsFunction),
   External(JsExternal),
 }
+
 impl std::fmt::Debug for RsArgsValue {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
@@ -148,14 +149,16 @@ impl std::fmt::Debug for RsArgsValue {
       RsArgsValue::I32(i) => write!(f, "I32({})", i),
       RsArgsValue::I64(i) => write!(f, "I64({})", i),
       RsArgsValue::Double(d) => write!(f, "Double({})", d),
-      RsArgsValue::U8Array(arr) => write!(f, "U8Array"),
+      RsArgsValue::U8Array(buffer, v) => {
+        write!(f, "U8Array({:?})", buffer.as_ref().unwrap().as_ref())
+      }
       RsArgsValue::I32Array(arr) => write!(f, "I32Array({:?})", arr),
       RsArgsValue::StringArray(arr) => write!(f, "StringArray({:?})", arr),
       RsArgsValue::DoubleArray(arr) => write!(f, "DoubleArray({:?})", arr),
       RsArgsValue::Object(obj) => write!(f, "Object({:?})", obj),
       RsArgsValue::Boolean(b) => write!(f, "Boolean({})", b),
       RsArgsValue::Void(_) => write!(f, "Void"),
-      RsArgsValue::External(val) => write!(f, "JsExternal"),
+      RsArgsValue::External(_) => write!(f, "JsExternal"),
       RsArgsValue::Function(_, _) => write!(f, "JsFunction"),
     }
   }

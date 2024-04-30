@@ -44,7 +44,7 @@ pub fn calculate_struct_size(map: &IndexMap<String, RsArgsValue>) -> (usize, usi
         | RsArgsValue::StringArray(_)
         | RsArgsValue::DoubleArray(_)
         | RsArgsValue::I32Array(_)
-        | RsArgsValue::U8Array(_)
+        | RsArgsValue::U8Array(_, _)
         | RsArgsValue::External(_) => calculate_pointer(size, align, offset),
         RsArgsValue::Function(_, _) => {
           panic!("{:?} calculate_layout error", field_val)
@@ -179,15 +179,16 @@ pub unsafe fn generate_c_struct(env: &Env, map: IndexMap<String, RsArgsValue>) -
         offset += size + padding;
         size
       }
-      RsArgsValue::U8Array(arr) => {
+      RsArgsValue::U8Array(buffer, arr) => {
+        let buffer = buffer.unwrap();
         let (size, align) = (
           std::mem::size_of::<*const c_void>(),
           std::mem::align_of::<*const c_void>(),
         );
         let padding = (align - (offset % align)) % align;
         field_ptr = field_ptr.offset(padding as isize);
-        (field_ptr as *mut *const c_uchar).write(arr.as_ptr());
-        std::mem::forget(arr);
+        (field_ptr as *mut *const c_uchar).write(buffer.as_ptr());
+        std::mem::forget(buffer);
         offset += size + padding;
         size
       }

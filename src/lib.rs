@@ -238,7 +238,7 @@ unsafe fn load(env: Env, params: FFIParams) -> Either<JsUnknown, ()> {
             }
             Either::A(rs_value_to_js_unknown(
               &env,
-              RsArgsValue::U8Array(create_buffer_val(&env, arr)),
+              get_safe_buffer(&env, arr, false),
             ))
           }
           RefDataType::I32Array => {
@@ -296,7 +296,7 @@ unsafe fn load(env: Env, params: FFIParams) -> Either<JsUnknown, ()> {
           &mut result as *mut _ as *mut c_void,
           arg_values_c_void.as_mut_ptr(),
         );
-        let rs_struct = create_rs_struct_from_pointer(&env, result, &obj);
+        let rs_struct = create_rs_struct_from_pointer(&env, result, &obj, false);
         Either::A(rs_value_to_js_unknown(&env, RsArgsValue::Object(rs_struct)))
       }
     }
