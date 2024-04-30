@@ -22,15 +22,15 @@ const d = "bar"
 equal(c + d, load({
   library: dynamicLib,
   funcName: 'concatenateStrings',
-  retType: ParamsType.String,
+  retType: RetType.String,
   paramsType: [ParamsType.String, ParamsType.String],
   paramsValue: [c, d]
 }))
 
-// console.log(load({
-//   library: dynamicLib,
-//   funcName: 'noRet',
-//   retType: ParamsType.Void,
-//   paramsType: [],
-//   paramsValue: []
-// }))
+equal(undefined, load({
+  library: dynamicLib,
+  funcName: 'noRet',
+  retType: RetType.Void,
+  paramsType: [],
+  paramsValue: []
+}))
