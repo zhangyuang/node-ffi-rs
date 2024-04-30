@@ -2,11 +2,12 @@
 extern crate napi_derive;
 mod define;
 mod utils;
-use define::{number_to_data_type, DataType, RsArgsValue};
+use define::{number_to_data_type, DataType, FFIParams, OpenParams, RsArgsValue};
 use napi::bindgen_prelude::*;
 use utils::{
-  align_ptr, calculate_layout, get_data_type_size_align, get_js_function_call_value,
-  js_array_to_string_array,
+  align_ptr, calculate_layout, create_array_from_pointer, get_data_type_size_align,
+  get_js_function_call_value, js_array_to_string_array, js_nunmber_to_i32, js_string_to_string,
+  js_unknown_to_data_type, ArrayPointerType, ArrayType,
 };
 
 use indexmap::IndexMap;
@@ -28,20 +29,7 @@ enum FFIJsValue {
   JsObject(JsObject),
   Unknown,
 }
-#[napi(object)]
-struct FFIParams {
-  pub library: String,
-  pub func_name: String,
-  pub ret_type: JsUnknown,
-  pub ret_type_len: Option<u32>,
-  pub params_type: Vec<JsUnknown>,
-  pub params_value: Vec<JsUnknown>,
-}
-#[napi(object)]
-struct OpenParams {
-  pub library: String,
-  pub path: String,
-}
+
 static mut LibraryMap: Option<HashMap<String, Library>> = None;
 
 #[napi]
@@ -81,7 +69,6 @@ fn load(
     ret_type,
     params_type,
     params_value,
-    ret_type_len,
   } = params;
   unsafe {
     let lib = LibraryMap.as_ref().unwrap();
@@ -469,63 +456,6 @@ fn load(
             );
             Either9::D(result)
           }
-          DataType::I32Array => {
-            let mut result: *mut c_int = malloc(std::mem::size_of::<*mut c_int>()) as *mut c_int;
-            ffi_call(
-              &mut cif,
-              Some(*func),
-              &mut result as *mut _ as *mut c_void,
-              arg_values_c_void.as_mut_ptr(),
-            );
-
-            let result_slice = std::slice::from_raw_parts(result, ret_type_len.unwrap() as usize);
-            let result_vec = result_slice.to_vec();
-            if !result.is_null() {
-              libc::free(result as *mut c_void);
-            }
-            Either9::E(result_vec)
-          }
-          DataType::StringArray => {
-            let mut result: *mut *mut c_char =
-              malloc(std::mem::size_of::<*mut *mut c_char>()) as *mut *mut c_char;
-
-            ffi_call(
-              &mut cif,
-              Some(*func),
-              &mut result as *mut _ as *mut c_void,
-              arg_values_c_void.as_mut_ptr(),
-            );
-            let output_vec = vec![0; ret_type_len.unwrap() as usize]
-              .iter()
-              .enumerate()
-              .map(|(index, _)| {
-                CString::from_raw(*result.offset(index as isize))
-                  .into_string()
-                  .unwrap()
-              })
-              .collect();
-            if !result.is_null() {
-              libc::free(result as *mut c_void);
-            }
-            Either9::F(output_vec)
-          }
-          DataType::DoubleArray => {
-            let mut result: *mut c_double =
-              malloc(std::mem::size_of::<*mut c_double>()) as *mut c_double;
-            ffi_call(
-              &mut cif,
-              Some(*func),
-              &mut result as *mut _ as *mut c_void,
-              arg_values_c_void.as_mut_ptr(),
-            );
-
-            let result_slice = std::slice::from_raw_parts(result, ret_type_len.unwrap() as usize);
-            let result_vec = result_slice.to_vec();
-            if !result.is_null() {
-              libc::free(result as *mut c_void);
-            }
-            Either9::G(result_vec)
-          }
           DataType::Boolean => {
             let mut result: u8 = 255;
             ffi_call(
@@ -548,92 +478,185 @@ fn load(
         }
       }
       FFIJsValue::JsObject(ret_object) => {
-        let (ret_fields_size, field_vec, align) = JsObject::keys(&ret_object)
-          .unwrap()
-          .into_iter()
-          .fold((0, vec![], 0), |pre, current| {
-            let (size, mut field_vec, mut align) = pre;
-            let val: JsNumber = ret_object.get_named_property(&current).unwrap();
-            let data_type = number_to_data_type(val.try_into().unwrap());
-            let (field_size, field_align) = get_data_type_size_align(data_type);
-            align = align.max(field_align);
-            field_vec.push(current);
-            (size + field_size, field_vec, align)
-          });
-        let mut result: *mut c_void = malloc(ret_fields_size);
-        ffi_call(
-          &mut cif,
-          Some(*func),
-          &mut result as *mut _ as *mut c_void,
-          arg_values_c_void.as_mut_ptr(),
-        );
-        let mut js_object = env.create_object().unwrap();
-        let mut field_ptr = result;
-        field_vec.into_iter().for_each(|field| {
-          let val: JsNumber = ret_object.get_named_property(&field).unwrap();
-          let data_type = number_to_data_type(val.try_into().unwrap());
-          match data_type {
-            DataType::I32 => {
-              let type_field_ptr = field_ptr as *mut i32;
-              js_object
-                .set_property(
-                  env.create_string(&field).unwrap(),
-                  env.create_int32(*type_field_ptr).unwrap(),
-                )
-                .unwrap();
-              field_ptr = field_ptr.offset(std::mem::size_of::<c_int>() as isize) as *mut c_void;
-              field_ptr = align_ptr(field_ptr, align);
-            }
-            DataType::Double => {
-              let type_field_ptr = field_ptr as *mut c_double;
-              js_object
-                .set_property(
-                  env.create_string(&field).unwrap(),
-                  env.create_double(*type_field_ptr).unwrap(),
-                )
-                .unwrap();
-              field_ptr = field_ptr.offset(std::mem::size_of::<c_int>() as isize) as *mut c_void;
-              field_ptr = align_ptr(field_ptr, align);
-            }
-            DataType::String => {
-              let type_field_ptr = field_ptr as *mut *mut c_char;
-              let js_string = CString::from_raw(*type_field_ptr).into_string().unwrap();
-              js_object
-                .set_property(
-                  env.create_string(&field).unwrap(),
-                  env.create_string(&js_string).unwrap(),
-                )
-                .unwrap();
-              field_ptr =
-                field_ptr.offset(std::mem::size_of::<*const c_char>() as isize) as *mut c_void;
-              field_ptr = align_ptr(field_ptr, align);
-            }
-            // DataType::StringArray => {
-            //   let field_ptr = result.offset(offset as isize) as *mut *const *mut c_char;
-            //   let js_array = env.create_object().unwrap();
-            //   let output_vec: JsObject = vec![0; ret_type_len.unwrap() as usize]
-            //     .iter()
-            //     .enumerate()
-            //     .for_each(|(index, _)| {
-            //       let rs_string = CString::from_raw((**field_ptr).offset(index as isize))
-            //         .into_string()
-            //         .unwrap();
-            //       js_array.set_element(index, env.create_string(&rs_string).unwrap());
-            //     });
+        let ffi_tag = ret_object.has_named_property("ffiTypeTag").unwrap();
+        if ffi_tag {
+          let ffi_tag: &str = &js_string_to_string(
+            ret_object
+              .get_named_property::<JsString>("ffiTypeTag")
+              .unwrap(),
+          );
+          match ffi_tag {
+            "array" => {
+              let array_len: usize =
+                js_nunmber_to_i32(ret_object.get_named_property::<JsNumber>("length").unwrap())
+                  as usize;
 
-            //   js_object
-            //     .set_property(env.create_string(&field).unwrap(), output_vec)
-            //     .unwrap();
-            //   offset += std::mem::size_of::<*const *const c_char>();
-            // }
-            _ => panic!(
-              "{:?} is not available as a field type at this time",
-              data_type
-            ),
+              let array_type: i32 =
+                js_nunmber_to_i32(ret_object.get_named_property::<JsNumber>("type").unwrap());
+              let array_type = number_to_data_type(array_type);
+              match array_type {
+                DataType::I32Array => {
+                  let mut result: *mut c_int =
+                    malloc(std::mem::size_of::<*mut c_int>()) as *mut c_int;
+                  ffi_call(
+                    &mut cif,
+                    Some(*func),
+                    &mut result as *mut _ as *mut c_void,
+                    arg_values_c_void.as_mut_ptr(),
+                  );
+                  let arr = create_array_from_pointer(ArrayPointerType::I32(result), array_len);
+                  if !result.is_null() {
+                    libc::free(result as *mut c_void);
+                  }
+                  match arr {
+                    ArrayType::I32(arr) => Either9::E(arr),
+                    _ => panic!("some error"),
+                  }
+                }
+                DataType::DoubleArray => {
+                  let mut result: *mut c_double =
+                    malloc(std::mem::size_of::<*mut c_double>()) as *mut c_double;
+                  ffi_call(
+                    &mut cif,
+                    Some(*func),
+                    &mut result as *mut _ as *mut c_void,
+                    arg_values_c_void.as_mut_ptr(),
+                  );
+                  let arr = create_array_from_pointer(ArrayPointerType::Double(result), array_len);
+                  if !result.is_null() {
+                    libc::free(result as *mut c_void);
+                  }
+                  match arr {
+                    ArrayType::Double(arr) => Either9::G(arr),
+                    _ => panic!("some error"),
+                  }
+                }
+                DataType::StringArray => {
+                  let mut result: *mut *mut c_char =
+                    malloc(std::mem::size_of::<*mut *mut c_char>()) as *mut *mut c_char;
+
+                  ffi_call(
+                    &mut cif,
+                    Some(*func),
+                    &mut result as *mut _ as *mut c_void,
+                    arg_values_c_void.as_mut_ptr(),
+                  );
+                  let arr = create_array_from_pointer(ArrayPointerType::String(result), array_len);
+                  if !result.is_null() {
+                    libc::free(result as *mut c_void);
+                  }
+                  match arr {
+                    ArrayType::String(arr) => Either9::F(arr),
+                    _ => panic!("some error"),
+                  }
+                }
+                _ => panic!("some error"),
+              }
+            }
+            _ => unreachable!(),
           }
-        });
-        Either9::I(js_object)
+        } else {
+          let (ret_fields_size, align) =
+            JsObject::keys(&ret_object)
+              .unwrap()
+              .into_iter()
+              .fold((0, 0), |pre, current| {
+                let (size, mut align) = pre;
+                let val: JsUnknown = ret_object.get_named_property(&current).unwrap();
+                let data_type = js_unknown_to_data_type(val);
+                let (field_size, field_align) = get_data_type_size_align(data_type);
+                align = align.max(field_align);
+                (size + field_size, align)
+              });
+          let mut result: *mut c_void = malloc(ret_fields_size);
+          ffi_call(
+            &mut cif,
+            Some(*func),
+            &mut result as *mut _ as *mut c_void,
+            arg_values_c_void.as_mut_ptr(),
+          );
+          let mut js_object = env.create_object().unwrap();
+          let mut field_ptr = result;
+          JsObject::keys(&ret_object)
+            .unwrap()
+            .into_iter()
+            .for_each(|field| {
+              let val: JsUnknown = ret_object.get_named_property(&field).unwrap();
+              let data_type = js_unknown_to_data_type(val);
+              match data_type {
+                DataType::I32 => {
+                  let type_field_ptr = field_ptr as *mut i32;
+                  js_object
+                    .set_property(
+                      env.create_string(&field).unwrap(),
+                      env.create_int32(*type_field_ptr).unwrap(),
+                    )
+                    .unwrap();
+                  field_ptr =
+                    field_ptr.offset(std::mem::size_of::<c_int>() as isize) as *mut c_void;
+                  field_ptr = align_ptr(field_ptr, align);
+                }
+                DataType::Double => {
+                  let type_field_ptr = field_ptr as *mut c_double;
+                  js_object
+                    .set_property(
+                      env.create_string(&field).unwrap(),
+                      env.create_double(*type_field_ptr).unwrap(),
+                    )
+                    .unwrap();
+                  field_ptr =
+                    field_ptr.offset(std::mem::size_of::<c_int>() as isize) as *mut c_void;
+                  field_ptr = align_ptr(field_ptr, align);
+                }
+                DataType::String => {
+                  let type_field_ptr = field_ptr as *mut *mut c_char;
+                  let js_string = CString::from_raw(*type_field_ptr).into_string().unwrap();
+                  js_object
+                    .set_property(
+                      env.create_string(&field).unwrap(),
+                      env.create_string(&js_string).unwrap(),
+                    )
+                    .unwrap();
+                  field_ptr =
+                    field_ptr.offset(std::mem::size_of::<*const c_char>() as isize) as *mut c_void;
+                  field_ptr = align_ptr(field_ptr, align);
+                }
+                DataType::StringArray => {
+                  let array_constructor: JsObject = ret_object.get_named_property(&field).unwrap();
+                  let array_len: usize = js_nunmber_to_i32(
+                    array_constructor
+                      .get_named_property::<JsNumber>("length")
+                      .unwrap(),
+                  ) as usize;
+                  let type_field_ptr = field_ptr as *mut *mut *mut c_char;
+                  let arr =
+                    create_array_from_pointer(ArrayPointerType::String(*type_field_ptr), array_len);
+                  match arr {
+                    ArrayType::String(arr) => {
+                      let mut js_array = env.create_array_with_length(arr.len()).unwrap();
+                      arr.into_iter().enumerate().for_each(|(index, str)| {
+                        js_array
+                          .set_element(index as u32, env.create_string(&str).unwrap())
+                          .unwrap();
+                      });
+                      js_object
+                        .set_property(env.create_string(&field).unwrap(), js_array)
+                        .unwrap();
+                    }
+                    _ => panic!("some error"),
+                  }
+                }
+
+                _ => panic!(
+                  "{:?} is not available as a field type at this time",
+                  data_type
+                ),
+              }
+            });
+          Either9::I(js_object)
+        }
       }
+
       FFIJsValue::Unknown => Either9::C(()),
     }
   }

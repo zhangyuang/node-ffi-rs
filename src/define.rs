@@ -1,6 +1,6 @@
 use indexmap::IndexMap;
 use napi::bindgen_prelude::*;
-use napi::{Env, JsObject};
+use napi::{Env, JsObject, JsUnknown};
 use std::hash::Hash;
 
 #[derive(Clone)]
@@ -83,4 +83,18 @@ pub enum RsArgsValue {
   Boolean(bool),
   Void(()),
   Function(JsFunction, JsFunction),
+}
+
+#[napi(object)]
+pub struct FFIParams {
+  pub library: String,
+  pub func_name: String,
+  pub ret_type: JsUnknown,
+  pub params_type: Vec<JsUnknown>,
+  pub params_value: Vec<JsUnknown>,
+}
+#[napi(object)]
+pub struct OpenParams {
+  pub library: String,
+  pub path: String,
 }

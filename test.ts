@@ -1,5 +1,5 @@
 import { equal, deepStrictEqual } from 'assert'
-import { load, open, close, DataType } from './index'
+import { load, open, close, DataType, arrayConstructor } from './index'
 
 const platform = process.platform
 const a = 1
@@ -47,36 +47,32 @@ const unitTest = () => {
     paramsType: [DataType.Double, DataType.Double],
     paramsValue: [1.1, 2.2]
   }))
-
   let bigArr = new Array(100).fill(100)
-  equal(bigArr[0], load({
+  deepStrictEqual(bigArr, load({
     library: 'libsum',
     funcName: 'createArrayi32',
-    retType: DataType.I32Array,
+    retType: arrayConstructor({ type: DataType.I32Array, length: bigArr.length }),
     paramsType: [DataType.I32Array, DataType.I32],
     paramsValue: [bigArr, bigArr.length],
-    retTypeLen: bigArr.length
-  })[0])
+  }))
 
-  let bigDoubleArr = new Array(100).fill(1.1)
-  equal(bigDoubleArr[0], load({
+  let bigDoubleArr = new Array(5).fill(1.1)
+  deepStrictEqual(bigDoubleArr, load({
     library: 'libsum',
     funcName: 'createArrayDouble',
-    retType: DataType.DoubleArray,
+    retType: arrayConstructor({ type: DataType.DoubleArray, length: bigDoubleArr.length }),
     paramsType: [DataType.DoubleArray, DataType.I32],
     paramsValue: [bigDoubleArr, bigDoubleArr.length],
-    retTypeLen: bigDoubleArr.length
-  })[0])
+  }))
+  let stringArr = [c, c.repeat(20)]
 
-  let stringArr = [c, c.repeat(200)]
-  equal(stringArr[0], load({
+  deepStrictEqual(stringArr, load({
     library: 'libsum',
     funcName: 'createArrayString',
-    retType: DataType.StringArray,
+    retType: arrayConstructor({ type: DataType.StringArray, length: stringArr.length }),
     paramsType: [DataType.StringArray, DataType.I32],
     paramsValue: [stringArr, stringArr.length],
-    retTypeLen: stringArr.length
-  })[0])
+  }))
   const bool_val = true
   equal(!bool_val, load({
     library: 'libsum',
@@ -85,12 +81,11 @@ const unitTest = () => {
     paramsType: [DataType.Boolean],
     paramsValue: [bool_val],
   }))
-
   const person = {
     name: 'tom',
     age: 23,
     doubleProps: 1.1,
-    // stringArrProps: ["foo", "bar"]
+    stringArrProps: ["foo", "bar"]
   }
   const personObj = load({
     library: 'libsum',
@@ -99,20 +94,17 @@ const unitTest = () => {
       name: DataType.String,
       age: DataType.I32,
       doubleProps: DataType.Double,
-      // stringArrProps: DataType.StringArray
+      stringArrProps: arrayConstructor({ type: DataType.StringArray, length: person.stringArrProps.length })
     },
     paramsType: [{
       name: DataType.String,
       age: DataType.I32,
       doubleProps: DataType.Double,
-      // stringArrProps: DataType.StringArray
+      stringArrProps: DataType.StringArray
     }],
     paramsValue: [person]
   })
-
-  equal(person.name, personObj.name)
-  equal(person.age, personObj.age)
-  equal(person.doubleProps, personObj.doubleProps)
+  deepStrictEqual(person, personObj)
   // deepStrictEqual(person.stringArrProps, personObj.stringArrProps)
   // const func = () => {
   //   console.log('func')
