@@ -13,8 +13,7 @@ use libffi_sys::{
 };
 use napi::threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi::{
-  bindgen_prelude::*, Env, JsBoolean, JsBuffer, JsExternal, JsNumber, JsObject, JsString,
-  JsStringUtf8, JsUnknown,
+  bindgen_prelude::*, Env, JsBoolean, JsBuffer, JsExternal, JsNumber, JsObject, JsString, JsUnknown,
 };
 use std::ffi::{CStr, CString};
 
@@ -52,7 +51,7 @@ pub unsafe fn get_arg_types_values(
   params_type: Vec<JsUnknown>,
   params_value: Vec<JsUnknown>,
 ) -> Result<(Vec<*mut ffi_type>, Vec<RsArgsValue>)> {
-  return params_type
+  params_type
     .into_iter()
     .zip(params_value.into_iter())
     .map(|(param, value)| {
@@ -174,7 +173,7 @@ pub unsafe fn get_arg_types_values(
     .map(|pairs| {
       let (arg_types, arg_values) = pairs.into_iter().unzip();
       (arg_types, arg_values)
-    });
+    })
 }
 
 #[macro_export]
@@ -313,6 +312,24 @@ pub unsafe fn get_value_pointer(
           .unwrap();
 
         let tsfn_ptr = Box::into_raw(Box::new(tsfn));
+
+        // if args_len == 1 {
+        //   let lambda = move |a: *mut c_void| {
+        //     let func_args_type_rs = &*func_args_type_rs_ptr;
+        //     let arg_arr = [a];
+        //     let value: Vec<RsArgsValue> = (0..1)
+        //       .map(|index| {
+        //         let c_param = arg_arr[index as usize];
+        //         let arg_type = func_args_type_rs.get(&index.to_string()).unwrap();
+        //         let param = get_js_function_call_value(&env, arg_type, c_param, true);
+        //         param
+        //       })
+        //       .collect();
+        //     (&*tsfn_ptr).call(value, ThreadsafeFunctionCallMode::NonBlocking);
+        //   };
+        //   let closure = Box::into_raw(Box::new(Closure1::new(&*Box::into_raw(Box::new(lambda)))));
+        //   return Ok(std::mem::transmute((*closure).code_ptr()));
+        // }
         Ok(
           match_args_len!(env, args_len, tsfn_ptr, func_args_type_rs_ptr,
               1 => Closure1, a
@@ -504,9 +521,9 @@ pub unsafe fn get_js_unknown_from_pointer(
       let ret_data_type = number_to_basic_data_type(number);
       match ret_data_type {
         BasicDataType::String => {
-          let ptr_str = CStr::from_ptr(*(ptr as *mut *const c_char))
-            .to_string_lossy()
-            .to_string();
+          let ptr_str = CString::from_raw(*(ptr as *mut *mut c_char))
+            .into_string()
+            .unwrap();
           rs_value_to_js_unknown(&env, RsArgsValue::String(ptr_str))
         }
         BasicDataType::U8 => rs_value_to_js_unknown(env, RsArgsValue::U8(*(ptr as *mut u8))),

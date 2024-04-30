@@ -304,27 +304,27 @@ const unitTest = () => {
     })],
     paramsValue: [func]
   })
-  // load({
-  //   library: "libsum",
-  //   funcName: "callFunction",
-  //   retType: DataType.Void,
-  //   paramsType: [
-  //     DataType.External,
-  //   ],
-  //   paramsValue: [funcExternal[0]],
-  // });
   load({
     library: "libsum",
-    funcName: "callFunctionDouble",
+    funcName: "callFunction",
     retType: DataType.Void,
     paramsType: [
-      funcConstructor({
-        paramsType: [DataType.I32, DataType.Double],
-        retType: DataType.Void,
-      }),
+      DataType.External,
     ],
-    paramsValue: [func],
+    paramsValue: [funcExternal[0]],
   });
+  // load({
+  //   library: "libsum",
+  //   funcName: "callFunctionDouble",
+  //   retType: DataType.Void,
+  //   paramsType: [
+  //     funcConstructor({
+  //       paramsType: [DataType.I32, DataType.Double],
+  //       retType: DataType.Void,
+  //     }),
+  //   ],
+  //   paramsValue: [func],
+  // });
 
   // cpp
   const classPointer = load({
