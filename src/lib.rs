@@ -5,9 +5,10 @@ mod utils;
 use define::{number_to_data_type, DataType, FFIParams, OpenParams, RsArgsValue};
 use napi::bindgen_prelude::*;
 use utils::{
-  align_ptr, calculate_layout, create_array_from_pointer, get_data_type_size_align,
-  get_js_function_call_value, js_array_to_number_array, js_array_to_string_array,
-  js_nunmber_to_i32, js_string_to_string, js_unknown_to_data_type, rs_array_to_js_array, ArrayType,
+  calculate_layout, create_array_from_pointer, get_data_type_size_align,
+  get_js_function_call_value, get_rs_value_size_align, js_array_to_number_array,
+  js_array_to_string_array, js_nunmber_to_i32, js_string_to_string, js_unknown_to_data_type,
+  rs_array_to_js_array, ArrayType,
 };
 
 use indexmap::IndexMap;
@@ -18,7 +19,7 @@ use libffi_sys::{
   ffi_type_pointer, ffi_type_sint32, ffi_type_uint8, ffi_type_void,
 };
 use libloading::{Library, Symbol};
-use napi::{Env, JsFunction, JsNumber, JsObject, JsString, JsUnknown};
+use napi::{Env, JsBoolean, JsFunction, JsNumber, JsObject, JsString, JsUnknown};
 use std::alloc::{alloc, Layout};
 use std::collections::HashMap;
 use std::ffi::c_void;
@@ -142,7 +143,7 @@ fn load(
               }
               DataType::Boolean => {
                 let arg_type = &mut ffi_type_uint8 as *mut ffi_type;
-                let arg_val: bool = value.coerce_to_bool().unwrap().try_into().unwrap();
+                let arg_val: bool = value.coerce_to_bool().unwrap().get_value().unwrap();
                 (arg_type, RsArgsValue::Boolean(arg_val))
               }
               DataType::Void => {
@@ -176,6 +177,11 @@ fn load(
                       let val: JsNumber = params_value_object.get_named_property(&field).unwrap();
                       let val: i32 = val.try_into().unwrap();
                       RsArgsValue::I32(val)
+                    }
+                    DataType::Boolean => {
+                      let val: JsBoolean = params_value_object.get_named_property(&field).unwrap();
+                      let val: bool = val.get_value().unwrap();
+                      RsArgsValue::Boolean(val)
                     }
                     DataType::Double => {
                       let val: JsNumber = params_value_object.get_named_property(&field).unwrap();
@@ -306,8 +312,11 @@ fn load(
           };
         }
         RsArgsValue::Object(val) => {
-          let (size, align) = calculate_layout(&val);
-          let layout = if size > 0 && align > 0 {
+          let (size, _) = calculate_layout(&val);
+
+          let layout = if size > 0 {
+            let (_, first_field) = val.get_index(0).unwrap();
+            let (_, align) = get_rs_value_size_align(first_field);
             Layout::from_size_align(size, align).unwrap()
           } else {
             Layout::new::<i32>()
@@ -315,34 +324,44 @@ fn load(
 
           let ptr = alloc(layout) as *mut c_void;
           let field_ptr = ptr;
-          unsafe fn write_data(
-            map: IndexMap<String, RsArgsValue>,
-            mut field_ptr: *mut c_void,
-            align: usize,
-          ) {
+          unsafe fn write_data(map: IndexMap<String, RsArgsValue>, mut field_ptr: *mut c_void) {
+            let mut offset = 0;
             for (_, field_val) in map {
               match field_val {
                 RsArgsValue::I32(number) => {
+                  let align = std::mem::align_of::<c_int>();
+                  let padding = (align - (offset % align)) % align;
+                  field_ptr = field_ptr.offset(padding as isize);
                   (field_ptr as *mut c_int).write(number);
-                  field_ptr =
-                    field_ptr.offset(std::mem::size_of::<c_int>() as isize) as *mut c_void;
-                  field_ptr = align_ptr(field_ptr, align);
+                  offset = std::mem::size_of::<c_int>();
                 }
                 RsArgsValue::Double(double_number) => {
+                  let align = std::mem::align_of::<c_double>();
+                  let padding = (align - (offset % align)) % align;
+                  field_ptr = field_ptr.offset(padding as isize);
                   (field_ptr as *mut c_double).write(double_number);
-                  field_ptr =
-                    field_ptr.offset(std::mem::size_of::<c_double>() as isize) as *mut c_void;
-                  field_ptr = align_ptr(field_ptr, align);
+                  offset = std::mem::size_of::<c_double>();
+                }
+                RsArgsValue::Boolean(val) => {
+                  let align = std::mem::align_of::<bool>();
+                  let padding = (align - (offset % align)) % align;
+                  field_ptr = field_ptr.offset(padding as isize);
+                  (field_ptr as *mut bool).write(val);
+                  offset = std::mem::size_of::<bool>();
                 }
                 RsArgsValue::String(str) => {
+                  let align = std::mem::align_of::<*const c_char>();
+                  let padding = (align - (offset % align)) % align;
+                  field_ptr = field_ptr.offset(padding as isize);
                   let c_string = CString::new(str).unwrap();
                   (field_ptr as *mut *const c_char).write(c_string.as_ptr());
                   std::mem::forget(c_string);
-                  field_ptr =
-                    field_ptr.offset(std::mem::size_of::<*const c_char>() as isize) as *mut c_void;
-                  field_ptr = align_ptr(field_ptr, align);
+                  offset = std::mem::size_of::<*const c_char>();
                 }
                 RsArgsValue::StringArray(str_arr) => {
+                  let align = std::mem::align_of::<*const *const c_char>();
+                  let padding = (align - (offset % align)) % align;
+                  field_ptr = field_ptr.offset(padding as isize);
                   let c_char_vec: Vec<*const c_char> = str_arr
                     .into_iter()
                     .map(|str| {
@@ -352,39 +371,42 @@ fn load(
                       return ptr;
                     })
                     .collect();
-
                   (field_ptr as *mut *const *const c_char).write(c_char_vec.as_ptr());
                   std::mem::forget(c_char_vec);
-                  field_ptr = field_ptr.offset(std::mem::size_of::<*const *const c_char>() as isize)
-                    as *mut c_void;
-                  field_ptr = align_ptr(field_ptr, align);
+                  offset = std::mem::size_of::<*const *const c_char>();
                 }
                 RsArgsValue::DoubleArray(arr) => {
+                  let align = std::mem::align_of::<*const c_double>();
+                  let padding = (align - (offset % align)) % align;
+                  field_ptr = field_ptr.offset(padding as isize);
                   (field_ptr as *mut *const c_double).write(arr.as_ptr());
                   std::mem::forget(arr);
-                  field_ptr = field_ptr.offset(std::mem::size_of::<*const c_double>() as isize)
-                    as *mut c_void;
-                  field_ptr = align_ptr(field_ptr, align);
+                  offset = std::mem::size_of::<*const c_double>();
                 }
                 RsArgsValue::I32Array(arr) => {
+                  let align = std::mem::align_of::<*const c_int>();
+                  let padding = (align - (offset % align)) % align;
+                  field_ptr = field_ptr.offset(padding as isize);
                   (field_ptr as *mut *const c_int).write(arr.as_ptr());
                   std::mem::forget(arr);
-                  field_ptr =
-                    field_ptr.offset(std::mem::size_of::<*const c_int>() as isize) as *mut c_void;
-                  field_ptr = align_ptr(field_ptr, align);
+                  offset = std::mem::size_of::<*const c_int>();
                 }
                 RsArgsValue::Object(val) => {
                   let (size, _) = calculate_layout(&val);
-                  write_data(val, field_ptr, align);
-                  field_ptr = field_ptr.offset(size as isize) as *mut c_void;
-                  field_ptr = align_ptr(field_ptr, align);
+                  let align = std::mem::align_of::<usize>(); // Assuming the alignment of the object is the same as usize
+                  let padding = (align - (offset % align)) % align;
+                  field_ptr = field_ptr.offset(padding as isize);
+                  write_data(val, field_ptr);
+                  offset = size;
                 }
                 _ => panic!("write_data"),
               }
+              field_ptr = field_ptr.offset(offset as isize);
             }
           }
-          write_data(val, field_ptr, align);
-          return Box::into_raw(Box::new(ptr)) as *mut c_void;
+          write_data(val, field_ptr);
+          let p = Box::into_raw(Box::new(ptr)) as *mut c_void;
+          return p;
         }
       })
       .collect();
@@ -483,17 +505,15 @@ fn load(
             Either9::D(result)
           }
           DataType::Boolean => {
-            let mut result: u8 = 255;
+            let mut result: bool = false;
             ffi_call(
               &mut cif,
               Some(*func),
-              &mut result as *mut u8 as *mut c_void,
+              &mut result as *mut bool as *mut c_void,
               arg_values_c_void.as_mut_ptr(),
             );
-            if result != 0 && result != 1 {
-              panic!("The returned type is not a boolean")
-            }
-            Either9::H(if result == 0 { false } else { true })
+
+            Either9::H(result)
           }
           _ => {
             panic!(
@@ -573,17 +593,16 @@ fn load(
             _ => panic!("some error"),
           }
         } else {
-          let (ret_fields_size, align) =
+          let ret_fields_size =
             JsObject::keys(&ret_object)
               .unwrap()
               .into_iter()
-              .fold((0, 0), |pre, current| {
-                let (size, mut align) = pre;
+              .fold(0, |pre, current| {
+                let size = pre;
                 let val: JsUnknown = ret_object.get_named_property(&current).unwrap();
                 let data_type = js_unknown_to_data_type(val);
-                let (field_size, field_align) = get_data_type_size_align(data_type);
-                align = align.max(field_align);
-                (size + field_size, align)
+                let (field_size, _) = get_data_type_size_align(data_type);
+                size + field_size
               });
           let mut result: *mut c_void = malloc(ret_fields_size);
           ffi_call(
@@ -594,6 +613,7 @@ fn load(
           );
           let mut js_object = env.create_object().unwrap();
           let mut field_ptr = result;
+          let mut offset = 0;
           JsObject::keys(&ret_object)
             .unwrap()
             .into_iter()
@@ -612,18 +632,22 @@ fn load(
               };
               match data_type {
                 DataType::I32 => {
-                  let type_field_ptr = field_ptr as *mut i32;
+                  let align = std::mem::align_of::<c_int>();
+                  let padding = (align - (offset % align)) % align;
+                  field_ptr = field_ptr.offset(padding as isize);
+                  let type_field_ptr = field_ptr as *mut c_int;
                   js_object
                     .set_property(
                       env.create_string(&field).unwrap(),
                       env.create_int32(*type_field_ptr).unwrap(),
                     )
                     .unwrap();
-                  field_ptr =
-                    field_ptr.offset(std::mem::size_of::<c_int>() as isize) as *mut c_void;
-                  field_ptr = align_ptr(field_ptr, align);
+                  offset = std::mem::size_of::<c_int>();
                 }
                 DataType::Double => {
+                  let align = std::mem::align_of::<c_double>();
+                  let padding = (align - (offset % align)) % align;
+                  field_ptr = field_ptr.offset(padding as isize);
                   let type_field_ptr = field_ptr as *mut c_double;
                   js_object
                     .set_property(
@@ -631,11 +655,25 @@ fn load(
                       env.create_double(*type_field_ptr).unwrap(),
                     )
                     .unwrap();
-                  field_ptr =
-                    field_ptr.offset(std::mem::size_of::<c_int>() as isize) as *mut c_void;
-                  field_ptr = align_ptr(field_ptr, align);
+                  offset = std::mem::size_of::<c_double>();
+                }
+                DataType::Boolean => {
+                  let align = std::mem::align_of::<bool>();
+                  let padding = (align - (offset % align)) % align;
+                  field_ptr = field_ptr.offset(padding as isize);
+                  let type_field_ptr = field_ptr as *mut bool;
+                  js_object
+                    .set_property(
+                      env.create_string(&field).unwrap(),
+                      env.get_boolean(*type_field_ptr).unwrap(),
+                    )
+                    .unwrap();
+                  offset = std::mem::size_of::<bool>();
                 }
                 DataType::String => {
+                  let align = std::mem::align_of::<*const c_char>();
+                  let padding = (align - (offset % align)) % align;
+                  field_ptr = field_ptr.offset(padding as isize);
                   let type_field_ptr = field_ptr as *mut *mut c_char;
                   let js_string = CString::from_raw(*type_field_ptr).into_string().unwrap();
                   js_object
@@ -644,42 +682,43 @@ fn load(
                       env.create_string(&js_string).unwrap(),
                     )
                     .unwrap();
-                  field_ptr =
-                    field_ptr.offset(std::mem::size_of::<*const c_char>() as isize) as *mut c_void;
-                  field_ptr = align_ptr(field_ptr, align);
+                  offset = std::mem::size_of::<*const c_char>();
                 }
                 DataType::StringArray => {
+                  let align = std::mem::align_of::<*const *const c_char>();
+                  let padding = (align - (offset % align)) % align;
+                  field_ptr = field_ptr.offset(padding as isize);
                   let type_field_ptr = field_ptr as *mut *mut *mut c_char;
                   let arr = create_array_from_pointer(*type_field_ptr, array_len);
                   let js_array = rs_array_to_js_array(env, ArrayType::String(arr));
                   js_object
                     .set_property(env.create_string(&field).unwrap(), js_array)
                     .unwrap();
-                  field_ptr = field_ptr.offset(std::mem::size_of::<*const *const c_char>() as isize)
-                    as *mut c_void;
-                  field_ptr = align_ptr(field_ptr, align);
+                  offset = std::mem::size_of::<*const *const c_char>();
                 }
                 DataType::DoubleArray => {
+                  let align = std::mem::align_of::<*const c_double>();
+                  let padding = (align - (offset % align)) % align;
+                  field_ptr = field_ptr.offset(padding as isize);
                   let type_field_ptr = field_ptr as *mut *mut c_double;
                   let arr = create_array_from_pointer(*type_field_ptr, array_len);
                   let js_array = rs_array_to_js_array(env, ArrayType::Double(arr));
                   js_object
                     .set_property(env.create_string(&field).unwrap(), js_array)
                     .unwrap();
-                  field_ptr = field_ptr.offset(std::mem::size_of::<*const c_double>() as isize)
-                    as *mut c_void;
-                  field_ptr = align_ptr(field_ptr, align);
+                  offset = std::mem::size_of::<*const c_double>();
                 }
                 DataType::I32Array => {
+                  let align = std::mem::align_of::<*const c_int>();
+                  let padding = (align - (offset % align)) % align;
+                  field_ptr = field_ptr.offset(padding as isize);
                   let type_field_ptr = field_ptr as *mut *mut c_int;
                   let arr = create_array_from_pointer(*type_field_ptr, array_len);
                   let js_array = rs_array_to_js_array(env, ArrayType::I32(arr));
                   js_object
                     .set_property(env.create_string(&field).unwrap(), js_array)
                     .unwrap();
-                  field_ptr =
-                    field_ptr.offset(std::mem::size_of::<*const c_int>() as isize) as *mut c_void;
-                  field_ptr = align_ptr(field_ptr, align);
+                  offset = std::mem::size_of::<*const c_int>();
                 }
 
                 _ => panic!(
@@ -687,6 +726,7 @@ fn load(
                   data_type
                 ),
               }
+              field_ptr = field_ptr.offset(offset as isize) as *mut c_void;
             });
           Either9::I(js_object)
         }
