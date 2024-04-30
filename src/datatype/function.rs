@@ -1,11 +1,12 @@
 use super::object_generate::create_rs_struct_from_pointer;
 use super::pointer::*;
 use crate::define::*;
+use napi::Env;
 use std::ffi::c_void;
 use std::ffi::{c_char, c_double, c_int, c_uchar, CStr};
-
 // change c function call value to RsArgsValue from bare pointer
 pub unsafe fn get_js_function_call_value(
+  env: &Env,
   func_arg_type: &RsArgsValue,
   func_val_ptr: *mut c_void,
 ) -> RsArgsValue {
@@ -26,6 +27,9 @@ pub unsafe fn get_js_function_call_value(
             .to_string_lossy()
             .to_string(),
         ),
+        BasicDataType::External => {
+          RsArgsValue::External(env.create_external(func_val_ptr, None).unwrap())
+        }
         BasicDataType::Void => RsArgsValue::Void(()),
         // need to be improved
         BasicDataType::Double => {
@@ -68,7 +72,7 @@ pub unsafe fn get_js_function_call_value(
         }
       } else {
         // function | raw object
-        return RsArgsValue::Object(create_rs_struct_from_pointer(func_val_ptr, obj));
+        return RsArgsValue::Object(create_rs_struct_from_pointer(env, func_val_ptr, obj));
       }
     }
 

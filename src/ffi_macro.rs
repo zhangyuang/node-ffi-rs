@@ -1,5 +1,5 @@
 macro_rules! match_args_len {
- ($args_len:ident, $tsfn_ptr:expr, $func_args_type_rs_ptr:expr,  $($num:literal => $closure:ident, $($arg:ident),*),*) => {
+ ($env:ident, $args_len:ident, $tsfn_ptr:expr, $func_args_type_rs_ptr:expr,  $($num:literal => $closure:ident, $($arg:ident),*),*) => {
         match $args_len {
             $(
                 $num => {
@@ -10,7 +10,7 @@ macro_rules! match_args_len {
                                 .map(|index| {
                                     let c_param = arg_arr[index as usize];
                                      let arg_type = func_args_type_rs.get(&index.to_string()).unwrap();
-                                    let param = get_js_function_call_value(arg_type, c_param);
+                                    let param = get_js_function_call_value(&$env,arg_type, c_param);
                                     param
                                 })
                               .collect();

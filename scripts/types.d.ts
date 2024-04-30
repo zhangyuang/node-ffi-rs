@@ -12,37 +12,40 @@ export const enum DataType {
   I64 = 8,
   U8 = 9,
   U8Array = 10,
+  External = 11
 }
 
 type DataTypeToType<T extends DataType> = T extends DataType.String
   ? string
   : T extends DataType.U8
-    ? number
-    : T extends DataType.I32
-      ? number
-      : T extends DataType.I64
-        ? number
-        : T extends DataType.Double
-          ? number
-          : T extends DataType.U8Array
-            ? number
-            : T extends DataType.I32Array
-              ? number[]
-              : T extends DataType.StringArray
-                ? string[]
-                : T extends DataType.DoubleArray
-                  ? number[]
-                  : T extends DataType.Boolean
-                    ? boolean
-                    : T extends DataType.Void
-                      ? undefined
-                      : never;
+  ? number
+  : T extends DataType.I32
+  ? number
+  : T extends DataType.I64
+  ? number
+  : T extends DataType.Double
+  ? number
+  : T extends DataType.External
+  ? any
+  : T extends DataType.U8Array
+  ? number[]
+  : T extends DataType.I32Array
+  ? number[]
+  : T extends DataType.StringArray
+  ? string[]
+  : T extends DataType.DoubleArray
+  ? number[]
+  : T extends DataType.Boolean
+  ? boolean
+  : T extends DataType.Void
+  ? undefined
+  : never;
 
 type DataFieldTypeToType<T extends DataFieldType<DataType>> = T extends DataType
   ? DataTypeToType<T>
   : T extends ArrayConstructorOptions<infer U>
-    ? DataTypeToType<U>
-    : never;
+  ? DataTypeToType<U>
+  : never;
 
 export function load<
   T extends DataType,

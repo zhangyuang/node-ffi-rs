@@ -1,6 +1,8 @@
+use super::pointer::get_js_external_wrap_Data;
 use crate::define::RsArgsValue;
 use indexmap::IndexMap;
 use libc::c_void;
+use napi::Env;
 use std::alloc::{alloc, Layout};
 use std::ffi::CString;
 use std::ffi::{c_char, c_double, c_int, c_longlong, c_uchar};
@@ -42,7 +44,8 @@ pub fn calculate_struct_size(map: &IndexMap<String, RsArgsValue>) -> (usize, usi
         | RsArgsValue::StringArray(_)
         | RsArgsValue::DoubleArray(_)
         | RsArgsValue::I32Array(_)
-        | RsArgsValue::U8Array(_) => calculate_pointer(size, align, offset),
+        | RsArgsValue::U8Array(_)
+        | RsArgsValue::External(_) => calculate_pointer(size, align, offset),
         RsArgsValue::Function(_, _) => {
           panic!("{:?} calculate_layout error", field_val)
         }
@@ -57,7 +60,7 @@ pub fn calculate_struct_size(map: &IndexMap<String, RsArgsValue>) -> (usize, usi
   (size, align)
 }
 
-pub unsafe fn generate_c_struct(map: IndexMap<String, RsArgsValue>) -> *mut c_void {
+pub unsafe fn generate_c_struct(env: &Env, map: IndexMap<String, RsArgsValue>) -> *mut c_void {
   let (size, align) = calculate_struct_size(&map);
   let layout = if size > 0 {
     Layout::from_size_align(size, align).unwrap()
@@ -195,8 +198,19 @@ pub unsafe fn generate_c_struct(map: IndexMap<String, RsArgsValue>) -> *mut c_vo
         );
         let padding = (align - (offset % align)) % align;
         field_ptr = field_ptr.offset(padding as isize);
-        let obj_ptr = generate_c_struct(val);
+        let obj_ptr = generate_c_struct(env, val);
         (field_ptr as *mut *const c_void).write(obj_ptr);
+        offset += size + padding;
+        size
+      }
+      RsArgsValue::External(val) => {
+        let (size, align) = (
+          std::mem::size_of::<*const c_void>(),
+          std::mem::align_of::<*const c_void>(),
+        );
+        let padding = (align - (offset % align)) % align;
+        field_ptr = field_ptr.offset(padding as isize);
+        (field_ptr as *mut *const c_void).write(get_js_external_wrap_Data(&env, val));
         offset += size + padding;
         size
       }

@@ -1,6 +1,7 @@
 use indexmap::IndexMap;
 use napi::bindgen_prelude::*;
-use napi::{Env, JsObject, JsUnknown};
+use napi::{Env, JsExternal, JsObject, JsUnknown};
+use std::ffi::c_void;
 use std::hash::Hash;
 
 #[derive(Clone)]
@@ -59,6 +60,7 @@ pub enum DataType {
   I64 = 8,
   U8 = 9,
   U8Array = 10,
+  External,
 }
 
 #[derive(Debug)]
@@ -70,6 +72,7 @@ pub enum BasicDataType {
   Void = 7,
   I64 = 8,
   U8 = 9,
+  External = 11,
 }
 
 #[derive(Debug)]
@@ -93,6 +96,7 @@ pub fn number_to_data_type(value: i32) -> DataType {
     8 => DataType::I64,
     9 => DataType::U8,
     10 => DataType::U8Array,
+    11 => DataType::External,
     _ => panic!("unknow DataType"),
   }
 }
@@ -106,6 +110,7 @@ pub fn number_to_basic_data_type(value: i32) -> BasicDataType {
     7 => BasicDataType::Void,
     8 => BasicDataType::I64,
     9 => BasicDataType::U8,
+    11 => BasicDataType::External,
     _ => panic!("unknow DataType"),
   }
 }
@@ -133,6 +138,7 @@ pub enum RsArgsValue {
   Boolean(bool),
   Void(()),
   Function(JsFunction, JsFunction),
+  External(JsExternal),
 }
 impl std::fmt::Debug for RsArgsValue {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -149,7 +155,8 @@ impl std::fmt::Debug for RsArgsValue {
       RsArgsValue::Object(obj) => write!(f, "Object({:?})", obj),
       RsArgsValue::Boolean(b) => write!(f, "Boolean({})", b),
       RsArgsValue::Void(_) => write!(f, "Void"),
-      RsArgsValue::Function(_, _) => write!(f, "Function(<JsFunction>, <JsFunction>)"),
+      RsArgsValue::External(val) => write!(f, "JsExternal"),
+      RsArgsValue::Function(_, _) => write!(f, "JsFunction"),
     }
   }
 }
