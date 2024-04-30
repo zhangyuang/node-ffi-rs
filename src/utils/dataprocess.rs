@@ -50,7 +50,7 @@ pub unsafe fn get_arg_types_values(
   env: &Env,
   params_type: Vec<JsUnknown>,
   params_value: Vec<JsUnknown>,
-) -> napi::Result<(Vec<*mut ffi_type>, Vec<RsArgsValue>)> {
+) -> Result<(Vec<*mut ffi_type>, Vec<RsArgsValue>)> {
   return params_type
     .into_iter()
     .zip(params_value.into_iter())
@@ -154,7 +154,7 @@ pub unsafe fn get_arg_types_values(
           let params_value_object = value.coerce_to_object()?;
           let index_map =
             get_params_value_rs_struct(&env, &params_type_object, &params_value_object);
-          (arg_type, RsArgsValue::Object(index_map))
+          (arg_type, RsArgsValue::Object(index_map.unwrap()))
         }
         ValueType::Function => {
           let params_type_function: JsFunction = param.try_into()?;
@@ -328,74 +328,73 @@ pub fn get_params_value_rs_struct(
   env: &Env,
   params_type_object: &JsObject,
   params_value_object: &JsObject,
-) -> IndexMap<String, RsArgsValue> {
+) -> Result<IndexMap<String, RsArgsValue>> {
   let mut index_map = IndexMap::new();
-  JsObject::keys(&params_value_object)
+  let _: Result<()> = JsObject::keys(&params_value_object)
     .unwrap()
     .into_iter()
-    .for_each(|field| {
-      let field_type: JsUnknown = params_type_object.get_named_property(&field).unwrap();
+    .try_for_each(|field| {
+      let field_type: JsUnknown = params_type_object.get_named_property(&field)?;
       match field_type.get_type().unwrap() {
         ValueType::Number => {
-          let data_type: DataType =
-            number_to_data_type(field_type.coerce_to_number().unwrap().try_into().unwrap());
+          let data_type: DataType = number_to_data_type(field_type.coerce_to_number()?.try_into()?);
           let val = match data_type {
             DataType::String => {
-              let val: JsString = params_value_object.get_named_property(&field).unwrap();
-              let val: String = val.into_utf8().unwrap().try_into().unwrap();
+              let val: JsString = params_value_object.get_named_property(&field)?;
+              let val: String = val.into_utf8()?.try_into()?;
               RsArgsValue::String(val)
             }
             DataType::U8 => {
-              let val: JsNumber = params_value_object.get_named_property(&field).unwrap();
-              let val: u32 = val.try_into().unwrap();
+              let val: JsNumber = params_value_object.get_named_property(&field)?;
+              let val: u32 = val.try_into()?;
               RsArgsValue::U8(val as u8)
             }
             DataType::I32 => {
-              let val: JsNumber = params_value_object.get_named_property(&field).unwrap();
-              let val: i32 = val.try_into().unwrap();
+              let val: JsNumber = params_value_object.get_named_property(&field)?;
+              let val: i32 = val.try_into()?;
               RsArgsValue::I32(val)
             }
             DataType::I64 => {
-              let val: JsNumber = params_value_object.get_named_property(&field).unwrap();
-              let val: i64 = val.try_into().unwrap();
+              let val: JsNumber = params_value_object.get_named_property(&field)?;
+              let val: i64 = val.try_into()?;
               RsArgsValue::I64(val)
             }
             DataType::U64 => {
-              let val: JsNumber = params_value_object.get_named_property(&field).unwrap();
-              let val: i64 = val.try_into().unwrap();
+              let val: JsNumber = params_value_object.get_named_property(&field)?;
+              let val: i64 = val.try_into()?;
               RsArgsValue::U64(val as u64)
             }
             DataType::Boolean => {
-              let val: JsBoolean = params_value_object.get_named_property(&field).unwrap();
-              let val: bool = val.get_value().unwrap();
+              let val: JsBoolean = params_value_object.get_named_property(&field)?;
+              let val: bool = val.get_value()?;
               RsArgsValue::Boolean(val)
             }
             DataType::Double => {
-              let val: JsNumber = params_value_object.get_named_property(&field).unwrap();
-              let val: f64 = val.try_into().unwrap();
+              let val: JsNumber = params_value_object.get_named_property(&field)?;
+              let val: f64 = val.try_into()?;
               RsArgsValue::Double(val)
             }
             DataType::StringArray => {
-              let js_array: JsObject = params_value_object.get_named_property(&field).unwrap();
+              let js_array: JsObject = params_value_object.get_named_property(&field)?;
               let arg_val = js_array_to_string_array(js_array);
               RsArgsValue::StringArray(arg_val)
             }
             DataType::DoubleArray => {
-              let js_array: JsObject = params_value_object.get_named_property(&field).unwrap();
+              let js_array: JsObject = params_value_object.get_named_property(&field)?;
               let arg_val = js_array_to_number_array(js_array);
               RsArgsValue::DoubleArray(arg_val)
             }
             DataType::I32Array => {
-              let js_array: JsObject = params_value_object.get_named_property(&field).unwrap();
+              let js_array: JsObject = params_value_object.get_named_property(&field)?;
               let arg_val = js_array_to_number_array(js_array);
               RsArgsValue::I32Array(arg_val)
             }
             DataType::U8Array => {
-              let js_buffer: JsBuffer = params_value_object.get_named_property(&field).unwrap();
-              RsArgsValue::U8Array(Some(js_buffer.into_value().unwrap()), None)
+              let js_buffer: JsBuffer = params_value_object.get_named_property(&field)?;
+              RsArgsValue::U8Array(Some(js_buffer.into_value()?), None)
             }
             DataType::External => {
-              let val: JsExternal = params_value_object.get_named_property(&field).unwrap();
+              let val: JsExternal = params_value_object.get_named_property(&field)?;
               RsArgsValue::External(val)
             }
             DataType::Void => RsArgsValue::Void(()),
@@ -404,18 +403,19 @@ pub fn get_params_value_rs_struct(
         }
 
         ValueType::Object => {
-          let params_type = field_type.coerce_to_object().unwrap();
-          let params_value: JsObject = params_value_object.get_named_property(&field).unwrap();
+          let params_type = field_type.coerce_to_object()?;
+          let params_value: JsObject = params_value_object.get_named_property(&field)?;
           let map = get_params_value_rs_struct(env, &params_type, &params_value);
-          index_map.insert(field, RsArgsValue::Object(map));
+          index_map.insert(field, RsArgsValue::Object(map?));
         }
         _ => panic!(
           "receive {:?} but params type can only be number or object ",
           field_type.get_type().unwrap()
         ),
       };
+      Ok(())
     });
-  index_map
+  Ok(index_map)
 }
 
 pub fn type_object_to_rs_struct(params_type: &JsObject) -> IndexMap<String, RsArgsValue> {
