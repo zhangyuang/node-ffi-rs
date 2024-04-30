@@ -17,6 +17,7 @@ libffi-sys = { version = "^2.3.0" }
 libc="0.2"
 [build-dependencies]
 napi-build = "2.0.1"
+bindgen = "^0.66.0"
 
 [profile.release]
 lto = true

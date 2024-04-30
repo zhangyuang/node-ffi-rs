@@ -42,7 +42,7 @@
   },
   "scripts": {
     "artifacts": "napi artifacts",
-    "build:c": "node scripts/cpp.js",
+    "build:c": "node scripts/compile.js",
     "build": "yarn build:c && napi build --platform --release  --js-package-name @yuuang/ffi-rs",
     "build:debug": "napi build --platform",
     "publish:npm": "node scripts/publish.js && napi prepublish -t npm",
