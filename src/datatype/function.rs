@@ -20,6 +20,7 @@ pub unsafe fn get_js_function_call_value(
         BasicDataType::U8 => RsArgsValue::U8(func_val_ptr as u8),
         BasicDataType::I32 => RsArgsValue::I32(func_val_ptr as i32),
         BasicDataType::I64 => RsArgsValue::I64(func_val_ptr as i64),
+        BasicDataType::U64 => RsArgsValue::U64(func_val_ptr as u64),
         BasicDataType::Boolean => RsArgsValue::Boolean(if func_val_ptr as i32 == 0 {
           false
         } else {
