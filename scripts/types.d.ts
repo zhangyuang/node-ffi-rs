@@ -84,7 +84,7 @@ export function close(library: string): void;
 
 export function createPointer(params: {
   paramsType: Array<FieldType>;
-  paramsValue: Array<JsExternal>;
+  paramsValue: Array<unknown>;
 }): JsExternal[]
 
 

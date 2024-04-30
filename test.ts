@@ -9,6 +9,7 @@ import {
   createPointer,
   restorePointer,
   unwrapPointer,
+  wrapPointer,
   define
 } from "./index"
 
@@ -147,17 +148,17 @@ const testArray = () => {
     }),
   );
 }
-const testCreatePointer = () => {
+const testPointer = () => {
+  const i32Ptr = createPointer({
+    paramsType: [DataType.I32],
+    paramsValue: [100]
+  })
   const i32Data = restorePointer({
     retType: [DataType.I32],
-    paramsValue: createPointer({
-      paramsType: [DataType.I32],
-      paramsValue: [100]
-    })
+    paramsValue: i32Ptr
   })
   deepStrictEqual(i32Data[0], 100)
-  logGreen('test i32 pointer success')
-
+  logGreen('test create and restore i32 pointer success')
   const stringData = restorePointer({
     retType: [DataType.String],
     paramsValue: createPointer({
@@ -204,6 +205,19 @@ const testCreatePointer = () => {
     })
   })
   deepStrictEqual(restoreData, [[1.1, 2.2]])
+  const ptrToI32Ptr = wrapPointer(createPointer({
+    paramsType: [DataType.I32],
+    paramsValue: [100]
+  }));
+  const getValueFromDoublePointer = load({
+    library: "libsum",
+    funcName: "getValueFromDoublePointer",
+    retType: DataType.I32,
+    paramsType: [DataType.External],
+    paramsValue: ptrToI32Ptr
+  })
+  equal(getValueFromDoublePointer, 100)
+  logGreen('test getValueFromDoublePointer success')
 }
 const parent = {
   age: 43,
@@ -510,7 +524,7 @@ const unitTest = () => {
   logGreen('test string succeed')
   testArray()
   logGreen('test array succeed')
-  testCreatePointer()
+  testPointer()
   logGreen('test createPointer succeed')
   testVoid()
   logGreen('test void succeed')

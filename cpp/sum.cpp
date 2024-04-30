@@ -19,6 +19,8 @@ extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
 
 extern "C" char *getStringFromPtr(void *ptr) { return (char *)ptr; };
 
+extern "C" int getValueFromDoublePointer(int **ptr) { return *ptr[0]; };
+
 extern "C" void noRet() { printf("%s", "hello world\n"); }
 
 extern "C" int *createArrayi32(const int *arr, int size) {

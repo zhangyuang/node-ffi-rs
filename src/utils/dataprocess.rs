@@ -14,13 +14,24 @@ use libffi_sys::{
 };
 use napi::threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi::{
-  bindgen_prelude::*, Env, JsBoolean, JsBuffer, JsExternal, JsNumber, JsObject, JsString, JsUnknown,
+  bindgen_prelude::*, Env, JsBoolean, JsBuffer, JsExternal, JsNumber, JsObject, JsString,
+  JsUnknown, NapiRaw,
 };
+use std::any::TypeId;
 use std::ffi::{CStr, CString};
 
+#[repr(C)]
+pub struct TaggedObject<T> {
+  type_id: TypeId,
+  pub(crate) object: Option<T>,
+}
+
 pub unsafe fn get_js_external_wrap_data(env: &Env, js_external: JsExternal) -> Result<*mut c_void> {
-  let external: &mut *mut c_void = env.get_value_external(&js_external)?;
-  Ok(*external)
+  let mut unknown_tagged_object = std::ptr::null_mut();
+  sys::napi_get_value_external(env.raw(), js_external.raw(), &mut unknown_tagged_object);
+  let tagged_object = unknown_tagged_object as *mut TaggedObject<*mut c_void>;
+  let p = (*tagged_object).object.as_mut().unwrap();
+  Ok(*p)
 }
 
 pub fn get_ffi_tag(obj: &IndexMap<String, RsArgsValue>) -> FFITag {
