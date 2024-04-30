@@ -256,7 +256,6 @@ unsafe fn load(
               if let RsArgsValue::Boolean(status) = status {
                 if !*status {
                   if let RsArgsValue::String(uuid) = uuid {
-                    println!("clear");
                     FUNC_DESC.as_mut().unwrap().remove(uuid);
                     TS_FN.as_mut().unwrap().remove(uuid);
                   }
@@ -443,16 +442,13 @@ unsafe fn load(
   };
   let r_type: *mut ffi_type = match ret_value {
     RsArgsValue::I32(number) => {
-      let ret_data_type = number_to_data_type(number);
+      let ret_data_type = number_to_basic_data_type(number);
       match ret_data_type {
-        DataType::I32 => &mut ffi_type_sint32 as *mut ffi_type,
-        DataType::String => &mut ffi_type_pointer as *mut ffi_type,
-        DataType::Void => &mut ffi_type_void as *mut ffi_type,
-        DataType::Double => &mut ffi_type_double as *mut ffi_type,
-        DataType::I32Array => &mut ffi_type_pointer as *mut ffi_type,
-        DataType::StringArray => &mut ffi_type_pointer as *mut ffi_type,
-        DataType::DoubleArray => &mut ffi_type_pointer as *mut ffi_type,
-        DataType::Boolean => &mut ffi_type_uint8 as *mut ffi_type,
+        BasicDataType::I32 => &mut ffi_type_sint32 as *mut ffi_type,
+        BasicDataType::String => &mut ffi_type_pointer as *mut ffi_type,
+        BasicDataType::Void => &mut ffi_type_void as *mut ffi_type,
+        BasicDataType::Double => &mut ffi_type_double as *mut ffi_type,
+        BasicDataType::Boolean => &mut ffi_type_uint8 as *mut ffi_type,
       }
     }
     RsArgsValue::Object(_) => &mut ffi_type_pointer as *mut ffi_type,
@@ -480,9 +476,9 @@ unsafe fn load(
 
   match ret_value {
     RsArgsValue::I32(number) => {
-      let ret_data_type = number_to_data_type(number);
+      let ret_data_type = number_to_basic_data_type(number);
       match ret_data_type {
-        DataType::String => {
+        BasicDataType::String => {
           let mut result: *mut c_char = malloc(std::mem::size_of::<*mut c_char>()) as *mut c_char;
           ffi_call(
             &mut cif,
@@ -495,7 +491,7 @@ unsafe fn load(
 
           Either9::A(result_str)
         }
-        DataType::I32 => {
+        BasicDataType::I32 => {
           let mut result: i32 = 0;
           ffi_call(
             &mut cif,
@@ -505,7 +501,7 @@ unsafe fn load(
           );
           Either9::B(result)
         }
-        DataType::Void => {
+        BasicDataType::Void => {
           let mut result = ();
           ffi_call(
             &mut cif,
@@ -515,7 +511,7 @@ unsafe fn load(
           );
           Either9::C(())
         }
-        DataType::Double => {
+        BasicDataType::Double => {
           let mut result: f64 = 0.0;
           ffi_call(
             &mut cif,
@@ -525,7 +521,7 @@ unsafe fn load(
           );
           Either9::D(result)
         }
-        DataType::Boolean => {
+        BasicDataType::Boolean => {
           let mut result: bool = false;
           ffi_call(
             &mut cif,
@@ -535,12 +531,6 @@ unsafe fn load(
           );
 
           Either9::H(result)
-        }
-        _ => {
-          panic!(
-            "{:?} is not currently avaiable as a return type",
-            ret_data_type
-          )
         }
       }
     }
@@ -557,9 +547,9 @@ unsafe fn load(
         } else {
           -1
         };
-        let array_type = number_to_data_type(array_type);
+        let array_type = number_to_ref_data_type(array_type);
         match array_type {
-          DataType::I32Array => {
+          RefDataType::I32Array => {
             let mut result: *mut c_int = malloc(std::mem::size_of::<*mut c_int>()) as *mut c_int;
             ffi_call(
               &mut cif,
@@ -573,7 +563,7 @@ unsafe fn load(
             }
             Either9::E(arr)
           }
-          DataType::DoubleArray => {
+          RefDataType::DoubleArray => {
             let mut result: *mut c_double =
               malloc(std::mem::size_of::<*mut c_double>()) as *mut c_double;
             ffi_call(
@@ -588,7 +578,7 @@ unsafe fn load(
             }
             Either9::G(arr)
           }
-          DataType::StringArray => {
+          RefDataType::StringArray => {
             let mut result: *mut *mut c_char =
               malloc(std::mem::size_of::<*mut *mut c_char>()) as *mut *mut c_char;
 
@@ -604,7 +594,6 @@ unsafe fn load(
             }
             Either9::F(arr)
           }
-          _ => panic!("some error"),
         }
       } else {
         // raw object

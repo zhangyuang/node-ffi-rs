@@ -13,25 +13,22 @@ pub unsafe fn get_js_function_call_value(
 ) -> RsArgsValue {
   return match func_arg_type {
     RsArgsValue::I32(number) => {
-      let data_type: DataType = number_to_data_type(*number);
+      let data_type = number_to_basic_data_type(*number);
       let data = match data_type {
-        DataType::I32 => RsArgsValue::I32(func_val_ptr as i32),
-        DataType::Boolean => RsArgsValue::Boolean(if func_val_ptr as i32 == 0 {
+        BasicDataType::I32 => RsArgsValue::I32(func_val_ptr as i32),
+        BasicDataType::Boolean => RsArgsValue::Boolean(if func_val_ptr as i32 == 0 {
           false
         } else {
           true
         }),
-        DataType::String => RsArgsValue::String(
+        BasicDataType::String => RsArgsValue::String(
           CStr::from_ptr(func_val_ptr as *mut c_char)
             .to_string_lossy()
             .to_string(),
         ),
+        BasicDataType::Void => RsArgsValue::Void(()),
         // need to be improved
-        DataType::Double => RsArgsValue::Double(1.1),
-        _ => panic!(
-          "{:?} data_type as function args is unsupported at this time",
-          data_type
-        ),
+        BasicDataType::Double => RsArgsValue::Double(1.1),
       };
       data
     }
@@ -47,24 +44,20 @@ pub unsafe fn get_js_function_call_value(
         } else {
           -1
         };
-        let array_type = number_to_data_type(array_type);
+        let array_type = number_to_ref_data_type(array_type);
         match array_type {
-          DataType::StringArray => {
+          RefDataType::StringArray => {
             let arr = create_array_from_pointer(func_val_ptr as *mut *mut c_char, array_len);
             return RsArgsValue::StringArray(arr);
           }
-          DataType::I32Array => {
+          RefDataType::I32Array => {
             let arr = create_array_from_pointer(func_val_ptr as *mut c_int, array_len);
             return RsArgsValue::I32Array(arr);
           }
-          DataType::DoubleArray => {
+          RefDataType::DoubleArray => {
             let arr = create_array_from_pointer(func_val_ptr as *mut c_double, array_len);
             return RsArgsValue::DoubleArray(arr);
           }
-          _ => panic!(
-            "{:?} as function parameter is unsupported so far",
-            array_type
-          ),
         }
       } else {
         // function | raw object

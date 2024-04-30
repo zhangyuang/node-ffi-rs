@@ -15,9 +15,9 @@ pub unsafe fn create_rs_struct_from_pointer(
   let mut offset = 0;
   for (field, val) in ret_object {
     if let RsArgsValue::I32(number) = val {
-      let data_type = number_to_data_type(*number);
+      let data_type = number_to_basic_data_type(*number);
       match data_type {
-        DataType::I32 => {
+        BasicDataType::I32 => {
           let align = std::mem::align_of::<c_int>();
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
@@ -25,7 +25,7 @@ pub unsafe fn create_rs_struct_from_pointer(
           rs_struct.insert(field.clone(), RsArgsValue::I32(*type_field_ptr));
           offset = std::mem::size_of::<c_int>();
         }
-        DataType::Double => {
+        BasicDataType::Double => {
           let align = std::mem::align_of::<c_double>();
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
@@ -33,7 +33,7 @@ pub unsafe fn create_rs_struct_from_pointer(
           rs_struct.insert(field.clone(), RsArgsValue::Double(*type_field_ptr));
           offset = std::mem::size_of::<c_double>();
         }
-        DataType::Boolean => {
+        BasicDataType::Boolean => {
           let align = std::mem::align_of::<bool>();
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
@@ -41,7 +41,14 @@ pub unsafe fn create_rs_struct_from_pointer(
           rs_struct.insert(field.clone(), RsArgsValue::Boolean(*type_field_ptr));
           offset = std::mem::size_of::<bool>();
         }
-        DataType::String => {
+        BasicDataType::Void => {
+          let align = std::mem::align_of::<()>();
+          let padding = (align - (offset % align)) % align;
+          field_ptr = field_ptr.offset(padding as isize);
+          rs_struct.insert(field.clone(), RsArgsValue::Void(()));
+          offset = std::mem::size_of::<bool>();
+        }
+        BasicDataType::String => {
           let align = std::mem::align_of::<*const c_char>();
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
@@ -52,8 +59,6 @@ pub unsafe fn create_rs_struct_from_pointer(
           rs_struct.insert(field.clone(), RsArgsValue::String(js_string));
           offset = std::mem::size_of::<*const c_char>();
         }
-
-        _ => panic!("create_rs_struct_from_pointer {:?}", val),
       }
     }
     if let RsArgsValue::Object(obj) = val {
@@ -69,9 +74,9 @@ pub unsafe fn create_rs_struct_from_pointer(
         } else {
           -1
         };
-        let array_type = number_to_data_type(array_type);
+        let array_type = number_to_ref_data_type(array_type);
         match array_type {
-          DataType::StringArray => {
+          RefDataType::StringArray => {
             let align = std::mem::align_of::<*const *const c_char>();
             let padding = (align - (offset % align)) % align;
             field_ptr = field_ptr.offset(padding as isize);
@@ -80,7 +85,7 @@ pub unsafe fn create_rs_struct_from_pointer(
             rs_struct.insert(field.clone(), RsArgsValue::StringArray(arr));
             offset = std::mem::size_of::<*const *const c_char>();
           }
-          DataType::DoubleArray => {
+          RefDataType::DoubleArray => {
             let align = std::mem::align_of::<*const c_double>();
             let padding = (align - (offset % align)) % align;
             field_ptr = field_ptr.offset(padding as isize);
@@ -89,7 +94,7 @@ pub unsafe fn create_rs_struct_from_pointer(
             rs_struct.insert(field.clone(), RsArgsValue::DoubleArray(arr));
             offset = std::mem::size_of::<*const c_double>();
           }
-          DataType::I32Array => {
+          RefDataType::I32Array => {
             let align = std::mem::align_of::<*const c_int>();
             let padding = (align - (offset % align)) % align;
             field_ptr = field_ptr.offset(padding as isize);
@@ -98,7 +103,6 @@ pub unsafe fn create_rs_struct_from_pointer(
             rs_struct.insert(field.clone(), RsArgsValue::I32Array(arr));
             offset = std::mem::size_of::<*const c_int>();
           }
-          _ => panic!("create_object_from_pointer_by_rs"),
         }
       } else {
         // function | raw object
@@ -234,6 +238,7 @@ pub unsafe fn rs_value_to_js_unknown(env: &Env, data: RsArgsValue) -> JsUnknown 
       }
       js_object.into_unknown()
     }
-    _ => panic!(""),
+    RsArgsValue::Void(_) => panic!("void cannot be as a call param type"),
+    RsArgsValue::Function(_, _) => panic!("function need to be improved"),
   };
 }
