@@ -113,7 +113,6 @@ extern "C" void callFunction(FunctionPointer func) {
   i32Array[1] = 202;
   i32Array[2] = 303;
   Person *p = createPerson();
-  printf("callFunction%p\n", (void *)&ddd);
   func(a, b, c, stringArray, i32Array, p);
 }
 

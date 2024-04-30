@@ -5,6 +5,7 @@ use napi::bindgen_prelude::*;
 use napi::{JsBoolean, JsNumber, JsObject, JsString, JsUnknown};
 use std::ffi::c_void;
 use std::ffi::{c_char, c_double, c_int, CStr};
+
 pub unsafe fn get_js_function_call_value(
   env: &Env,
   func_arg_type: JsUnknown,
@@ -85,6 +86,32 @@ pub unsafe fn get_js_function_call_value(
       }
     }
     _ => panic!("get_js_function_call_value err "),
+  };
+}
+pub unsafe fn get_js_function_call_value_number(
+  func_arg_type: i32,
+  func_arg_ptr: *mut c_void,
+) -> RsArgsValue {
+  let data_type: DataType = number_to_data_type(func_arg_type);
+  return match data_type {
+    DataType::I32 => RsArgsValue::I32(func_arg_type as i32),
+    DataType::Boolean => {
+      return RsArgsValue::Boolean(if func_arg_ptr as i32 == 0 {
+        false
+      } else {
+        true
+      })
+    }
+    DataType::String => RsArgsValue::String(
+      CStr::from_ptr(func_arg_ptr as *mut c_char)
+        .to_string_lossy()
+        .to_string(),
+    ),
+
+    _ => panic!(
+      "{:?} data_type as function args is unsupported at this time",
+      data_type
+    ),
   };
 }
 
