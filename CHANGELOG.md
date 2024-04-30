@@ -1,4 +1,9 @@
-## [1.0.66](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.64...v1.0.66) (2024-04-28)
+## [1.0.67](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.64...v1.0.67) (2024-04-30)
+
+
+### Bug Fixes
+
+* ci add darwin-x64 target ([55906a7](https://github.com/zhangyuang/node-ffi-rs/commit/55906a778e4fe1849181356083841962cc4e331b))
 
 
 ### Features
