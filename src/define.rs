@@ -6,14 +6,14 @@ use std::hash::Hash;
 
 pub enum FFIError {
   NapiError(Error<NapiStatus>),
-  Panic,
+  UnexpectedError,
   LibraryNotFound(String),
   UnsupportedValueType(String),
 }
 impl AsRef<str> for FFIError {
   fn as_ref(&self) -> &str {
     match self {
-      FFIError::Panic => "Panic",
+      FFIError::UnexpectedError => "UnexpectedError",
       FFIError::NapiError(e) => e.status.as_ref(),
       FFIError::LibraryNotFound(desc) => desc,
       FFIError::UnsupportedValueType(desc) => desc,
@@ -22,7 +22,7 @@ impl AsRef<str> for FFIError {
 }
 impl From<FFIError> for Error {
   fn from(err: FFIError) -> Self {
-    Error::new(napi::Status::GenericFailure, format!("{}", err.as_ref()))
+    Error::new(napi::Status::Unknown, format!("{}", err.as_ref()))
   }
 }
 

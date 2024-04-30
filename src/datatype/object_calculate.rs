@@ -1,5 +1,5 @@
 use crate::define::RsArgsValue;
-use crate::utils::dataprocess::get_js_external_wrap_Data;
+use crate::utils::dataprocess::get_js_external_wrap_data;
 use indexmap::IndexMap;
 use libc::{c_ulonglong, c_void};
 use napi::Env;
@@ -193,7 +193,7 @@ pub unsafe fn generate_c_struct(env: &Env, map: IndexMap<String, RsArgsValue>) -
         let (size, align) = get_size_align::<*mut c_void>();
         let padding = (align - (offset % align)) % align;
         field_ptr = field_ptr.offset(padding as isize);
-        (field_ptr as *mut *const c_void).write(get_js_external_wrap_Data(&env, val));
+        (field_ptr as *mut *const c_void).write(get_js_external_wrap_data(&env, val));
         offset += size + padding;
         size
       }
