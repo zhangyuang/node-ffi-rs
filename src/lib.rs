@@ -3,10 +3,10 @@ extern crate napi_derive;
 
 use napi::bindgen_prelude::*;
 
-use napi::{Env, JsNumber, JsObject, JsString, JsUnknown};
+use napi::{JsNumber, JsObject, JsString, JsUnknown};
 
 use libc::malloc;
-use libc::{c_char, c_int};
+use libc::{c_char, c_double, c_int};
 use libffi_sys::{
   ffi_abi_FFI_DEFAULT_ABI, ffi_call, ffi_cif, ffi_prep_cif, ffi_type, ffi_type_double,
   ffi_type_pointer, ffi_type_sint32, ffi_type_void,
@@ -23,6 +23,7 @@ pub enum RetType {
   Double,
   I32Array,
   StringArray,
+  DoubleArray,
 }
 pub enum RsArgsValue {
   String(String),
@@ -30,6 +31,7 @@ pub enum RsArgsValue {
   Double(f64),
   I32Array(Vec<i32>),
   StringArray(Vec<String>),
+  DoubleArray(Vec<f64>),
 }
 
 #[napi]
@@ -39,6 +41,7 @@ pub enum ParamsType {
   Double,
   I32Array,
   StringArray,
+  DoubleArray,
 }
 
 #[napi(object)]
@@ -52,7 +55,7 @@ struct FFIParams {
 }
 
 #[napi]
-fn load(params: FFIParams) -> Either6<String, i32, (), f64, Vec<i32>, Vec<String>> {
+fn load(params: FFIParams) -> Either7<String, i32, (), f64, Vec<i32>, Vec<String>, Vec<f64>> {
   let FFIParams {
     library,
     func_name,
@@ -104,6 +107,20 @@ fn load(params: FFIParams) -> Either6<String, i32, (), f64, Vec<i32>, Vec<String
 
           (arg_type, RsArgsValue::I32Array(arg_val))
         }
+        ParamsType::DoubleArray => {
+          let arg_type = &mut ffi_type_pointer as *mut ffi_type;
+          let js_object = value.coerce_to_object().unwrap();
+          let arg_val = vec![0; js_object.get_array_length().unwrap() as usize]
+            .iter()
+            .enumerate()
+            .map(|(index, _)| {
+              let js_element: JsNumber = js_object.get_element(index as u32).unwrap();
+              return js_element.get_double().unwrap();
+            })
+            .collect::<Vec<f64>>();
+
+          (arg_type, RsArgsValue::DoubleArray(arg_val))
+        }
         ParamsType::StringArray => {
           let arg_type = &mut ffi_type_pointer as *mut ffi_type;
           let js_object = value.coerce_to_object().unwrap();
@@ -141,6 +158,13 @@ fn load(params: FFIParams) -> Either6<String, i32, (), f64, Vec<i32>, Vec<String
           std::mem::forget(val);
           return raw_ptr as *mut c_void;
         }
+        RsArgsValue::DoubleArray(val) => {
+          let ptr = val.as_ptr();
+          let boxed_ptr = Box::new(ptr);
+          let raw_ptr = Box::into_raw(boxed_ptr);
+          std::mem::forget(val);
+          return raw_ptr as *mut c_void;
+        }
         RsArgsValue::StringArray(val) => {
           let c_char_vec: Vec<*const c_char> = val
             .into_iter()
@@ -166,6 +190,7 @@ fn load(params: FFIParams) -> Either6<String, i32, (), f64, Vec<i32>, Vec<String
       RetType::Double => &mut ffi_type_double as *mut ffi_type,
       RetType::I32Array => &mut ffi_type_pointer as *mut ffi_type,
       RetType::StringArray => &mut ffi_type_pointer as *mut ffi_type,
+      RetType::DoubleArray => &mut ffi_type_pointer as *mut ffi_type,
     };
 
     let mut cif = ffi_cif {
@@ -201,7 +226,7 @@ fn load(params: FFIParams) -> Either6<String, i32, (), f64, Vec<i32>, Vec<String
           .into_string()
           .expect(format!("{} retType is not string", func_name).as_str());
 
-        Either6::A(result_str)
+        Either7::A(result_str)
       }
       RetType::I32 => {
         let mut result: i32 = 0;
@@ -211,7 +236,7 @@ fn load(params: FFIParams) -> Either6<String, i32, (), f64, Vec<i32>, Vec<String
           &mut result as *mut i32 as *mut c_void,
           arg_values.as_mut_ptr(),
         );
-        Either6::B(result)
+        Either7::B(result)
       }
       RetType::Void => {
         let mut result = ();
@@ -221,7 +246,7 @@ fn load(params: FFIParams) -> Either6<String, i32, (), f64, Vec<i32>, Vec<String
           &mut result as *mut () as *mut c_void,
           arg_values.as_mut_ptr(),
         );
-        Either6::C(())
+        Either7::C(())
       }
       RetType::Double => {
         let mut result: f64 = 0.0;
@@ -231,7 +256,7 @@ fn load(params: FFIParams) -> Either6<String, i32, (), f64, Vec<i32>, Vec<String
           &mut result as *mut f64 as *mut c_void,
           arg_values.as_mut_ptr(),
         );
-        Either6::D(result)
+        Either7::D(result)
       }
       RetType::I32Array => {
         let mut result: *mut c_int = malloc(std::mem::size_of::<*mut c_int>()) as *mut c_int;
@@ -248,7 +273,7 @@ fn load(params: FFIParams) -> Either6<String, i32, (), f64, Vec<i32>, Vec<String
         if !result.is_null() {
           libc::free(result as *mut c_void);
         }
-        Either6::E(result_vec)
+        Either7::E(result_vec)
       }
       RetType::StringArray => {
         let mut result: *mut *mut c_char =
@@ -273,7 +298,25 @@ fn load(params: FFIParams) -> Either6<String, i32, (), f64, Vec<i32>, Vec<String
         if !result.is_null() {
           libc::free(result as *mut c_void);
         }
-        Either6::F(output_vec)
+        Either7::F(output_vec)
+      }
+      RetType::DoubleArray => {
+        let mut result: *mut c_double =
+          malloc(std::mem::size_of::<*mut c_double>()) as *mut c_double;
+        let arg_values = arg_values.as_mut_ptr();
+        ffi_call(
+          &mut cif,
+          Some(*func),
+          &mut result as *mut _ as *mut c_void,
+          arg_values,
+        );
+
+        let result_slice = std::slice::from_raw_parts(result, ret_type_len.unwrap() as usize);
+        let result_vec = result_slice.to_vec();
+        if !result.is_null() {
+          libc::free(result as *mut c_void);
+        }
+        Either7::G(result_vec)
       }
     }
   }
