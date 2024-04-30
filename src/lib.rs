@@ -23,6 +23,7 @@ fn test() {
         rtype: rtype,
         bytes: 0,
         flags: 0,
+        aarch64_nfixedargs: 0,
     };
   }
 }
