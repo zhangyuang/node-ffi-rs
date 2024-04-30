@@ -63,34 +63,36 @@ typedef struct Person {
 
 extern "C" Person *getStruct(Person *person) { return person; }
 
-extern "C" Person createStruct() {
-  Person person;
+extern "C" Person *createPerson() {
+  Person *person = (Person *)malloc(sizeof(Person));
 
-  // 初始化字段的含义
-  person.doubleArray = NULL; // 双精度浮点数数组为空
-  person.age = 0;            // 年龄为0
-  person.doubleProps = 0.0;  // 双精度浮点数属性为0.0
-  person.name = "Unknown";   // 姓名为"Unknown"
+  // Allocate and initialize doubleArray
+  person->doubleArray = (double *)malloc(sizeof(double) * 3);
+  person->doubleArray[0] = 1.0;
+  person->doubleArray[1] = 2.0;
+  person->doubleArray[2] = 3.0;
 
-  // 初始化字符串数组
-  person.stringArray = new char *[3];
-  person.stringArray[0] = strdup("Hello");   // 第一个字符串为"Hello"
-  person.stringArray[1] = strdup("World");   // 第二个字符串为"World"
-  person.stringArray[2] = strdup("ChatGPT"); // 第三个字符串为"ChatGPT"
+  // Initialize age and doubleProps
+  person->age = 30;
+  person->doubleProps = 1.23;
 
-  // 初始化整数数组
-  person.i32Array = new int[4]; // 整数数组，长度为4
-  person.i32Array[0] = 10;      // 第一个整数为10
-  person.i32Array[1] = 20;      // 第二个整数为20
-  person.i32Array[2] = 30;      // 第三个整数为30
-  person.i32Array[3] = 40;      // 第四个整数为40
+  // Allocate and initialize name
+  person->name = strdup("John Doe");
 
-  person.testnum = 0;  // 测试数值为0
-  person.boolTrue = 1; // 布尔值为真（1）
-  person.boolFalse = 0;
+  person->stringArray = (char **)malloc(sizeof(char *) * 2);
+  person->stringArray[0] = strdup("Hello");
+  person->stringArray[1] = strdup("World");
+
+  person->i32Array = (int *)malloc(sizeof(int) * 3);
+  person->i32Array[0] = 1;
+  person->i32Array[1] = 2;
+  person->i32Array[2] = 3;
+  person->testnum = 123;
+  person->boolTrue = true;
+  person->boolFalse = false;
+
   return person;
 }
-
 typedef int (*FunctionPointer)(int a, int b);
 
 extern "C" void callFunction(FunctionPointer func) {
