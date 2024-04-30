@@ -1,4 +1,4 @@
-## [1.0.67](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.64...v1.0.67) (2024-04-30)
+## [1.0.68](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.64...v1.0.68) (2024-04-30)
 
 
 ### Bug Fixes
@@ -8,8 +8,12 @@
 
 ### Features
 
+* add arrayConstructor judge ([bebcc94](https://github.com/zhangyuang/node-ffi-rs/commit/bebcc94352da2d4bf15098fa6d8bc16b1bf2a9bb))
 * add changelog ([403333c](https://github.com/zhangyuang/node-ffi-rs/commit/403333cad4cf9e4242a810b8d9c9df72fabd2f7e))
 * implement runInNewThread ([#31](https://github.com/zhangyuang/node-ffi-rs/issues/31)) ([f908400](https://github.com/zhangyuang/node-ffi-rs/commit/f9084008e5484a5c2bf25abca7a940f9cf99480d))
+* judge library path exist or not before call open ([a97c26f](https://github.com/zhangyuang/node-ffi-rs/commit/a97c26f978d37d68bd22a88e89d05e12817ac4c4))
+* mock jsExternal type ([479daab](https://github.com/zhangyuang/node-ffi-rs/commit/479daabc44d87f667f97be97c51adbc16f31f618))
+* refactor get_js_external_wrap_data ([9f6878c](https://github.com/zhangyuang/node-ffi-rs/commit/9f6878cf16fd88308275b572745047a83d0b8061))
 * use unchecked napi transform improve performance ([8100d8a](https://github.com/zhangyuang/node-ffi-rs/commit/8100d8a545b0351e013b55d9ccc2f19866e4ed67))
 
 
