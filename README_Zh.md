@@ -137,7 +137,7 @@ $ g++ -shared -o sum.dll cpp/sum.cpp # win
 
 ```js
 const { equal } = require('assert')
-const { load, DataType, open } = require('ffi-rs')
+const { load, DataType, open, close, arrayConstructor } = require('ffi-rs')
 const a = 1
 const b = 100
 const dynamicLib = platform === 'win32' ? './sum.dll' : "./libsum.so"
@@ -185,36 +185,32 @@ equal(1.1 + 2.2, load({
   paramsType: [DataType.Double, DataType.Double],
   paramsValue: [1.1, 2.2]
 }))
-
 let bigArr = new Array(100).fill(100)
-equal(bigArr[0], load({
+deepStrictEqual(bigArr, load({
   library: 'libsum',
   funcName: 'createArrayi32',
-  retType: DataType.I32Array,
+  retType: arrayConstructor({ type: DataType.I32Array, length: bigArr.length }),
   paramsType: [DataType.I32Array, DataType.I32],
   paramsValue: [bigArr, bigArr.length],
-  retTypeLen: bigArr.length
-})[0])
+}))
 
-let bigDoubleArr = new Array(100).fill(1.1)
-equal(bigDoubleArr[0], load({
+let bigDoubleArr = new Array(5).fill(1.1)
+deepStrictEqual(bigDoubleArr, load({
   library: 'libsum',
   funcName: 'createArrayDouble',
-  retType: DataType.DoubleArray,
+  retType: arrayConstructor({ type: DataType.DoubleArray, length: bigDoubleArr.length }),
   paramsType: [DataType.DoubleArray, DataType.I32],
   paramsValue: [bigDoubleArr, bigDoubleArr.length],
-  retTypeLen: bigDoubleArr.length
-})[0])
+}))
+let stringArr = [c, c.repeat(20)]
 
-let stringArr = [c, c.repeat(200)]
-equal(stringArr[0], load({
+deepStrictEqual(stringArr, load({
   library: 'libsum',
   funcName: 'createArrayString',
-  retType: DataType.StringArray,
+  retType: arrayConstructor({ type: DataType.StringArray, length: stringArr.length }),
   paramsType: [DataType.StringArray, DataType.I32],
   paramsValue: [stringArr, stringArr.length],
-  retTypeLen: stringArr.length
-})[0])
+}))
 const bool_val = true
 equal(!bool_val, load({
   library: 'libsum',
@@ -223,11 +219,13 @@ equal(!bool_val, load({
   paramsType: [DataType.Boolean],
   paramsValue: [bool_val],
 }))
-
 const person = {
   name: 'tom',
   age: 23,
   doubleProps: 1.1,
+  stringArray: ["foo", "bar"],
+  doubleArray: [1.1, 2.2, 3.3],
+  i32Array: [1, 2, 3, 4]
 }
 const personObj = load({
   library: 'libsum',
@@ -236,15 +234,20 @@ const personObj = load({
     name: DataType.String,
     age: DataType.I32,
     doubleProps: DataType.Double,
+    stringArray: arrayConstructor({ type: DataType.StringArray, length: person.stringArray.length }),
+    doubleArray: arrayConstructor({ type: DataType.DoubleArray, length: person.doubleArray.length }),
+    i32Array: arrayConstructor({ type: DataType.I32Array, length: person.i32Array.length }),
   },
   paramsType: [{
     name: DataType.String,
     age: DataType.I32,
     doubleProps: DataType.Double,
+    stringArray: DataType.StringArray,
+    doubleArray: DataType.DoubleArray,
+    i32Array: DataType.I32Array,
   }],
   paramsValue: [person]
 })
-equal(person.name, personObj.name)
-equal(person.age, personObj.age)
-equal(person.doubleProps, personObj.doubleProps)
+deepStrictEqual(person, personObj)
+
 ```
