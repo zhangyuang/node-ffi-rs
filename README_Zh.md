@@ -27,6 +27,7 @@ $ npm i ffi-rs
 - number(i32)
 - void
 - double
+- boolean
 - i32Array
 - stringArray
 - doubleArray
@@ -73,6 +74,7 @@ extern "C" double *createArrayDouble(const double *arr, int size) {
   }
   return vec;
 }
+extern "C" bool return_opposite(bool input) { return !input; }
 
 extern "C" char **createArrayString(char **arr, int size) {
   char **vec = (char **)malloc((size) * sizeof(char *));
@@ -157,6 +159,14 @@ equal(bigDoubleArr[0], load({
   retTypeLen: bigDoubleArr.length
 })[0])
 
+const boolVal = false
+equal(!boolVal, load({
+  library: dynamicLib,
+  funcName: 'return_opposite',
+  retType: RetType.Boolean,
+  paramsType: [ParamsType.Boolean],
+  paramsValue: [bool_val],
+}))
 
 let stringArr = [c, c.repeat(200)]
 equal(stringArr[0], load({

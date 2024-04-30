@@ -24,8 +24,66 @@ extern "C" {
   ) -> *mut ::std::os::raw::c_int;
 }
 extern "C" {
+  pub fn createArrayDouble(arr: *const f64, size: ::std::os::raw::c_int) -> *mut f64;
+}
+extern "C" {
   pub fn createArrayString(
-    arr: *mut *const ::std::os::raw::c_char,
+    arr: *mut *mut ::std::os::raw::c_char,
     size: ::std::os::raw::c_int,
   ) -> *mut *mut ::std::os::raw::c_char;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct Person {
+  pub name: *const ::std::os::raw::c_char,
+  pub age: ::std::os::raw::c_int,
+  pub parent: *mut Person,
+}
+#[test]
+fn bindgen_test_layout_Person() {
+  const UNINIT: ::std::mem::MaybeUninit<Person> = ::std::mem::MaybeUninit::uninit();
+  let ptr = UNINIT.as_ptr();
+  assert_eq!(
+    ::std::mem::size_of::<Person>(),
+    24usize,
+    concat!("Size of: ", stringify!(Person))
+  );
+  assert_eq!(
+    ::std::mem::align_of::<Person>(),
+    8usize,
+    concat!("Alignment of ", stringify!(Person))
+  );
+  assert_eq!(
+    unsafe { ::std::ptr::addr_of!((*ptr).name) as usize - ptr as usize },
+    0usize,
+    concat!(
+      "Offset of field: ",
+      stringify!(Person),
+      "::",
+      stringify!(name)
+    )
+  );
+  assert_eq!(
+    unsafe { ::std::ptr::addr_of!((*ptr).age) as usize - ptr as usize },
+    8usize,
+    concat!(
+      "Offset of field: ",
+      stringify!(Person),
+      "::",
+      stringify!(age)
+    )
+  );
+  assert_eq!(
+    unsafe { ::std::ptr::addr_of!((*ptr).parent) as usize - ptr as usize },
+    16usize,
+    concat!(
+      "Offset of field: ",
+      stringify!(Person),
+      "::",
+      stringify!(parent)
+    )
+  );
+}
+extern "C" {
+  pub fn getStruct(p: *const Person) -> *const Person;
 }
