@@ -136,6 +136,14 @@ extern "C" void callFunction(FunctionPointer func) {
   }
 }
 
+typedef void (*FunctionPointerDouble)(double a);
+
+extern "C" void callFunctionDouble(FunctionPointerDouble func) {
+
+  double ddd = 100.11;
+  func(ddd);
+}
+
 extern "C" void bufferToFill(double bufferToFill[3]) {
   bufferToFill[0] = -0.5;
   bufferToFill[1] = 7.5;
