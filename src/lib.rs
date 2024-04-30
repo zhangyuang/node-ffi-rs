@@ -1,9 +1,6 @@
 #[macro_use]
 extern crate napi_derive;
 
-#[macro_use]
-mod ffi_macro;
-
 mod datatype;
 mod define;
 

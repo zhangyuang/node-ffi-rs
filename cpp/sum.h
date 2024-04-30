@@ -17,7 +17,11 @@ typedef struct Parent {
   const char *name;
   int age;
 } Parent;
-
+class MyClass {
+public:
+  MyClass();
+  void method();
+};
 typedef void (*FunctionPointer)(double a);
 
 extern void callFunction(FunctionPointer func);
