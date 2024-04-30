@@ -56,8 +56,7 @@ pub enum DataType {
   StringArray = 4,
   DoubleArray = 5,
   Boolean = 6,
-  Function = 7,
-  Void = 8,
+  Void = 7,
 }
 pub fn number_to_data_type(value: i32) -> DataType {
   match value {
@@ -68,8 +67,7 @@ pub fn number_to_data_type(value: i32) -> DataType {
     4 => DataType::StringArray,
     5 => DataType::DoubleArray,
     6 => DataType::Boolean,
-    7 => DataType::Function,
-    8 => DataType::Void,
+    7 => DataType::Void,
     _ => panic!("unknow DataType"),
   }
 }
