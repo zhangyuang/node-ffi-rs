@@ -51,7 +51,7 @@ unsafe fn restore_pointer(env: Env, params: storePointerParams) -> Result<Vec<Js
     .into_iter()
     .zip(params_value.into_iter())
     .map(|(ret_type_item, js_external)| {
-      let mut ptr = get_js_external_wrap_data(&env, js_external);
+      let mut ptr = get_js_external_wrap_data(&env, js_external)?;
       let ret_type_rs = type_define_to_rs_args(ret_type_item)?;
       get_js_unknown_from_pointer(
         &env,
