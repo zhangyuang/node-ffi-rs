@@ -4,7 +4,7 @@ mod define;
 mod utils;
 use define::{number_to_data_type, DataType};
 use napi::bindgen_prelude::*;
-use utils::get_js_function_call_value;
+use utils::{align_ptr, get_js_function_call_value, js_array_to_string_array};
 
 use indexmap::IndexMap;
 use libc::malloc;
@@ -160,14 +160,7 @@ fn load(
               DataType::StringArray => {
                 let arg_type = &mut ffi_type_pointer as *mut ffi_type;
                 let js_object = value.coerce_to_object().unwrap();
-                let arg_val = vec![0; js_object.get_array_length().unwrap() as usize]
-                  .iter()
-                  .enumerate()
-                  .map(|(index, _)| {
-                    let js_element: JsString = js_object.get_element(index as u32).unwrap();
-                    return js_element.into_utf8().unwrap().try_into().unwrap();
-                  })
-                  .collect::<Vec<String>>();
+                let arg_val = js_array_to_string_array(js_object);
                 (arg_type, RsArgsValue::StringArray(arg_val))
               }
               DataType::Boolean => {
@@ -211,6 +204,12 @@ fn load(
                       let val: JsNumber = params_value_object.get_named_property(&field).unwrap();
                       let val: f64 = val.try_into().unwrap();
                       RsArgsValue::Double(val)
+                    }
+                    DataType::StringArray => {
+                      let js_array: JsObject =
+                        params_value_object.get_named_property(&field).unwrap();
+                      let arg_val = js_array_to_string_array(js_array);
+                      RsArgsValue::StringArray(arg_val)
                     }
                     // DataType::Object => {
                     //   let val: JsObject = js_object.get_named_property(&field).unwrap();
@@ -328,6 +327,11 @@ fn load(
                     let size = size + std::mem::size_of::<c_int>();
                     (size, align)
                   }
+                  RsArgsValue::Double(_) => {
+                    let align = align.max(std::mem::align_of::<c_double>());
+                    let size = size + std::mem::size_of::<c_double>();
+                    (size, align)
+                  }
                   RsArgsValue::String(_) => {
                     let align = align.max(std::mem::align_of::<*const c_char>());
                     let size = size + std::mem::size_of::<*const c_char>();
@@ -339,9 +343,13 @@ fn load(
                     let size = size + obj_size;
                     (size, align)
                   }
+                  RsArgsValue::StringArray(_) => {
+                    let align = align.max(std::mem::align_of::<*const *const c_char>());
+                    let size = size + std::mem::size_of::<*const *const c_char>();
+                    (size, align)
+                  }
                   _ => panic!("calculate_layout"),
                 });
-
             (size, align)
           }
           let (size, align) = calculate_layout(&val);
@@ -353,13 +361,24 @@ fn load(
 
           let ptr = alloc(layout) as *mut c_void;
           let field_ptr = ptr;
-          unsafe fn write_data(map: IndexMap<String, RsArgsValue>, mut field_ptr: *mut c_void) {
+          unsafe fn write_data(
+            map: IndexMap<String, RsArgsValue>,
+            mut field_ptr: *mut c_void,
+            align: usize,
+          ) {
             for (_, field_val) in map {
               match field_val {
                 RsArgsValue::I32(number) => {
                   (field_ptr as *mut c_int).write(number);
                   field_ptr =
                     field_ptr.offset(std::mem::size_of::<c_int>() as isize) as *mut c_void;
+                  field_ptr = align_ptr(field_ptr, align);
+                }
+                RsArgsValue::Double(double_number) => {
+                  (field_ptr as *mut c_double).write(double_number);
+                  field_ptr =
+                    field_ptr.offset(std::mem::size_of::<c_double>() as isize) as *mut c_void;
+                  field_ptr = align_ptr(field_ptr, align);
                 }
                 RsArgsValue::String(str) => {
                   let c_string = CString::new(str).unwrap();
@@ -367,17 +386,36 @@ fn load(
                   std::mem::forget(c_string);
                   field_ptr =
                     field_ptr.offset(std::mem::size_of::<*const c_char>() as isize) as *mut c_void;
+                  field_ptr = align_ptr(field_ptr, align);
+                }
+                RsArgsValue::StringArray(str_arr) => {
+                  let c_char_vec: Vec<*const c_char> = str_arr
+                    .into_iter()
+                    .map(|str| {
+                      let c_string = CString::new(str).unwrap();
+                      let ptr = c_string.as_ptr();
+                      std::mem::forget(c_string);
+                      return ptr;
+                    })
+                    .collect();
+
+                  (field_ptr as *mut *const *const c_char).write(c_char_vec.as_ptr());
+                  std::mem::forget(c_char_vec);
+                  field_ptr = field_ptr.offset(std::mem::size_of::<*const *const c_char>() as isize)
+                    as *mut c_void;
+                  field_ptr = align_ptr(field_ptr, align);
                 }
                 RsArgsValue::Object(val) => {
                   let (size, _) = calculate_layout(&val);
-                  write_data(val, field_ptr);
+                  write_data(val, field_ptr, align);
                   field_ptr = field_ptr.offset(size as isize) as *mut c_void;
+                  field_ptr = align_ptr(field_ptr, align);
                 }
                 _ => panic!("write_data"),
               }
             }
           }
-          write_data(val, field_ptr);
+          write_data(val, field_ptr, align);
           return Box::into_raw(Box::new(ptr)) as *mut c_void;
         }
       })
@@ -556,24 +594,37 @@ fn load(
         }
       }
       FFIJsValue::JsObject(ret_object) => {
-        let (ret_fields_size, field_vec) =
-          JsObject::keys(&ret_object)
-            .unwrap()
-            .into_iter()
-            .fold((0, vec![]), |pre, current| {
-              let val: JsNumber = ret_object.get_named_property(&current).unwrap();
-              let data_type = number_to_data_type(val.try_into().unwrap());
-              let field_size = match data_type {
-                DataType::I32 => std::mem::size_of::<c_int>(),
-                DataType::String => std::mem::size_of::<*const c_char>(),
-                _ => {
-                  panic!("")
-                }
-              };
-              let (size, mut field_vec) = pre;
-              field_vec.push(current);
-              (size + field_size, field_vec)
-            });
+        let (ret_fields_size, field_vec, align) = JsObject::keys(&ret_object)
+          .unwrap()
+          .into_iter()
+          .fold((0, vec![], 0), |pre, current| {
+            let (size, mut field_vec, mut align) = pre;
+            let val: JsNumber = ret_object.get_named_property(&current).unwrap();
+            let data_type = number_to_data_type(val.try_into().unwrap());
+            let field_size = match data_type {
+              DataType::I32 => {
+                align = align.max(std::mem::align_of::<c_int>());
+                std::mem::size_of::<c_int>()
+              }
+              DataType::String => {
+                align = align.max(std::mem::align_of::<*const c_char>());
+                std::mem::size_of::<*const c_char>()
+              }
+              DataType::Double => {
+                align = align.max(std::mem::align_of::<c_double>());
+                std::mem::size_of::<c_double>()
+              }
+              DataType::StringArray => {
+                align = align.max(std::mem::align_of::<*const *const c_char>());
+                std::mem::size_of::<*const *const c_char>()
+              }
+              _ => {
+                panic!("{:?} Not available as a field type at this time", data_type)
+              }
+            };
+            field_vec.push(current);
+            (size + field_size, field_vec, align)
+          });
         let mut result: *mut c_void = malloc(ret_fields_size);
         ffi_call(
           &mut cif,
@@ -583,32 +634,68 @@ fn load(
         );
         let mut js_object = env.create_object().unwrap();
         let mut offset = 0;
+        let mut field_ptr = result;
         field_vec.into_iter().for_each(|field| {
           let val: JsNumber = ret_object.get_named_property(&field).unwrap();
           let data_type = number_to_data_type(val.try_into().unwrap());
           match data_type {
             DataType::I32 => {
-              let field_ptr = result.offset(offset as isize) as *mut i32;
+              let type_field_ptr = field_ptr as *mut i32;
               js_object
                 .set_property(
                   env.create_string(&field).unwrap(),
-                  env.create_int32(*field_ptr).unwrap(),
+                  env.create_int32(*type_field_ptr).unwrap(),
                 )
                 .unwrap();
-              offset += std::mem::size_of::<c_int>();
+              field_ptr = field_ptr.offset(std::mem::size_of::<c_int>() as isize) as *mut c_void;
+              field_ptr = align_ptr(field_ptr, align);
+            }
+            DataType::Double => {
+              let type_field_ptr = field_ptr as *mut c_double;
+              js_object
+                .set_property(
+                  env.create_string(&field).unwrap(),
+                  env.create_double(*type_field_ptr).unwrap(),
+                )
+                .unwrap();
+              field_ptr = field_ptr.offset(std::mem::size_of::<c_int>() as isize) as *mut c_void;
+              field_ptr = align_ptr(field_ptr, align);
             }
             DataType::String => {
-              let field_ptr = result.offset(offset as isize) as *mut *mut c_char;
-              let js_string = CString::from_raw(*field_ptr).into_string().unwrap();
+              let type_field_ptr = field_ptr as *mut *mut c_char;
+              let js_string = CString::from_raw(*type_field_ptr).into_string().unwrap();
               js_object
                 .set_property(
                   env.create_string(&field).unwrap(),
                   env.create_string(&js_string).unwrap(),
                 )
                 .unwrap();
-              offset += std::mem::size_of::<*const c_char>();
+              field_ptr =
+                field_ptr.offset(std::mem::size_of::<*const c_char>() as isize) as *mut c_void;
+              field_ptr = align_ptr(field_ptr, align);
             }
-            _ => {}
+            // DataType::StringArray => {
+            //   let field_ptr = result.offset(offset as isize) as *mut *const *mut c_char;
+            //   let js_array = env.create_object().unwrap();
+            //   let output_vec: JsObject = vec![0; ret_type_len.unwrap() as usize]
+            //     .iter()
+            //     .enumerate()
+            //     .for_each(|(index, _)| {
+            //       let rs_string = CString::from_raw((**field_ptr).offset(index as isize))
+            //         .into_string()
+            //         .unwrap();
+            //       js_array.set_element(index, env.create_string(&rs_string).unwrap());
+            //     });
+
+            //   js_object
+            //     .set_property(env.create_string(&field).unwrap(), output_vec)
+            //     .unwrap();
+            //   offset += std::mem::size_of::<*const *const c_char>();
+            // }
+            _ => panic!(
+              "{:?} is not available as a field type at this time",
+              data_type
+            ),
           }
         });
         Either9::I(js_object)
