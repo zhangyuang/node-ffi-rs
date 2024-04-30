@@ -1,11 +1,11 @@
 use crate::define::{number_to_data_type, DataType, RsArgsValue};
 use indexmap::IndexMap;
 use napi::bindgen_prelude::*;
-use napi::{JsNumber, JsObject, JsString, JsUnknown};
+use napi::{JsBoolean, JsNumber, JsObject, JsString, JsUnknown};
 use std::ffi::c_void;
 use std::ffi::{c_char, c_double, c_int, CString};
-
-pub fn get_js_function_call_value(
+use std::mem::{transmute, transmute_copy};
+pub unsafe fn get_js_function_call_value(
   env: Env,
   func_arg_type: JsUnknown,
   func_arg_val: *mut c_void,
@@ -24,20 +24,20 @@ pub fn get_js_function_call_value(
           .create_int32(func_arg_val as i32)
           .unwrap()
           .into_unknown(),
-        DataType::String => unsafe {
-          env
+        DataType::String => {
+          return env
             .create_string(
               &CString::from_raw(func_arg_val as *mut c_char)
                 .into_string()
                 .unwrap(),
             )
             .unwrap()
-            .into_unknown()
-        },
-        // DataType::Double => env
-        //   .create_double(func_arg_val as f64)
-        //   .unwrap()
-        //   .into_unknown(),
+            .into_unknown();
+        }
+        DataType::Double => {
+          println!("{:?}", func_arg_val);
+          return env.create_double(1.1).unwrap().into_unknown();
+        }
         _ => panic!("get_js_function_call_value err"),
       };
       data
@@ -47,8 +47,7 @@ pub fn get_js_function_call_value(
 }
 
 pub fn js_array_to_string_array(js_array: JsObject) -> Vec<String> {
-  vec![0; js_array.get_array_length().unwrap() as usize]
-    .iter()
+  (0..js_array.get_array_length().unwrap())
     .enumerate()
     .map(|(index, _)| {
       let js_element: JsString = js_array.get_element(index as u32).unwrap();
@@ -62,8 +61,7 @@ where
   T: TryFrom<JsNumber>,
   <T as TryFrom<JsNumber>>::Error: std::fmt::Debug,
 {
-  vec![0; js_array.get_array_length().unwrap() as usize]
-    .iter()
+  (0..js_array.get_array_length().unwrap())
     .enumerate()
     .map(|(index, _)| {
       let js_element: JsNumber = js_array.get_element(index as u32).unwrap();
@@ -176,40 +174,6 @@ pub enum ArrayType {
   Double(Vec<f64>),
   String(Vec<String>),
 }
-pub trait ArrayPointer {
-  type Output;
-  unsafe fn get_and_advance(&mut self) -> Self::Output;
-}
-
-macro_rules! impl_array_pointer {
-  ($type:ty, $output:ty) => {
-    impl ArrayPointer for $type {
-      type Output = $output;
-      unsafe fn get_and_advance(&mut self) -> Self::Output {
-        let value = **self;
-        *self = self.offset(1);
-        value
-      }
-    }
-  };
-}
-impl_array_pointer!(*mut i32, i32);
-impl_array_pointer!(*mut f64, f64);
-
-impl ArrayPointer for *mut *mut c_char {
-  type Output = String;
-  unsafe fn get_and_advance(&mut self) -> Self::Output {
-    let value = **self;
-    *self = self.offset(1);
-    CString::from_raw(value).into_string().unwrap()
-  }
-}
-pub fn create_array_from_pointer<P>(mut pointer: P, len: usize) -> Vec<P::Output>
-where
-  P: ArrayPointer,
-{
-  unsafe { (0..len).map(|_| pointer.get_and_advance()).collect() }
-}
 
 pub fn js_string_to_string(js_string: JsString) -> String {
   js_string.into_utf8().unwrap().try_into().unwrap()
@@ -269,6 +233,67 @@ pub fn rs_array_to_js_array(env: Env, val: ArrayType) -> JsObject {
       });
       js_array
     }
-    _ => panic!("some error"),
   }
+}
+
+pub fn jsobject_to_rs_struct(
+  params_type_object: JsObject,
+  params_value_object: JsObject,
+) -> IndexMap<String, RsArgsValue> {
+  let mut index_map = IndexMap::new();
+  JsObject::keys(&params_value_object)
+    .unwrap()
+    .into_iter()
+    .for_each(|field| {
+      let field_type: DataType = params_type_object.get_named_property(&field).unwrap();
+      let val = match field_type {
+        DataType::String => {
+          let val: JsString = params_value_object.get_named_property(&field).unwrap();
+          let val: String = val.into_utf8().unwrap().try_into().unwrap();
+          RsArgsValue::String(val)
+        }
+        DataType::I32 => {
+          let val: JsNumber = params_value_object.get_named_property(&field).unwrap();
+          let val: i32 = val.try_into().unwrap();
+          RsArgsValue::I32(val)
+        }
+        DataType::Boolean => {
+          let val: JsBoolean = params_value_object.get_named_property(&field).unwrap();
+          let val: bool = val.get_value().unwrap();
+          RsArgsValue::Boolean(val)
+        }
+        DataType::Double => {
+          let val: JsNumber = params_value_object.get_named_property(&field).unwrap();
+          let val: f64 = val.try_into().unwrap();
+          RsArgsValue::Double(val)
+        }
+        DataType::StringArray => {
+          let js_array: JsObject = params_value_object.get_named_property(&field).unwrap();
+          let arg_val = js_array_to_string_array(js_array);
+          RsArgsValue::StringArray(arg_val)
+        }
+        DataType::DoubleArray => {
+          let js_array: JsObject = params_value_object.get_named_property(&field).unwrap();
+          let arg_val = js_array_to_number_array(js_array);
+          RsArgsValue::DoubleArray(arg_val)
+        }
+        DataType::I32Array => {
+          let js_array: JsObject = params_value_object.get_named_property(&field).unwrap();
+          let arg_val = js_array_to_number_array(js_array);
+          RsArgsValue::I32Array(arg_val)
+        }
+        // DataType::Object => {
+        //   let val: JsObject = js_object.get_named_property(&field).unwrap();
+        //   let index_map = jsobject_to_rs_struct(val);
+        //   RsArgsValue::Object(index_map)
+        // }
+        _ => panic!("jsobject_to_rs_struct"),
+      };
+      index_map.insert(field, val);
+    });
+  index_map
+}
+
+pub fn get_function_constructor(obj: JsObject) {
+  let res: JsObject = obj.get_named_property("paramsType").unwrap();
 }

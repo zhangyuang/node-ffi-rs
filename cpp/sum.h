@@ -18,9 +18,9 @@ typedef struct Parent {
   int age;
 } Parent;
 
-typedef void (*FunctionPointer)(int a, int b);
+typedef void (*FunctionPointer)(double a);
 
-extern int callFunction(FunctionPointer func);
+extern void callFunction(FunctionPointer func);
 
 typedef struct Person {
   const char *name;
