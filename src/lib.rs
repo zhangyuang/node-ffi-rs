@@ -6,8 +6,9 @@ use define::{number_to_data_type, DataType, FFIParams, OpenParams, RsArgsValue};
 use napi::bindgen_prelude::*;
 use utils::{
   align_ptr, calculate_layout, create_array_from_pointer, get_data_type_size_align,
-  get_js_function_call_value, js_array_to_string_array, js_nunmber_to_i32, js_string_to_string,
-  js_unknown_to_data_type, ArrayPointerType, ArrayType,
+  get_js_function_call_value, js_array_to_double_array, js_array_to_string_array,
+  js_nunmber_to_i32, js_string_to_string, js_unknown_to_data_type, rs_array_to_js_array,
+  ArrayPointerType, ArrayType,
 };
 
 use indexmap::IndexMap;
@@ -188,6 +189,12 @@ fn load(
                       let arg_val = js_array_to_string_array(js_array);
                       RsArgsValue::StringArray(arg_val)
                     }
+                    DataType::DoubleArray => {
+                      let js_array: JsObject =
+                        params_value_object.get_named_property(&field).unwrap();
+                      let arg_val = js_array_to_double_array(js_array);
+                      RsArgsValue::DoubleArray(arg_val)
+                    }
                     // DataType::Object => {
                     //   let val: JsObject = js_object.get_named_property(&field).unwrap();
                     //   let index_map = jsobject_to_rs_struct(val);
@@ -344,6 +351,13 @@ fn load(
                   (field_ptr as *mut *const *const c_char).write(c_char_vec.as_ptr());
                   std::mem::forget(c_char_vec);
                   field_ptr = field_ptr.offset(std::mem::size_of::<*const *const c_char>() as isize)
+                    as *mut c_void;
+                  field_ptr = align_ptr(field_ptr, align);
+                }
+                RsArgsValue::DoubleArray(arr) => {
+                  (field_ptr as *mut *const c_double).write(arr.as_ptr());
+                  std::mem::forget(arr);
+                  field_ptr = field_ptr.offset(std::mem::size_of::<*const c_double>() as isize)
                     as *mut c_void;
                   field_ptr = align_ptr(field_ptr, align);
                 }
@@ -553,7 +567,7 @@ fn load(
                 _ => panic!("some error"),
               }
             }
-            _ => unreachable!(),
+            _ => panic!("some error"),
           }
         } else {
           let (ret_fields_size, align) =
@@ -633,18 +647,39 @@ fn load(
                     create_array_from_pointer(ArrayPointerType::String(*type_field_ptr), array_len);
                   match arr {
                     ArrayType::String(arr) => {
-                      let mut js_array = env.create_array_with_length(arr.len()).unwrap();
-                      arr.into_iter().enumerate().for_each(|(index, str)| {
-                        js_array
-                          .set_element(index as u32, env.create_string(&str).unwrap())
-                          .unwrap();
-                      });
+                      let js_array = rs_array_to_js_array(env, ArrayType::String(arr));
                       js_object
                         .set_property(env.create_string(&field).unwrap(), js_array)
                         .unwrap();
                     }
                     _ => panic!("some error"),
                   }
+                  field_ptr = field_ptr.offset(std::mem::size_of::<*const *const c_char>() as isize)
+                    as *mut c_void;
+                  field_ptr = align_ptr(field_ptr, align);
+                }
+                DataType::DoubleArray => {
+                  let array_constructor: JsObject = ret_object.get_named_property(&field).unwrap();
+                  let array_len: usize = js_nunmber_to_i32(
+                    array_constructor
+                      .get_named_property::<JsNumber>("length")
+                      .unwrap(),
+                  ) as usize;
+                  let type_field_ptr = field_ptr as *mut *mut c_double;
+                  let arr =
+                    create_array_from_pointer(ArrayPointerType::Double(*type_field_ptr), array_len);
+                  match arr {
+                    ArrayType::Double(arr) => {
+                      let js_array = rs_array_to_js_array(env, ArrayType::Double(arr));
+                      js_object
+                        .set_property(env.create_string(&field).unwrap(), js_array)
+                        .unwrap();
+                    }
+                    _ => panic!("some error"),
+                  }
+                  field_ptr = field_ptr.offset(std::mem::size_of::<*const c_double>() as isize)
+                    as *mut c_void;
+                  field_ptr = align_ptr(field_ptr, align);
                 }
 
                 _ => panic!(

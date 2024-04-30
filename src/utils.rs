@@ -57,6 +57,17 @@ pub fn js_array_to_string_array(js_array: JsObject) -> Vec<String> {
     .collect::<Vec<String>>()
 }
 
+pub fn js_array_to_double_array(js_array: JsObject) -> Vec<f64> {
+  vec![0; js_array.get_array_length().unwrap() as usize]
+    .iter()
+    .enumerate()
+    .map(|(index, _)| {
+      let js_element: JsNumber = js_array.get_element(index as u32).unwrap();
+      return js_element.try_into().unwrap();
+    })
+    .collect::<Vec<f64>>()
+}
+
 pub fn align_ptr(ptr: *mut c_void, align: usize) -> *mut c_void {
   let align_minus_one = align - 1;
   let ptr_int = ptr as usize;
@@ -94,6 +105,11 @@ pub fn calculate_layout(map: &IndexMap<String, RsArgsValue>) -> (usize, usize) {
         let size = size + std::mem::size_of::<*const *const c_char>();
         (size, align)
       }
+      RsArgsValue::DoubleArray(_) => {
+        let align = align.max(std::mem::align_of::<*const c_double>());
+        let size = size + std::mem::size_of::<*const c_double>();
+        (size, align)
+      }
       _ => panic!("calculate_layout"),
     });
   (size, align)
@@ -113,6 +129,10 @@ pub fn get_data_type_size_align(data_type: DataType) -> (usize, usize) {
     DataType::StringArray => (
       std::mem::size_of::<*const *const c_char>(),
       std::mem::align_of::<*const *const c_char>(),
+    ),
+    DataType::DoubleArray => (
+      std::mem::size_of::<*const c_double>(),
+      std::mem::align_of::<*const c_double>(),
     ),
     _ => {
       panic!("{:?} Not available as a field type at this time", data_type)
@@ -193,6 +213,30 @@ pub fn js_unknown_to_data_type(val: JsUnknown) -> DataType {
       } else {
         panic!("some error")
       }
+    }
+    _ => panic!("some error"),
+  }
+}
+
+pub fn rs_array_to_js_array(env: Env, val: ArrayType) -> JsObject {
+  match val {
+    ArrayType::String(arr) => {
+      let mut js_array = env.create_array_with_length(arr.len()).unwrap();
+      arr.into_iter().enumerate().for_each(|(index, str)| {
+        js_array
+          .set_element(index as u32, env.create_string(&str).unwrap())
+          .unwrap();
+      });
+      js_array
+    }
+    ArrayType::Double(arr) => {
+      let mut js_array = env.create_array_with_length(arr.len()).unwrap();
+      arr.into_iter().enumerate().for_each(|(index, item)| {
+        js_array
+          .set_element(index as u32, env.create_double(item).unwrap())
+          .unwrap();
+      });
+      js_array
     }
     _ => panic!("some error"),
   }
