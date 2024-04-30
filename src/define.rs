@@ -164,7 +164,11 @@ pub fn rs_value_to_ffi_type(value: &RsArgsValue) -> Type {
     _ => panic!("parse function params type err {:?}", value),
   }
 }
+
 pub fn number_to_basic_data_type(value: i32) -> BasicDataType {
+  if is_array_type(&value) {
+    panic!("If you want to use array type as return value type, you must use arrayConstrutor describe array type in retType field")
+  }
   match value {
     0 => BasicDataType::String,
     1 => BasicDataType::I32,
@@ -177,6 +181,12 @@ pub fn number_to_basic_data_type(value: i32) -> BasicDataType {
     12 => BasicDataType::U64,
     14 => BasicDataType::Float,
     _ => panic!("unknow DataType"),
+  }
+}
+pub fn is_array_type(value: &i32) -> bool {
+  match value {
+    3 | 4 | 5 | 10 | 13 => true,
+    _ => false,
   }
 }
 pub fn number_to_ref_data_type(value: i32) -> RefDataType {

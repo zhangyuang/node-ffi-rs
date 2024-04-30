@@ -14,13 +14,12 @@ use libffi_sys::{
 };
 use napi::threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi::{
-  bindgen_prelude::*, Env, JsBoolean, JsBuffer, JsExternal, JsNumber, JsObject, JsString,
-  JsUnknown, NapiRaw,
+  bindgen_prelude::*, Env, JsBoolean, JsBuffer, JsExternal, JsNumber, JsObject, JsString, JsUnknown,
 };
 use std::ffi::{CStr, CString};
 
 pub unsafe fn get_js_external_wrap_data(env: &Env, js_external: JsExternal) -> Result<*mut c_void> {
-  let external: External<*mut c_void> = External::from_napi_value(env.raw(), js_external.raw())?;
+  let external: &mut *mut c_void = env.get_value_external(&js_external)?;
   Ok(*external)
 }
 
