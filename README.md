@@ -55,6 +55,8 @@ Currently, ffi-rs only supports there types of parameters and return values. How
 
 ## Support Platform
 
+Note: You need to make sure that the compilation environment of the dynamic library is the same as the installation and runtime environment of the `ffi-rs` call.
+
 - darwin-x64
 - darwin-arm64
 - linux-x64-gnu
@@ -67,6 +69,10 @@ Currently, ffi-rs only supports there types of parameters and return values. How
 Here is an example of how to use ffi-rs:
 
 For below c++ code, we compile this file into a dynamic library
+
+### write c/c++ code
+
+Note: The return value type of a function must be of type c
 
 ```cpp
 #include <cstdio>
@@ -86,8 +92,99 @@ extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
 }
 
 extern "C" void noRet() { printf("%s", "hello world"); }
+extern "C" bool return_opposite(bool input) { return !input; }
 
 
+```
+
+### compile c code to dynamic library
+
+```bash
+$ g++ -dynamiclib -o libsum.so cpp/sum.cpp # macos
+$ g++ -shared -o libsum.so cpp/sum.cpp # linux
+$ g++ -shared -o sum.dll cpp/sum.cpp # win
+```
+
+### call dynamic library by ffi-rs
+
+Then can use `ffi-rs` invoke the dynamic library file contains functions.
+
+### initialization
+
+```js
+const { equal } = require('assert')
+const { load, DataType, open, close, arrayConstructor } = require('ffi-rs')
+const a = 1
+const b = 100
+const dynamicLib = platform === 'win32' ? './sum.dll' : "./libsum.so"
+// first open dynamic library with key for close
+// It only needs to be opened once.
+open({
+  library: 'libsum', // key
+  path: dynamicLib // path
+})
+const r = load({
+  library: "libsum", // path to the dynamic library file
+  funcName: 'sum', // the name of the function to call
+  retType: DataType.I32, // the return value type
+  paramsType: [DataType.I32, DataType.I32], // the parameter types
+  paramsValue: [a, b] // the actual parameter values
+})
+equal(r, a + b)
+// release library memory when you're not using it.
+close('libsum')
+
+```
+
+### Basic Types
+
+`number|string|boolean|double|void` are basic types
+
+```js
+const c = "foo"
+const d = c.repeat(200)
+
+equal(c + d, load({
+  library: 'libsum',
+  funcName: 'concatenateStrings',
+  retType: DataType.String,
+  paramsType: [DataType.String, DataType.String],
+  paramsValue: [c, d]
+}))
+
+equal(undefined, load({
+  library: 'libsum',
+  funcName: 'noRet',
+  retType: DataType.Void,
+  paramsType: [],
+  paramsValue: []
+}))
+
+
+equal(1.1 + 2.2, load({
+  library: 'libsum',
+  funcName: 'doubleSum',
+  retType: DataType.Double,
+  paramsType: [DataType.Double, DataType.Double],
+  paramsValue: [1.1, 2.2]
+}))
+const bool_val = true
+equal(!bool_val, load({
+  library: 'libsum',
+  funcName: 'return_opposite',
+  retType: DataType.Boolean,
+  paramsType: [DataType.Boolean],
+  paramsValue: [bool_val],
+}))
+```
+
+### Array
+
+Use `arrayConstructor` to specify array type with legal length which is important.
+
+If the length is incorrect, program maybe exit abnormally
+
+```cpp
 extern "C" int *createArrayi32(const int *arr, int size) {
   int *vec = (int *)malloc((size) * sizeof(int));
 
@@ -104,8 +201,6 @@ extern "C" double *createArrayDouble(const double *arr, int size) {
   return vec;
 }
 
-extern "C" bool return_opposite(bool input) { return !input; }
-
 extern "C" char **createArrayString(char **arr, int size) {
   char **vec = (char **)malloc((size) * sizeof(char *));
   for (int i = 0; i < size; i++) {
@@ -114,7 +209,43 @@ extern "C" char **createArrayString(char **arr, int size) {
   return vec;
 }
 
+```
 
+```js
+let bigArr = new Array(100).fill(100)
+deepStrictEqual(bigArr, load({
+  library: 'libsum',
+  funcName: 'createArrayi32',
+  retType: arrayConstructor({ type: DataType.I32Array, length: bigArr.length }),
+  paramsType: [DataType.I32Array, DataType.I32],
+  paramsValue: [bigArr, bigArr.length],
+}))
+
+let bigDoubleArr = new Array(5).fill(1.1)
+deepStrictEqual(bigDoubleArr, load({
+  library: 'libsum',
+  funcName: 'createArrayDouble',
+  retType: arrayConstructor({ type: DataType.DoubleArray, length: bigDoubleArr.length }),
+  paramsType: [DataType.DoubleArray, DataType.I32],
+  paramsValue: [bigDoubleArr, bigDoubleArr.length],
+}))
+let stringArr = [c, c.repeat(20)]
+
+deepStrictEqual(stringArr, load({
+  library: 'libsum',
+  funcName: 'createArrayString',
+  retType: arrayConstructor({ type: DataType.StringArray, length: stringArr.length }),
+  paramsType: [DataType.StringArray, DataType.I32],
+  paramsValue: [stringArr, stringArr.length],
+}))
+
+```
+
+### Struct
+
+For create a c struct or get a c struct as a return type, you need to define the types of the parameters strictly in the order in which the fields of the c structure are defined.
+
+```cpp
 typedef struct Person {
   const char *name;
   int age;
@@ -125,14 +256,6 @@ typedef struct Person {
 } Person;
 
 extern "C" const Person *getStruct(const Person *person) {
-  printf("Name: %s\n", person->name);
-  printf("Age: %d\n", person->age);
-  printf("doubleProps: %f \n", person->doubleProps);
-  printf("stringArray: %s\n", person->stringArray[0]);
-  printf("stringArray: %s\n", person->stringArray[1]);
-  printf("doubleArray: %f\n", person->doubleArray[0]);
-  printf("doubleArray: %f\n", person->doubleArray[1]);
-  printf("i32Array: %d\n", person->i32Array[0]);
   return person;
 }
 extern "C" Person *createPerson() {
@@ -165,104 +288,11 @@ extern "C" Person *createPerson() {
 
   return person;
 }
-
 ```
-
-```bash
-$ g++ -dynamiclib -o libsum.so cpp/sum.cpp # macos
-$ g++ -shared -o libsum.so cpp/sum.cpp # linux
-$ g++ -shared -o sum.dll cpp/sum.cpp # win
-```
-
-Then can use `ffi-rs` invoke the dynamic library file contains functions.
 
 ```js
-const { equal } = require('assert')
-const { load, DataType, open, close, arrayConstructor } = require('ffi-rs')
-const a = 1
-const b = 100
-const dynamicLib = platform === 'win32' ? './sum.dll' : "./libsum.so"
-// first open dynamic library with key for close
-// It only needs to be opened once.
-open({
-  library: 'libsum', // key
-  path: dynamicLib // path
-})
-const r = load({
-  library: "libsum", // path to the dynamic library file
-  funcName: 'sum', // the name of the function to call
-  retType: DataType.I32, // the return value type
-  paramsType: [DataType.I32, DataType.I32], // the parameter types
-  paramsValue: [a, b] // the actual parameter values
-})
-equal(r, a + b)
-// release library memory when you're not using it.
-close('libsum')
-
-const c = "foo"
-const d = c.repeat(200)
-
-equal(c + d, load({
-  library: 'libsum',
-  funcName: 'concatenateStrings',
-  retType: DataType.String,
-  paramsType: [DataType.String, DataType.String],
-  paramsValue: [c, d]
-}))
-
-equal(undefined, load({
-  library: 'libsum',
-  funcName: 'noRet',
-  retType: DataType.Void,
-  paramsType: [],
-  paramsValue: []
-}))
-
-
-equal(1.1 + 2.2, load({
-  library: 'libsum',
-  funcName: 'doubleSum',
-  retType: DataType.Double,
-  paramsType: [DataType.Double, DataType.Double],
-  paramsValue: [1.1, 2.2]
-}))
-let bigArr = new Array(100).fill(100)
-deepStrictEqual(bigArr, load({
-  library: 'libsum',
-  funcName: 'createArrayi32',
-  retType: arrayConstructor({ type: DataType.I32Array, length: bigArr.length }),
-  paramsType: [DataType.I32Array, DataType.I32],
-  paramsValue: [bigArr, bigArr.length],
-}))
-
-let bigDoubleArr = new Array(5).fill(1.1)
-deepStrictEqual(bigDoubleArr, load({
-  library: 'libsum',
-  funcName: 'createArrayDouble',
-  retType: arrayConstructor({ type: DataType.DoubleArray, length: bigDoubleArr.length }),
-  paramsType: [DataType.DoubleArray, DataType.I32],
-  paramsValue: [bigDoubleArr, bigDoubleArr.length],
-}))
-let stringArr = [c, c.repeat(20)]
-
-deepStrictEqual(stringArr, load({
-  library: 'libsum',
-  funcName: 'createArrayString',
-  retType: arrayConstructor({ type: DataType.StringArray, length: stringArr.length }),
-  paramsType: [DataType.StringArray, DataType.I32],
-  paramsValue: [stringArr, stringArr.length],
-}))
-const bool_val = true
-equal(!bool_val, load({
-  library: 'libsum',
-  funcName: 'return_opposite',
-  retType: DataType.Boolean,
-  paramsType: [DataType.Boolean],
-  paramsValue: [bool_val],
-}))
 const person = {
   doubleArray: [1.1, 2.2, 3.3],
-
   age: 23,
   doubleProps: 1.1,
   name: 'tom',
