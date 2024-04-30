@@ -178,13 +178,13 @@ pub struct FFIParams {
 }
 
 #[napi(object)]
-pub struct CreateExternalParams {
+pub struct createPointerParams {
   pub params_type: Vec<JsUnknown>,
   pub params_value: Vec<JsUnknown>,
 }
 
 #[napi(object)]
-pub struct ReStoreExternalParams {
+pub struct storePointerParams {
   pub ret_type: Vec<JsUnknown>,
   pub params_value: Vec<JsExternal>,
 }
