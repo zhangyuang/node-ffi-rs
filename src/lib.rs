@@ -3,7 +3,7 @@ extern crate napi_derive;
 
 use napi::bindgen_prelude::*;
 
-use napi::{Env, JsNumber, JsObject, JsUnknown};
+use napi::{Env, JsNumber, JsObject, JsString, JsUnknown};
 
 use libc::malloc;
 use libc::{c_char, c_int};
@@ -13,7 +13,7 @@ use libffi_sys::{
 };
 use libloading::{Library, Symbol};
 use std::ffi::c_void;
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 
 #[napi]
 pub enum RetType {
@@ -22,13 +22,14 @@ pub enum RetType {
   Void,
   Double,
   I32Array,
+  StringArray,
 }
-
 pub enum RsArgsValue {
   String(String),
   I32(i32),
   Double(f64),
   I32Array(Vec<i32>),
+  StringArray(Vec<String>),
 }
 
 #[napi]
@@ -37,6 +38,7 @@ pub enum ParamsType {
   I32,
   Double,
   I32Array,
+  StringArray,
 }
 
 #[napi(object)]
@@ -50,7 +52,7 @@ struct FFIParams {
 }
 
 #[napi]
-fn load(params: FFIParams) -> Either5<String, i32, (), f64, Vec<i32>> {
+fn load(params: FFIParams) -> Either6<String, i32, (), f64, Vec<i32>, Vec<String>> {
   let FFIParams {
     library,
     func_name,
@@ -102,6 +104,19 @@ fn load(params: FFIParams) -> Either5<String, i32, (), f64, Vec<i32>> {
 
           (arg_type, RsArgsValue::I32Array(arg_val))
         }
+        ParamsType::StringArray => {
+          let arg_type = &mut ffi_type_pointer as *mut ffi_type;
+          let js_object = value.coerce_to_object().unwrap();
+          let arg_val = vec![0; js_object.get_array_length().unwrap() as usize]
+            .iter()
+            .enumerate()
+            .map(|(index, _)| {
+              let js_element: JsString = js_object.get_element(index as u32).unwrap();
+              return js_element.into_utf8().unwrap().try_into().unwrap();
+            })
+            .collect::<Vec<String>>();
+          (arg_type, RsArgsValue::StringArray(arg_val))
+        }
       })
       .unzip();
     let mut arg_values: Vec<*mut c_void> = arg_values
@@ -126,6 +141,21 @@ fn load(params: FFIParams) -> Either5<String, i32, (), f64, Vec<i32>> {
           std::mem::forget(val);
           return raw_ptr as *mut c_void;
         }
+        RsArgsValue::StringArray(val) => {
+          let c_char_vec: Vec<*const c_char> = val
+            .into_iter()
+            .map(|str| {
+              let c_string = CString::new(str).unwrap();
+              let ptr = c_string.as_ptr();
+              std::mem::forget(c_string);
+              return ptr;
+            })
+            .collect();
+
+          let ptr = c_char_vec.as_ptr();
+          std::mem::forget(c_char_vec);
+          Box::into_raw(Box::new(ptr)) as *mut c_void
+        }
       })
       .collect();
 
@@ -135,6 +165,7 @@ fn load(params: FFIParams) -> Either5<String, i32, (), f64, Vec<i32>> {
       RetType::Void => &mut ffi_type_void as *mut ffi_type,
       RetType::Double => &mut ffi_type_double as *mut ffi_type,
       RetType::I32Array => &mut ffi_type_pointer as *mut ffi_type,
+      RetType::StringArray => &mut ffi_type_pointer as *mut ffi_type,
     };
 
     let mut cif = ffi_cif {
@@ -170,7 +201,7 @@ fn load(params: FFIParams) -> Either5<String, i32, (), f64, Vec<i32>> {
           .into_string()
           .expect(format!("{} retType is not string", func_name).as_str());
 
-        Either5::A(result_str)
+        Either6::A(result_str)
       }
       RetType::I32 => {
         let mut result: i32 = 0;
@@ -180,7 +211,7 @@ fn load(params: FFIParams) -> Either5<String, i32, (), f64, Vec<i32>> {
           &mut result as *mut i32 as *mut c_void,
           arg_values.as_mut_ptr(),
         );
-        Either5::B(result)
+        Either6::B(result)
       }
       RetType::Void => {
         let mut result = ();
@@ -190,7 +221,7 @@ fn load(params: FFIParams) -> Either5<String, i32, (), f64, Vec<i32>> {
           &mut result as *mut () as *mut c_void,
           arg_values.as_mut_ptr(),
         );
-        Either5::C(())
+        Either6::C(())
       }
       RetType::Double => {
         let mut result: f64 = 0.0;
@@ -200,7 +231,7 @@ fn load(params: FFIParams) -> Either5<String, i32, (), f64, Vec<i32>> {
           &mut result as *mut f64 as *mut c_void,
           arg_values.as_mut_ptr(),
         );
-        Either5::D(result)
+        Either6::D(result)
       }
       RetType::I32Array => {
         let mut result: *mut c_int = malloc(std::mem::size_of::<*mut c_int>()) as *mut c_int;
@@ -217,8 +248,32 @@ fn load(params: FFIParams) -> Either5<String, i32, (), f64, Vec<i32>> {
         if !result.is_null() {
           libc::free(result as *mut c_void);
         }
+        Either6::E(result_vec)
+      }
+      RetType::StringArray => {
+        let mut result: *mut *mut c_char =
+          malloc(std::mem::size_of::<*mut *mut c_char>()) as *mut *mut c_char;
+        let ptr = arg_values.as_mut_ptr();
 
-        Either5::E(result_vec)
+        ffi_call(
+          &mut cif,
+          Some(*func),
+          &mut result as *mut _ as *mut c_void,
+          ptr,
+        );
+        let output_vec = vec![0; ret_type_len.unwrap() as usize]
+          .iter()
+          .enumerate()
+          .map(|(index, _)| {
+            let c_str = CStr::from_ptr(*result.offset(index as isize));
+            let str_slice = c_str.to_str().unwrap();
+            str_slice.to_string()
+          })
+          .collect();
+        if !result.is_null() {
+          libc::free(result as *mut c_void);
+        }
+        Either6::F(output_vec)
       }
     }
   }

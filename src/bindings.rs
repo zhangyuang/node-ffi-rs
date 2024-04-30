@@ -25,7 +25,7 @@ extern "C" {
 }
 extern "C" {
   pub fn createArrayString(
-    arr: *const ::std::os::raw::c_char,
+    arr: *mut *const ::std::os::raw::c_char,
     size: ::std::os::raw::c_int,
-  ) -> *mut ::std::os::raw::c_char;
+  ) -> *mut *mut ::std::os::raw::c_char;
 }

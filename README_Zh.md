@@ -13,15 +13,22 @@ A module written in Rust and N-APi provides interface (FFI) features for Node.js
 
 开发者无需编写 `C++` 代码便可以直接在 `js` 中调用其他语言的能力。此模块在功能上尽量对标[node-ffi](https://github.com/node-ffi/node-ffi)模块，但底层代码已彻底重写。因 `node-ffi` 模块已经多年无人维护处于一个不可用的状态因此开发了`ffi-rs`模块。
 
+## 安装
+
+```js
+$ npm i ffi-rs
+```
+
 ## 目前支持的数据类型
 
-目前支持下裂类型作为出参入参类型。根据实际使用场景后续会支持更多的类型。
+目前支持下列类型作为出参入参类型。根据实际使用场景后续会支持更多的类型。
 
 - string
 - number(i32)
 - void
 - double
 - i32Array
+- stringArray
 
 
 ## 使用示例
@@ -52,6 +59,13 @@ extern "C" void noRet() { printf("%s", "hello world"); }
 extern "C" int *createArrayi32(const int *arr, int size) {
   int *vec = (int *)malloc((size) * sizeof(int));
 
+  for (int i = 0; i < size; i++) {
+    vec[i] = arr[i];
+  }
+  return vec;
+}
+extern "C" char **createArrayString(char **arr, int size) {
+  char **vec = (char **)malloc((size) * sizeof(char *));
   for (int i = 0; i < size; i++) {
     vec[i] = arr[i];
   }
@@ -112,5 +126,22 @@ equal(1.1 + 2.2, load({
   paramsType: [ParamsType.Double, ParamsType.Double],
   paramsValue: [1.1, 2.2]
 }))
-
+let bigArr = new Array(100000).fill(100)
+equal(bigArr[0], load({
+  library: dynamicLib,
+  funcName: 'createArrayi32',
+  retType: RetType.I32Array,
+  paramsType: [ParamsType.I32Array, ParamsType.I32],
+  paramsValue: [bigArr, bigArr.length],
+  retTypeLen: bigArr.length
+})[0])
+// let stringArr = [c, c.repeat(200)]
+// equal(stringArr[0], load({
+//   library: dynamicLib,
+//   funcName: 'createArrayString',
+//   retType: RetType.StringArray,
+//   paramsType: [ParamsType.StringArray, ParamsType.I32],
+//   paramsValue: [stringArr, stringArr.length],
+//   retTypeLen: stringArr.length
+// })[0])
 ```
