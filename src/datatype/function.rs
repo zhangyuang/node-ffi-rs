@@ -13,6 +13,7 @@ pub unsafe fn get_js_function_call_value(
     RsArgsValue::I32(number) => {
       let data_type = number_to_basic_data_type(*number);
       let data = match data_type {
+        BasicDataType::U8 => RsArgsValue::U8(func_val_ptr as u8),
         BasicDataType::I32 => RsArgsValue::I32(func_val_ptr as i32),
         BasicDataType::I64 => RsArgsValue::I64(func_val_ptr as i64),
         BasicDataType::Boolean => RsArgsValue::Boolean(if func_val_ptr as i32 == 0 {
@@ -28,11 +29,7 @@ pub unsafe fn get_js_function_call_value(
         BasicDataType::Void => RsArgsValue::Void(()),
         // need to be improved
         BasicDataType::Double => {
-          let y_ptr = func_val_ptr as *const f64;
-          // 使用`ptr::read`来读取`f64`值
-          let y_val = unsafe { y_ptr.read() };
-          // 现在`y_val`是`f64`类型，你可以像使用普通的f64值一样使用它
-          println!("The value of y is: {}", y_val);
+          panic!("Double type cannot be used as function parameter type so far");
           RsArgsValue::Double(1.1)
         }
       };
