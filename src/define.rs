@@ -8,13 +8,15 @@ pub enum FFIError {
   NapiError(Error<NapiStatus>),
   Panic,
   LibraryNotFound(String),
+  UnsupportedValueType(String),
 }
 impl AsRef<str> for FFIError {
   fn as_ref(&self) -> &str {
     match self {
       FFIError::Panic => "Panic",
       FFIError::NapiError(e) => e.status.as_ref(),
-      FFIError::LibraryNotFound(library) => library,
+      FFIError::LibraryNotFound(desc) => desc,
+      FFIError::UnsupportedValueType(desc) => desc,
     }
   }
 }
