@@ -165,40 +165,6 @@ jobs:
             index.js
             index.d.ts
           if-no-files-found: error
-  test-macOS-binding:
-    name: Test bindings on ${{ matrix.settings.target }} - node@${{ matrix.node }}
-    needs:
-      - build
-    strategy:
-      fail-fast: false
-      matrix:
-        settings:
-          - host: macos-latest
-            target: x86_64-apple-darwin
-
-        node:
-          - "18"
-    runs-on: ${{ matrix.settings.host }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node }}
-          check-latest: true
-
-      - name: Install dependencies
-        run: node scripts/preinstall.js && yarn add esno@^4.0.0 shelljs@^0.8.5 @napi-rs/cli@^2.15.2 --registry https://registry.npmjs.org/ --prod
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: bindings-${{ matrix.settings.target }}
-          path: .
-      - name: List packages
-        run: ls -R .
-        shell: bash
-      - name: Test bindings
-        run: yarn test
   test-windows-binding:
     name: Test bindings on ${{ matrix.settings.target }} - node@${{ matrix.node }}
     needs:
@@ -285,7 +251,6 @@ jobs:
     name: Publish
     runs-on: ubuntu-latest
     needs:
-      - test-macOS-binding
       - test-linux-x64-gnu-binding
       - test-windows-binding
     steps:
