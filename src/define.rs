@@ -7,6 +7,7 @@ use std::hash::Hash;
 pub enum FFIError {
   NapiError(Error<NapiStatus>),
   UnexpectedError,
+  Panic(&'static str),
   LibraryNotFound(String),
   UnsupportedValueType(String),
 }
@@ -15,6 +16,7 @@ impl AsRef<str> for FFIError {
     match self {
       FFIError::UnexpectedError => "UnexpectedError",
       FFIError::NapiError(e) => e.status.as_ref(),
+      FFIError::Panic(desc) => desc,
       FFIError::LibraryNotFound(desc) => desc,
       FFIError::UnsupportedValueType(desc) => desc,
     }
