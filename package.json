@@ -33,16 +33,14 @@
     "README.md"
   ],
   "license": "MIT",
-  "dependencies": {
-    "@napi-rs/cli": "^2.15.2",
-    "esno": "^4.0.0",
-    "shelljs": "^0.8.5"
-  },
   "devDependencies": {
     "@types/node": "^20.8.7",
     "benny": "^3.7.1",
     "ffi-napi": "^4.0.3",
-    "koa": "^2.14.2"
+    "koa": "^2.14.2",
+    "@napi-rs/cli": "^2.15.2",
+    "esno": "^4.0.0",
+    "shelljs": "^0.8.5"
   },
   "engines": {
     "node": ">= 16"
