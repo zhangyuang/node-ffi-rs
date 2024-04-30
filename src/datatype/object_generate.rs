@@ -12,59 +12,68 @@ pub unsafe fn create_rs_struct_from_pointer(
 ) -> IndexMap<String, RsArgsValue> {
   let mut rs_struct: IndexMap<String, RsArgsValue> = IndexMap::new();
   let mut field_ptr = ptr;
-  let mut distance = 0;
   let mut offset = 0;
+  let mut field_size = 0;
   for (field, val) in ret_object {
     if let RsArgsValue::I32(number) = val {
       let field = field.clone();
       let data_type = number_to_basic_data_type(*number);
       match data_type {
         BasicDataType::I32 => {
-          let align = std::mem::align_of::<c_int>();
+          let (size, align) = (std::mem::size_of::<c_int>(), std::mem::align_of::<c_int>());
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           let type_field_ptr = field_ptr as *mut c_int;
           rs_struct.insert(field, RsArgsValue::I32(*type_field_ptr));
-          distance = std::mem::size_of::<c_int>();
-          offset += distance + padding;
+          offset += size + padding;
+          field_size = size
         }
         BasicDataType::I64 => {
-          let align = std::mem::align_of::<c_longlong>();
+          let (size, align) = (
+            std::mem::size_of::<c_longlong>(),
+            std::mem::align_of::<c_longlong>(),
+          );
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           let type_field_ptr = field_ptr as *mut c_longlong;
           rs_struct.insert(field, RsArgsValue::I64(*type_field_ptr));
-          distance = std::mem::size_of::<c_longlong>();
-          offset += distance + padding;
+          offset += size + padding;
+          field_size = size
         }
         BasicDataType::Double => {
-          let align = std::mem::align_of::<c_double>();
+          let (size, align) = (
+            std::mem::size_of::<c_double>(),
+            std::mem::align_of::<c_double>(),
+          );
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           let type_field_ptr = field_ptr as *mut c_double;
           rs_struct.insert(field, RsArgsValue::Double(*type_field_ptr));
-          distance = std::mem::size_of::<c_double>();
-          offset += distance + padding;
+          offset += size + padding;
+          field_size = size
         }
         BasicDataType::Boolean => {
-          let align = std::mem::align_of::<bool>();
+          let (size, align) = (std::mem::size_of::<bool>(), std::mem::align_of::<bool>());
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           let type_field_ptr = field_ptr as *mut bool;
           rs_struct.insert(field, RsArgsValue::Boolean(*type_field_ptr));
-          distance = std::mem::size_of::<bool>();
-          offset += distance + padding;
+          offset += size + padding;
+          field_size = size
         }
         BasicDataType::Void => {
-          let align = std::mem::align_of::<()>();
+          let (size, align) = (std::mem::size_of::<()>(), std::mem::align_of::<()>());
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           rs_struct.insert(field, RsArgsValue::Void(()));
-          distance = std::mem::size_of::<bool>();
-          offset += distance + padding;
+          offset += size + padding;
+          field_size = size
         }
         BasicDataType::String => {
-          let align = std::mem::align_of::<*const c_char>();
+          let (size, align) = (
+            std::mem::size_of::<*const char>(),
+            std::mem::align_of::<*const char>(),
+          );
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           let type_field_ptr = field_ptr as *mut *mut c_char;
@@ -72,52 +81,65 @@ pub unsafe fn create_rs_struct_from_pointer(
             .to_string_lossy()
             .to_string();
           rs_struct.insert(field, RsArgsValue::String(js_string));
-          distance = std::mem::size_of::<*const c_char>();
-          offset += distance + padding;
+          offset += size + padding;
+          field_size = size
         }
-      }
+      };
     }
     if let RsArgsValue::Object(obj) = val {
       let field = field.clone();
       let array_desc = get_array_desc(obj);
-      if array_desc.is_some() {
+      let size = if array_desc.is_some() {
         // array
         let (array_len, array_type) = array_desc.unwrap();
-        match array_type {
+        let size = match array_type {
           RefDataType::StringArray => {
-            let align = std::mem::align_of::<*const *const c_char>();
+            let (size, align) = (
+              std::mem::size_of::<*const c_void>(),
+              std::mem::align_of::<*const c_void>(),
+            );
             let padding = (align - (offset % align)) % align;
             field_ptr = field_ptr.offset(padding as isize);
             let type_field_ptr = field_ptr as *mut *mut *mut c_char;
             let arr = create_array_from_pointer(*type_field_ptr, array_len);
             rs_struct.insert(field, RsArgsValue::StringArray(arr));
-            distance = std::mem::size_of::<*const *const c_char>();
-            offset += distance + padding;
+            offset += size + padding;
+            field_size = size
           }
           RefDataType::DoubleArray => {
-            let align = std::mem::align_of::<*const c_double>();
+            let (size, align) = (
+              std::mem::size_of::<*const c_void>(),
+              std::mem::align_of::<*const c_void>(),
+            );
             let padding = (align - (offset % align)) % align;
             field_ptr = field_ptr.offset(padding as isize);
             let type_field_ptr = field_ptr as *mut *mut c_double;
             let arr = create_array_from_pointer(*type_field_ptr, array_len);
             rs_struct.insert(field, RsArgsValue::DoubleArray(arr));
-            distance = std::mem::size_of::<*const c_double>();
-            offset += distance + padding;
+            offset += size + padding;
+            field_size = size
           }
           RefDataType::I32Array => {
-            let align = std::mem::align_of::<*const c_int>();
+            let (size, align) = (
+              std::mem::size_of::<*const c_void>(),
+              std::mem::align_of::<*const c_void>(),
+            );
             let padding = (align - (offset % align)) % align;
             field_ptr = field_ptr.offset(padding as isize);
             let type_field_ptr = field_ptr as *mut *mut c_int;
             let arr = create_array_from_pointer(*type_field_ptr, array_len);
             rs_struct.insert(field, RsArgsValue::I32Array(arr));
-            distance = std::mem::size_of::<*const c_int>();
-            offset += distance + padding;
+            offset += size + padding;
+            field_size = size
           }
-        }
+        };
+        size
       } else {
         // function | raw object
-        let align = std::mem::align_of::<*const c_void>();
+        let (size, align) = (
+          std::mem::size_of::<*const c_void>(),
+          std::mem::align_of::<*const c_void>(),
+        );
         let padding = (align - (offset % align)) % align;
         field_ptr = field_ptr.offset(padding as isize);
         let type_field_ptr = field_ptr as *mut *mut c_void;
@@ -125,11 +147,11 @@ pub unsafe fn create_rs_struct_from_pointer(
           field,
           RsArgsValue::Object(create_rs_struct_from_pointer(*type_field_ptr, obj)),
         );
-        distance = std::mem::size_of::<*const c_void>();
-        offset += distance + padding;
+        offset += size + padding;
+        field_size = size
       };
-    }
-    field_ptr = field_ptr.offset(distance as isize) as *mut c_void;
+    };
+    field_ptr = field_ptr.offset(field_size as isize) as *mut c_void;
   }
   rs_struct
 }
