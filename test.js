@@ -31,10 +31,10 @@ equal(c + d, load({
 
 
 // "optionalDependencies": {
-//   "ffi-rs-win32-x64-msvc": "1.0.3",
-//     "ffi-rs-darwin-x64": "1.0.3",
-//       "ffi-rs-linux-x64-gnu": "1.0.3",
-//         "ffi-rs-darwin-arm64": "1.0.3",
-//           "ffi-rs-linux-arm64-gnu": "1.0.3",
-//             "ffi-rs-linux-arm64-musl": "1.0.3"
+//   "@yuuang/ffi-rs-win32-x64-msvc": "1.0.3",
+//     "@yuuang/ffi-rs-darwin-x64": "1.0.3",
+//       "@yuuang/ffi-rs-linux-x64-gnu": "1.0.3",
+//         "@yuuang/ffi-rs-darwin-arm64": "1.0.3",
+//           "@yuuang/ffi-rs-linux-arm64-gnu": "1.0.3",
+//             "@yuuang/ffi-rs-linux-arm64-musl": "1.0.3"
 // }
