@@ -41,17 +41,24 @@ $ npm i ffi-rs
 
 目前支持下列类型作为出参入参类型。根据实际使用场景后续会支持更多的类型。
 
-- string
-- number(i32)
-- void
-- double
-- boolean
-- i32Array
-- stringArray
-- doubleArray
-- object(暂时不支持嵌套对象)
-- function
+### 基本类型
+- [string](#基本类型)
+- [u8](#基本类型)
+- [i32](#基本类型)
+- [i64](#基本类型)
+- [void](#基本类型)(undefined)
+- [double](#基本类型)
+- [boolean](#基本类型)
 
+### 引用类型
+
+- [pointer](#pointer)
+- [u8Array](#array)
+- [i32Array](#array)
+- [stringArray](#array)
+- [doubleArray](#array)
+- [object](#struct)(最新版本支持嵌套对象的生成)
+- [function](#function)
 
 ## 支持的系统架构
 
@@ -231,6 +238,42 @@ deepStrictEqual(stringArr, load({
   paramsValue: [stringArr, stringArr.length],
 }))
 
+```
+
+### Pointer
+
+在 `ffi-rs`,我们使用 [DataType.External](https://nodejs.org/api/n-api.html#napi_create_external) 来包裹指针使得其可以在 `Node.js` 和 `C` 之间传递
+
+```cpp
+extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
+  std::string result = std::string(str1) + std::string(str2);
+  char *cstr = new char[result.length() + 1];
+  strcpy(cstr, result.c_str());
+  return cstr;
+}
+
+extern "C" char *getStringFromPtr(void *ptr) { return (char *)ptr; };
+```
+
+
+```js
+// get pointer
+const ptr = load({
+  library: "libsum",
+  funcName: "concatenateStrings",
+  retType: DataType.External,
+  paramsType: [DataType.String, DataType.String],
+  paramsValue: [c, d],
+})
+
+// send pointer
+const string = load({
+  library: "libsum",
+  funcName: "getStringFromPtr",
+  retType: DataType.String,
+  paramsType: [DataType.External],
+  paramsValue: [ptr],
+})
 ```
 
 ### Struct
