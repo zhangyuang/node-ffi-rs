@@ -103,6 +103,10 @@ pub fn js_string_to_string(js_string: JsString) -> String {
   js_string.into_utf8().unwrap().try_into().unwrap()
 }
 
+pub fn js_number_to_i32(js_number: JsNumber) -> i32 {
+  js_number.try_into().unwrap()
+}
+
 pub fn rs_array_to_js_array(env: &Env, val: ArrayType) -> JsObject {
   match val {
     ArrayType::String(arr) => {
