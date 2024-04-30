@@ -130,6 +130,7 @@ const unitTest = () => {
     i32Array: [5, 6, 7],
     boolTrue: true,
     boolFalse: false,
+    longVal: 5294967296,
   };
   const person = {
     age: 23,
@@ -141,6 +142,7 @@ const unitTest = () => {
     i32Array: [1, 2, 3, 4],
     boolTrue: true,
     boolFalse: false,
+    longVal: 4294967296,
   };
   const parentType = {
     age: DataType.I32,
@@ -161,6 +163,7 @@ const unitTest = () => {
     }),
     boolTrue: DataType.Boolean,
     boolFalse: DataType.Boolean,
+    longVal: DataType.I64,
   };
   const personType = {
     age: DataType.I32,
@@ -181,6 +184,7 @@ const unitTest = () => {
     }),
     boolTrue: DataType.Boolean,
     boolFalse: DataType.Boolean,
+    longVal: DataType.I64,
   };
   const personObj = load({
     library: "libsum",
@@ -200,6 +204,7 @@ const unitTest = () => {
           i32Array: DataType.I32Array,
           boolTrue: DataType.Boolean,
           boolFalse: DataType.Boolean,
+          longVal: DataType.I64,
         },
         doubleProps: DataType.Double,
         name: DataType.String,
@@ -207,6 +212,7 @@ const unitTest = () => {
         i32Array: DataType.I32Array,
         boolTrue: DataType.Boolean,
         boolFalse: DataType.Boolean,
+        longVal: DataType.I64,
       },
     ],
     paramsValue: [person],
@@ -219,7 +225,6 @@ const unitTest = () => {
     paramsType: [],
     paramsValue: [],
   });
-
   deepStrictEqual(createdPerson, person);
   let count = 0;
   const func = (a, b, c, d, e, f) => {

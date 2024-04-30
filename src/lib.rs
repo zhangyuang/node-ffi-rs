@@ -23,8 +23,8 @@ use std::ffi::{CStr, CString};
 
 use datatype::array::*;
 use datatype::function::*;
-use datatype::object::*;
-use datatype::object_utils::*;
+use datatype::object_calculate::*;
+use datatype::object_generate::*;
 use datatype::pointer::*;
 use napi::threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode};
 
