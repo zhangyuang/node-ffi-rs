@@ -105,16 +105,16 @@ const unitTest = () => {
   })
   equal(person.name, personObj.name)
   equal(person.age, personObj.age)
-  // const func = () => {
-  //   console.log('func')
-  // }
-  // load({
-  //   library: 'libsum',
-  //   funcName: 'callFunction',
-  //   retType: DataType.Void,
-  //   paramsType: [DataType.Function],
-  //   paramsValue: [func],
-  // })
+  const func = () => {
+    console.log('func')
+  }
+  load({
+    library: 'libsum',
+    funcName: 'callFunction',
+    retType: DataType.Void,
+    paramsType: [DataType.Function],
+    paramsValue: [func],
+  })
 }
 
 unitTest()

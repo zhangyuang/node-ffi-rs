@@ -7,9 +7,8 @@ macro_rules! p {
 
 fn main() {
   let env = std::env::var("env").unwrap_or_else(|_| String::from("production"));
-
+  println!("cargo:rustc-link-search=native=.");
   if env == "development" {
-    println!("cargo:rustc-link-search=native=.");
     let bindings = bindgen::Builder::default()
       .header("./cpp/sum.h")
       .parse_callbacks(Box::new(bindgen::CargoCallbacks))
