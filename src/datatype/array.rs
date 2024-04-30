@@ -31,7 +31,7 @@ pub trait ToJsArray {
 impl ToJsArray for Vec<String> {
   fn to_js_array(self, env: &Env) -> Result<JsObject> {
     let mut js_array = env.create_array_with_length(self.len())?;
-    self
+    let _ = self
       .into_iter()
       .enumerate()
       .try_for_each(|(index, str)| js_array.set_element(index as u32, env.create_string(&str)?));
@@ -41,7 +41,7 @@ impl ToJsArray for Vec<String> {
 impl ToJsArray for Vec<f64> {
   fn to_js_array(self, env: &Env) -> Result<JsObject> {
     let mut js_array = env.create_array_with_length(self.len())?;
-    self
+    let _ = self
       .into_iter()
       .enumerate()
       .try_for_each(|(index, item)| js_array.set_element(index as u32, env.create_double(item)?));
@@ -52,7 +52,7 @@ impl ToJsArray for Vec<f64> {
 impl ToJsArray for Vec<i32> {
   fn to_js_array(self, env: &Env) -> Result<JsObject> {
     let mut js_array = env.create_array_with_length(self.len())?;
-    self
+    let _ = self
       .into_iter()
       .enumerate()
       .try_for_each(|(index, item)| js_array.set_element(index as u32, env.create_int32(item)?));
@@ -62,7 +62,7 @@ impl ToJsArray for Vec<i32> {
 impl ToJsArray for Vec<u8> {
   fn to_js_array(self, env: &Env) -> Result<JsObject> {
     let mut js_array = env.create_array_with_length(self.len())?;
-    self.into_iter().enumerate().try_for_each(|(index, item)| {
+    let _ = self.into_iter().enumerate().try_for_each(|(index, item)| {
       js_array.set_element(index as u32, env.create_uint32(item as u32)?)
     });
     Ok(js_array)
