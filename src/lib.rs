@@ -6,7 +6,7 @@ mod define;
 mod utils;
 use define::*;
 use dlopen::symbor::{Library, Symbol};
-use libc::malloc;
+use libc::{free, malloc};
 use libffi_sys::{
   ffi_abi_FFI_DEFAULT_ABI, ffi_call, ffi_cif, ffi_prep_cif, ffi_type, ffi_type_double,
   ffi_type_float, ffi_type_pointer, ffi_type_sint32, ffi_type_sint64, ffi_type_uint64,
@@ -85,6 +85,13 @@ unsafe fn wrap_pointer(env: Env, params: Vec<JsExternal>) -> Result<Vec<JsExtern
       env.create_external(Box::into_raw(Box::new(ptr)), None)
     })
     .collect()
+}
+#[napi]
+unsafe fn free_pointer(env: Env, params: Vec<JsExternal>) {
+  params.into_iter().for_each(|js_external| {
+    let ptr = get_js_external_wrap_data(&env, js_external).unwrap();
+    free(ptr)
+  });
 }
 
 #[napi]

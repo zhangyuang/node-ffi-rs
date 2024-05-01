@@ -26,6 +26,7 @@ This module aims to provide similar functionality to the node-ffi module but wit
 - Provide many ways to handle pointer type directly 🐮
 - Support run ffi task [in a new thread](#runInNewThread) 🤩️
 - Support output [errno](#errno) info 🤔️
+- No need to use [ref](https://www.npmjs.com/package/ref) to handle pointer 🤫
 
 ## benchmark
 
