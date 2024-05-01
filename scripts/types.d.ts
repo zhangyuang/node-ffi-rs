@@ -87,6 +87,10 @@ export function createPointer(params: {
   paramsValue: Array<unknown>;
 }): JsExternal[]
 
+export function freePointer(params: {
+  paramsValue: Array<JsExternal>;
+}): void
+
 
 export function restorePointer<T extends DataType>(params: {
   retType: Array<FieldType>;
