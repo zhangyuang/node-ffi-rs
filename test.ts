@@ -10,7 +10,8 @@ import {
   restorePointer,
   unwrapPointer,
   wrapPointer,
-  define
+  define,
+  threadRunner
 } from "./index"
 
 const platform = process.platform;
@@ -424,7 +425,7 @@ const testFunction = () => {
       logGreen("test succeed");
       if (!process.env.MEMORY) {
         close("libsum");
-        process.exit(0);
+        // process.exit(0);
       }
     }
   };
@@ -518,6 +519,27 @@ const testDefine = () => {
   equal(res.sum([1, 2]), 3)
 }
 const unitTest = () => {
+  let foo = () => {
+    console.log('foo')
+  }
+  setInterval(() => {
+    console.log('xxx')
+  }, 100)
+  threadRunner({
+    paramsType: [{
+      a: DataType.I32
+    }, DataType.I32],
+    paramsValue: [{
+      a: 1
+    }, 2],
+  }, (a, b) => {
+    // console.log('jsfunction', a, b, foo, foo())
+    while (true) {
+      //
+    }
+    // console.log('finish')
+  })
+  return
   testNumber()
   logGreen('test number succeed')
   testString()

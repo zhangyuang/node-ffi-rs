@@ -263,6 +263,12 @@ pub struct FFIParams {
   pub run_in_new_thread: Option<bool>,
 }
 
+#[napi(object)]
+pub struct FunctionCallParams {
+  pub params_type: Vec<JsUnknown>,
+  pub params_value: Vec<JsUnknown>,
+}
+
 pub struct FFICALLPARAMS {
   pub cif: *mut ffi_cif,
   pub fn_pointer: unsafe extern "C" fn(),

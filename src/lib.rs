@@ -12,7 +12,7 @@ use libffi_sys::{
   ffi_type_float, ffi_type_pointer, ffi_type_sint32, ffi_type_sint64, ffi_type_uint64,
   ffi_type_uint8, ffi_type_void,
 };
-use napi::{Env, JsExternal, JsUnknown, Result};
+use napi::{Env, JsExternal, JsFunction, JsNull, JsUnknown, Result};
 
 use std::collections::HashMap;
 use std::ffi::c_void;
@@ -31,6 +31,73 @@ static mut LIBRARY_MAP: Option<
   >,
 > = None;
 
+#[napi]
+unsafe fn thread_runner(env: Env, params: FunctionCallParams, func: JsFunction) -> Result<()> {
+  use crate::datatype::object_generate::rs_value_to_js_unknown;
+  let FunctionCallParams {
+    params_type,
+    params_value,
+    ..
+  } = params;
+  use napi::threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode};
+  let (_, arg_values) = get_arg_types_values(&env, params_type, params_value)?;
+
+  use napi::Task;
+  pub struct JSThreadRunnerParams {
+    tsfn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal>,
+    call_params: Vec<RsArgsValue>,
+  }
+
+  pub struct JsThreadRunner {
+    pub data: JSThreadRunnerParams,
+  }
+  impl JsThreadRunner {
+    pub fn new(data: JSThreadRunnerParams) -> Self {
+      Self { data }
+    }
+  }
+  impl Task for JsThreadRunner {
+    type Output = ();
+    type JsValue = ();
+    fn compute(&mut self) -> Result<()> {
+      use std::sync::mpsc;
+      let (sender, receiver) = mpsc::channel::<i32>();
+
+      let callParams = std::mem::take(&mut self.data.call_params);
+      self.data.tsfn.call_with_return_value(
+        callParams,
+        ThreadsafeFunctionCallMode::Blocking,
+        move |a: JsNull| {
+          sender.send(0);
+          Ok(())
+        },
+      );
+      let _ = receiver.recv();
+      Ok(())
+    }
+
+    fn resolve(&mut self, env: Env, output: Self::Output) -> Result<()> {
+      println!("resolve");
+      Ok(())
+    }
+  }
+  let tsfn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal> = (&func)
+    .create_threadsafe_function(0, |ctx| {
+      let value: Vec<RsArgsValue> = ctx.value;
+      let js_call_params: Vec<JsUnknown> = value
+        .into_iter()
+        .map(|rs_args| rs_value_to_js_unknown(&ctx.env, rs_args))
+        .collect::<Result<Vec<JsUnknown>, _>>()?;
+      Ok(js_call_params)
+    })?;
+  let task = JsThreadRunner::new(JSThreadRunnerParams {
+    tsfn,
+    call_params: arg_values,
+  });
+  env.spawn(task)?;
+
+  Ok(())
+}
 #[napi]
 unsafe fn create_pointer(env: Env, params: CreatePointerParams) -> Result<Vec<JsExternal>> {
   let CreatePointerParams {
