@@ -1,9 +1,10 @@
-## [1.0.71](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.69...v1.0.71) (2024-05-06)
+## [1.0.72](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.69...v1.0.72) (2024-05-06)
 
 
 ### Bug Fixes
 
 * convert JsString to UTF-16 string ([70ea15c](https://github.com/zhangyuang/node-ffi-rs/commit/70ea15cac7899c90628c31ee67f05125bed094cf))
+* convert JsString to UTF-8 string ([c613f66](https://github.com/zhangyuang/node-ffi-rs/commit/c613f666ce5651d2f358e21294aebf01d1c2bfe6))
 
 
 ### Features
