@@ -1,4 +1,14 @@
-## [1.0.68](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.64...v1.0.68) (2024-04-30)
+## [1.0.70](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.69...v1.0.70) (2024-05-06)
+
+
+### Features
+
+* dynamicArray support more array type ([170e9fb](https://github.com/zhangyuang/node-ffi-rs/commit/170e9fb7a17a4cfc0ef6bc39a9e49327bdc403f7))
+* suppprt freePointer ([dbd50bb](https://github.com/zhangyuang/node-ffi-rs/commit/dbd50bbb96ac4415c759d925c6dc50fa7f8fe9d3))
+
+
+
+## [1.0.69](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.64...v1.0.69) (2024-04-30)
 
 
 ### Bug Fixes

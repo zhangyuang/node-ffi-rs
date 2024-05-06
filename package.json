@@ -1,6 +1,6 @@
 {
   "name": "ffi-rs",
-  "version": "1.0.69",
+  "version": "1.0.70",
   "main": "index.js",
   "types": "index.d.ts",
   "description": "A module written in Rust and N-API provides interface (FFI) features for Node.js",
@@ -57,7 +57,7 @@
     "universal": "napi universal",
     "version": "napi version",
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0",
-    "pub": "npm version patch && npm run changelog && ga . && gcmsg \"docs: update changelog\" && git push origin master"
+    "pub": "npm version patch && npm run changelog && git add . && git commit -m \"docs: update changelog.md\" && git push origin master"
   },
   "optionalDependencies": {
     "@yuuang/ffi-rs-darwin-arm64": "1.0.55",
