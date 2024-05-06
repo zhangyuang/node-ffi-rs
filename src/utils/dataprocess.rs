@@ -510,9 +510,32 @@ pub unsafe fn get_params_value_rs_struct(
                 let js_buffer: JsBuffer = params_value_object.get_named_property(&field)?;
                 RsArgsValue::U8Array(Some(js_buffer.into_value()?), None)
               }
-              _ => panic!("111"),
+              RefDataType::I32Array => {
+                let js_array: JsObject = params_value_object.get_named_property(&field)?;
+                let arg_val = js_array.to_rs_array()?;
+                RsArgsValue::I32Array(arg_val)
+              }
+              RefDataType::DoubleArray => {
+                let js_array: JsObject = params_value_object.get_named_property(&field)?;
+                let arg_val = js_array.to_rs_array()?;
+                RsArgsValue::DoubleArray(arg_val)
+              }
+              RefDataType::FloatArray => {
+                let js_array: JsObject = params_value_object.get_named_property(&field)?;
+                let arg_val: Vec<f32> = js_array
+                  .to_rs_array()?
+                  .into_iter()
+                  .map(|item: f64| item as f32)
+                  .collect();
+                RsArgsValue::FloatArray(arg_val)
+              }
+              RefDataType::StringArray => {
+                let js_array: JsObject = params_value_object.get_named_property(&field)?;
+                let arg_val = js_array.to_rs_array()?;
+                RsArgsValue::StringArray(arg_val)
+              }
             };
-            params_type_rs_value.insert("value".to_string(), array_value);
+            params_type_rs_value.insert(ARRAY_VALUE_TAG.to_string(), array_value);
             index_map.insert(field, RsArgsValue::Object(params_type_rs_value));
           } else {
             let map = get_params_value_rs_struct(env, &params_type, &params_value);
