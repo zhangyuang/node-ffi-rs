@@ -51,6 +51,10 @@ Finished 2 cases!
 
 See [CHANGELOG.md](./CHANGELOG.md)
 
+## ecosystem
+
+[abstract-socket-rs](https://github.com/zhangyuang/abstract-socket-rs)
+
 ## install
 
 ```js
