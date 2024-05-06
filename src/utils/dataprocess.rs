@@ -127,7 +127,7 @@ pub unsafe fn get_arg_types_values(
             DataType::String => {
               let arg_type = Box::into_raw(Box::new(ffi_type_pointer)) as *mut ffi_type;
               let arg_val: String = create_js_value_unchecked::<JsString>(env, value)
-                .into_utf8()?
+                .into_utf16()?
                 .try_into()?;
               (arg_type, RsArgsValue::String(arg_val))
             }

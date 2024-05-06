@@ -6,6 +6,9 @@ export interface JsExternal {
 }
 
 export const enum DataType {
+  /**
+   UTF-16 String
+  */
   String = 0,
   I32 = 1,
   Double = 2,
