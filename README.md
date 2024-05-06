@@ -47,6 +47,10 @@ Finished 2 cases!
 
 ```
 
+## changelog
+
+See [CHANGELOG.md](./CHANGELOG.md)
+
 ## install
 
 ```js
