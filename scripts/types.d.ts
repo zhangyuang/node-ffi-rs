@@ -9,14 +9,26 @@ export const enum DataType {
   String = 0,
   I32 = 1,
   Double = 2,
+  /**
+    * denotes ordinary i32 number array instead of Uint32Array
+  */
   I32Array = 3,
   StringArray = 4,
+  /**
+    denotes f64 array
+  */
   DoubleArray = 5,
   Boolean = 6,
+  /**
+    equal with undefined
+  */
   Void = 7,
   I64 = 8,
   U8 = 9,
   U8Array = 10,
+  /**
+    A type that wrap native pointer
+  */
   External = 11,
   U64 = 12,
   FloatArray = 13,
