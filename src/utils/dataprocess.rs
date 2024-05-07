@@ -5,6 +5,7 @@ use crate::datatype::function::get_rs_value_from_pointer;
 use crate::datatype::object_calculate::generate_c_struct;
 use crate::datatype::object_generate::{create_rs_struct_from_pointer, rs_value_to_js_unknown};
 use crate::datatype::pointer::*;
+use crate::datatype::string::{js_string_to_string, string_to_c_string};
 use crate::define::*;
 use indexmap::IndexMap;
 use libc::{c_char, c_double, c_float, c_int, c_uchar, c_void};
@@ -17,16 +18,15 @@ use napi::{
   bindgen_prelude::*, Env, JsBoolean, JsBuffer, JsExternal, JsNumber, JsObject, JsString,
   JsUnknown, NapiRaw,
 };
-use std::any::TypeId;
-use std::ffi::{CStr, CString};
-
-#[repr(C)]
-pub struct TaggedObject<T> {
-  type_id: TypeId,
-  pub(crate) object: Option<T>,
-}
+use std::ffi::CStr;
 
 pub unsafe fn get_js_external_wrap_data(env: &Env, js_external: JsExternal) -> Result<*mut c_void> {
+  use std::any::TypeId;
+  #[repr(C)]
+  pub struct TaggedObject<T> {
+    type_id: TypeId,
+    pub(crate) object: Option<T>,
+  }
   let mut unknown_tagged_object = std::ptr::null_mut();
   sys::napi_get_value_external(env.raw(), js_external.raw(), &mut unknown_tagged_object);
   let tagged_object = unknown_tagged_object as *mut TaggedObject<*mut c_void>;
@@ -69,10 +69,6 @@ pub fn get_array_desc(obj: &IndexMap<String, RsArgsValue>) -> FFIARRARYDESC {
     array_type,
     array_value: obj.get(ARRAY_VALUE_TAG),
   }
-}
-
-pub fn js_string_to_string(js_string: JsString) -> String {
-  js_string.into_utf8().unwrap().try_into().unwrap()
 }
 
 pub fn js_number_to_i32(js_number: JsNumber) -> i32 {
@@ -126,9 +122,8 @@ pub unsafe fn get_arg_types_values(
             }
             DataType::String => {
               let arg_type = Box::into_raw(Box::new(ffi_type_pointer)) as *mut ffi_type;
-              let arg_val: String = create_js_value_unchecked::<JsString>(env, value)
-                .into_utf16()?
-                .try_into()?;
+              let arg_val: String =
+                js_string_to_string(create_js_value_unchecked::<JsString>(env, value))?;
 
               (arg_type, RsArgsValue::String(arg_val))
             }
@@ -275,9 +270,7 @@ pub unsafe fn get_value_pointer(
       RsArgsValue::I64(val) => Ok(Box::into_raw(Box::new(val)) as *mut c_void),
       RsArgsValue::U64(val) => Ok(Box::into_raw(Box::new(val)) as *mut c_void),
       RsArgsValue::String(val) => {
-        let mut bytes = val.into_bytes();
-        bytes.push(0);
-        let c_string = CString::from_vec_unchecked(bytes);
+        let c_string = string_to_c_string(val);
         let ptr = c_string.as_ptr();
         std::mem::forget(c_string);
         Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
@@ -315,7 +308,7 @@ pub unsafe fn get_value_pointer(
         let c_char_vec: Vec<*const c_char> = val
           .into_iter()
           .map(|str| {
-            let c_string = CString::new(str).unwrap();
+            let c_string = string_to_c_string(str);
             let ptr = c_string.as_ptr();
             std::mem::forget(c_string);
             ptr
@@ -426,7 +419,7 @@ pub unsafe fn get_params_value_rs_struct(
           let val = match data_type {
             DataType::String => {
               let val: JsString = params_value_object.get_named_property(&field)?;
-              let val: String = val.into_utf8()?.try_into()?;
+              let val: String = js_string_to_string(val)?;
               RsArgsValue::String(val)
             }
             DataType::U8 => {
@@ -592,7 +585,7 @@ pub unsafe fn type_object_to_rs_struct(
         }
         ValueType::String => {
           let str: JsString = field_type.try_into()?;
-          let str = js_string_to_string(str);
+          let str = js_string_to_string(str)?;
           index_map.insert(field, RsArgsValue::String(str));
         }
         _ => {
@@ -636,7 +629,7 @@ pub unsafe fn type_object_to_rs_vector(
         }
         ValueType::String => {
           let str: JsString = field_type.try_into()?;
-          let str = js_string_to_string(str);
+          let str = js_string_to_string(str)?;
           RsArgsValue::String(str)
         }
         _ => {

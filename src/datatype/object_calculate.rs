@@ -6,8 +6,9 @@ use indexmap::IndexMap;
 use libc::{c_float, c_ulonglong, c_void};
 use napi::{Env, Result};
 use std::alloc::{alloc, Layout};
-use std::ffi::CString;
 use std::ffi::{c_char, c_double, c_int, c_longlong, c_uchar};
+
+use super::string::string_to_c_string;
 
 macro_rules! calculate_layout_for {
   ($variant:ident, $type:ty) => {
@@ -166,7 +167,7 @@ pub unsafe fn generate_c_struct(
         let (size, align) = get_size_align::<*mut c_void>();
         let padding = (align - (offset % align)) % align;
         field_ptr = field_ptr.offset(padding as isize);
-        let c_string = CString::new(str).unwrap();
+        let c_string = string_to_c_string(str);
         (field_ptr as *mut *const c_char).write(c_string.as_ptr());
         std::mem::forget(c_string);
         offset += size + padding;
@@ -179,7 +180,7 @@ pub unsafe fn generate_c_struct(
         let c_char_vec: Vec<*const c_char> = str_arr
           .into_iter()
           .map(|str| {
-            let c_string = CString::new(str).unwrap();
+            let c_string = string_to_c_string(str);
             let ptr = c_string.as_ptr();
             std::mem::forget(c_string);
             ptr
