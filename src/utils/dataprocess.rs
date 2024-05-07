@@ -19,6 +19,7 @@ use napi::{
   JsUnknown, NapiRaw,
 };
 use std::ffi::CStr;
+use std::fmt::format;
 
 pub unsafe fn get_js_external_wrap_data(env: &Env, js_external: JsExternal) -> Result<*mut c_void> {
   use std::any::TypeId;
@@ -80,6 +81,14 @@ pub unsafe fn get_arg_types_values(
   params_type: Vec<JsUnknown>,
   params_value: Vec<JsUnknown>,
 ) -> Result<(Vec<*mut ffi_type>, Vec<RsArgsValue>)> {
+  if params_type.len() != params_value.len() {
+    return Err(
+      FFIError::Panic(format!(
+        "params_type length is not equal params_value length"
+      ))
+      .into(),
+    );
+  }
   params_type
     .into_iter()
     .zip(params_value.into_iter())
