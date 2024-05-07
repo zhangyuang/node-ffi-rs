@@ -127,8 +127,9 @@ pub unsafe fn get_arg_types_values(
             DataType::String => {
               let arg_type = Box::into_raw(Box::new(ffi_type_pointer)) as *mut ffi_type;
               let arg_val: String = create_js_value_unchecked::<JsString>(env, value)
-                .into_utf8()?
+                .into_utf16()?
                 .try_into()?;
+
               (arg_type, RsArgsValue::String(arg_val))
             }
             DataType::U8Array => {
@@ -274,7 +275,9 @@ pub unsafe fn get_value_pointer(
       RsArgsValue::I64(val) => Ok(Box::into_raw(Box::new(val)) as *mut c_void),
       RsArgsValue::U64(val) => Ok(Box::into_raw(Box::new(val)) as *mut c_void),
       RsArgsValue::String(val) => {
-        let c_string = CString::new(val).unwrap();
+        let mut bytes = val.into_bytes();
+        bytes.push(0);
+        let c_string = CString::from_vec_unchecked(bytes);
         let ptr = c_string.as_ptr();
         std::mem::forget(c_string);
         Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)

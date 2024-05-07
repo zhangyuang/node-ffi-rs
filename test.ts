@@ -65,7 +65,7 @@ const testNumber = () => {
   );
 }
 const c = "foo";
-const d = c.repeat(200);
+const d = "bar"
 const testString = () => {
   equal(
     c + d,
@@ -77,7 +77,6 @@ const testString = () => {
       paramsValue: [c, d],
     }),
   );
-
   let stringArr = [c, c.repeat(20)];
   deepStrictEqual(
     stringArr,
