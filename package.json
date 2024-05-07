@@ -57,7 +57,7 @@
     "universal": "napi universal",
     "version": "napi version",
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0",
-    "pub": "npm version patch && git push origin master"
+    "pub": "npm version patch && git push origin master --tags"
   },
   "optionalDependencies": {
     "@yuuang/ffi-rs-darwin-arm64": "1.0.55",
