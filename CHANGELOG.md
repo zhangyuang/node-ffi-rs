@@ -1,3 +1,21 @@
+## [1.0.73](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.73-0...v1.0.73) (2024-05-07)
+
+
+### Features
+
+* modifying all string handling functions to uniform UTF-16 handling ([19573b4](https://github.com/zhangyuang/node-ffi-rs/commit/19573b442e88069fec0855a77d1c920a3b079f51))
+
+
+
+## [1.0.73-0](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.72...v1.0.73-0) (2024-05-07)
+
+
+### Bug Fixes
+
+* convert jsString to UTF-16 string, create cstring from bytes manually ([5fad2d0](https://github.com/zhangyuang/node-ffi-rs/commit/5fad2d043b3457aa183bbeba72fe4b0350f8d2d6))
+
+
+
 ## [1.0.72](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.69...v1.0.72) (2024-05-06)
 
 
