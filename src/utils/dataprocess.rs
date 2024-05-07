@@ -84,7 +84,7 @@ pub unsafe fn get_arg_types_values(
   if params_type.len() != params_value.len() {
     return Err(
       FFIError::Panic(format!(
-        "params_type length is not equal params_value length"
+        "params_type length is not equal with params_value length"
       ))
       .into(),
     );
