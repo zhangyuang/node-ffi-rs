@@ -1,3 +1,12 @@
+## [1.0.74](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.73...v1.0.74) (2024-05-07)
+
+
+### Features
+
+* check whether params_type length and params_value length is equal ([dd9260c](https://github.com/zhangyuang/node-ffi-rs/commit/dd9260c9e695a3dd349a4046c1b8b892214ae8bf))
+
+
+
 ## [1.0.73](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.73-0...v1.0.73) (2024-05-07)
 
 
