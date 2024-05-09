@@ -34,9 +34,9 @@ jobs:
             build: uname -a && yarn build && ls
             target: x86_64-pc-windows-msvc
 
-          # - host: windows-latest
-          #   target: aarch64-pc-windows-msvc
-          #   build: target=aarch64-pc-windows-msvc yarn build && ls
+          - host: windows-latest
+            target: aarch64-pc-windows-msvc
+            build: target=aarch64-pc-windows-msvc yarn build && ls
 
           - host: windows-latest
             build: target=i686-pc-windows-msvc yarn build && ls && uname -a
@@ -141,7 +141,6 @@ jobs:
         with:
           node-version: 18
           check-latest: true
-
           architecture: x86
       - name: Build in docker
         uses: addnab/docker-run-action@v3

@@ -12,7 +12,8 @@
         "aarch64-unknown-linux-gnu",
         "aarch64-unknown-linux-musl",
         "i686-pc-windows-msvc",
-        "x86_64-unknown-linux-musl"
+        "x86_64-unknown-linux-musl",
+        "aarch64-pc-windows-msvc"
       ]
     }
   },
@@ -64,6 +65,7 @@
     "@yuuang/ffi-rs-linux-x64-gnu": "1.0.55",
     "@yuuang/ffi-rs-linux-x64-musl": "1.0.55",
     "@yuuang/ffi-rs-win32-ia32-msvc": "1.0.55",
-    "@yuuang/ffi-rs-win32-x64-msvc": "1.0.55"
+    "@yuuang/ffi-rs-win32-x64-msvc": "1.0.55",
+    "@yuuang/ffi-rs-win32-arm64-msvc": "1.0.55"
   }
 }
