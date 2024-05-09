@@ -29,6 +29,7 @@ const publishSubpackages = async () => {
       publishPackage(myResolve(`./npm/${item}`), item);
     }
   }
+  pkg.optionalDependencies = optionalDependencies
   await fsPromises.writeFile(resolve(process.cwd(), './package.json'), JSON.stringify(pkg, null, 2))
   console.log('yuuang', pkg)
 };
