@@ -1,0 +1,21 @@
+{
+  "name": "@yuuang/ffi-rs-win32-arm64-msvc",
+  "version": "1.0.75-0",
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "arm64"
+  ],
+  "main": "ffi-rs.win32-arm64-msvc.node",
+  "files": [
+    "ffi-rs.win32-arm64-msvc.node"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">= 12"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

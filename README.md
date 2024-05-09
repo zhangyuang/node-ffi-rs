@@ -179,7 +179,6 @@ equal(r, a + b)
 close('libsum')
 
 // use define function to define a function signature
-
 const res = define({
   sum: {
     library: "libsum",

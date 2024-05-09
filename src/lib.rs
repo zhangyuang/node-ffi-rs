@@ -212,6 +212,8 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     rtype: r_type,
     bytes: 0,
     flags: 0,
+    #[cfg(all(target_arch = "aarch64", target_os = "windows"))]
+    is_variadic: 0,
     #[cfg(all(target_arch = "aarch64", target_vendor = "apple"))]
     aarch64_nfixedargs: params_type_len as u32,
   };
