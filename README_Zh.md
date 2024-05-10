@@ -90,6 +90,7 @@ $ npm i ffi-rs
 - linux-x64-musl
 - win32-x64-msvc
 - win32-ia32-msvc
+- win32-arm64-msvc
 - linux-arm64-gnu
 - linux-arm64-musl
 
