@@ -1,3 +1,13 @@
+## [1.0.75](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.74...v1.0.75) (2024-05-10)
+
+
+### Features
+
+* add aarch64-pc-windows-msvc artifact ([23b3118](https://github.com/zhangyuang/node-ffi-rs/commit/23b3118da0bdbf93d094fc6daf22a5a4451d032b))
+* update publish script support alpha ([45ca8e3](https://github.com/zhangyuang/node-ffi-rs/commit/45ca8e3e633ae9dc3e24169ad950483dc1953b64))
+
+
+
 ## [1.0.74](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.73...v1.0.74) (2024-05-07)
 
 
