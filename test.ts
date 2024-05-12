@@ -10,7 +10,7 @@ import {
   restorePointer,
   unwrapPointer,
   wrapPointer,
-  define
+  define,
 } from "./index"
 
 const platform = process.platform;
@@ -18,6 +18,7 @@ const dynamicLib = platform === "win32" ? "./sum.dll" : "./libsum.so";
 const logGreen = (text) => {
   console.log('\x1b[32m%s\x1b[0m', text);
 }
+
 
 open({
   library: "libsum",

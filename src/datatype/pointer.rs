@@ -1,5 +1,7 @@
 use std::ffi::{c_char, CString};
 
+use libc::{c_void, free};
+
 pub trait ArrayPointer {
   type Output;
   unsafe fn get_and_advance(&mut self) -> Self::Output;
@@ -35,4 +37,15 @@ where
   P: ArrayPointer,
 {
   unsafe { (0..len).map(|_| pointer.get_and_advance()).collect() }
+}
+
+pub enum OneHeavyPointer {
+  Single(*mut c_void),
+  Array(Vec<*mut c_void>),
+}
+pub unsafe fn free_one_heavy_pointer(ptr: OneHeavyPointer) {
+  match ptr {
+    OneHeavyPointer::Single(ptr) => free(ptr),
+    OneHeavyPointer::Array(ptr_arr) => ptr_arr.into_iter().for_each(|ptr| free(ptr)),
+  }
 }

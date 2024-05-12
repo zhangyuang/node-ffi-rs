@@ -12,8 +12,9 @@ use libffi_sys::{
   ffi_type_float, ffi_type_pointer, ffi_type_sint32, ffi_type_sint64, ffi_type_uint64,
   ffi_type_uint8, ffi_type_void,
 };
-use napi::{Env, JsExternal, JsUnknown, Result};
+use napi::{Env, JsBuffer, JsExternal, JsUnknown, Result};
 
+use datatype::pointer::{free_one_heavy_pointer, OneHeavyPointer};
 use std::collections::HashMap;
 use std::ffi::c_void;
 use utils::dataprocess::{
@@ -41,6 +42,7 @@ unsafe fn create_pointer(env: Env, params: CreatePointerParams) -> Result<Vec<Js
   let arg_values_c_void = get_value_pointer(&env, arg_values)?;
 
   arg_values_c_void
+    .0
     .into_iter()
     .map(|p| env.create_external(p, None))
     .collect()
@@ -266,7 +268,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     }
     let task = FFICALL::new(FFICALLPARAMS {
       cif: Box::into_raw(Box::new(cif)),
-      arg_values_c_void,
+      arg_values_c_void: arg_values_c_void.0,
       ret_type_rs,
       fn_pointer: func,
       errno,
@@ -275,7 +277,14 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     Ok(async_work_promise.promise_object().into_unknown())
   } else {
     let result = malloc(std::mem::size_of::<*mut c_void>());
-    ffi_call(&mut cif, Some(func), result, arg_values_c_void.as_mut_ptr());
+    ffi_call(
+      &mut cif,
+      Some(func),
+      result,
+      arg_values_c_void.0.as_mut_ptr(),
+    );
+    free_args_types_memory(arg_types);
+    free(r_type as *mut c_void);
     let call_result = get_js_unknown_from_pointer(&env, &ret_type_rs, result);
     if errno.is_some() && errno.unwrap() {
       add_errno(&env, call_result?)
@@ -285,6 +294,14 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
   }
 }
 
+unsafe fn free_args_types_memory(arg_types: Vec<*mut ffi_type>) {
+  free_one_heavy_pointer(OneHeavyPointer::Array(
+    arg_types
+      .into_iter()
+      .map(|ptr| ptr as *mut c_void)
+      .collect(),
+  ));
+}
 fn add_errno(env: &Env, call_result: JsUnknown) -> Result<JsUnknown> {
   use std::io::Error;
   let last_error = Error::last_os_error();
