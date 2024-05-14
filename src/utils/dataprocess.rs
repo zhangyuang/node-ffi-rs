@@ -312,6 +312,18 @@ pub unsafe fn get_value_pointer(
         free_funcs.push(free_func);
         Ok(ptr)
       }
+      RsArgsValue::Boolean(val) => {
+        let ptr = Box::into_raw(Box::new(val)) as *mut c_void;
+        let free_func = Box::new(move || free(ptr)) as Box<dyn Fn()>;
+        free_funcs.push(free_func);
+        Ok(ptr)
+      }
+      RsArgsValue::Void(val) => {
+        let ptr = Box::into_raw(Box::new(val)) as *mut c_void;
+        let free_func = Box::new(move || free(ptr)) as Box<dyn Fn()>;
+        free_funcs.push(free_func);
+        Ok(ptr)
+      }
       RsArgsValue::String(val) => {
         let c_string = string_to_c_string(val);
         let ptr = c_string.as_ptr();
@@ -335,14 +347,20 @@ pub unsafe fn get_value_pointer(
         Ok(ptr)
       }
       RsArgsValue::DoubleArray(val) => {
-        let ptr = val.as_ptr();
+        let val_ptr = val.as_ptr();
         std::mem::forget(val);
-        Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
+        let ptr = Box::into_raw(Box::new(val_ptr)) as *mut c_void;
+        let free_func = Box::new(move || free(val_ptr as *mut c_void)) as Box<dyn Fn()>;
+        free_funcs.push(free_func);
+        Ok(ptr)
       }
       RsArgsValue::FloatArray(val) => {
-        let ptr = val.as_ptr();
+        let val_ptr = val.as_ptr();
         std::mem::forget(val);
-        Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
+        let ptr = Box::into_raw(Box::new(val_ptr)) as *mut c_void;
+        let free_func = Box::new(move || free(val_ptr as *mut c_void)) as Box<dyn Fn()>;
+        free_funcs.push(free_func);
+        Ok(ptr)
       }
       RsArgsValue::StringArray(val) => {
         let c_char_vec: Vec<*const c_char> = val
@@ -355,23 +373,23 @@ pub unsafe fn get_value_pointer(
           })
           .collect();
         let ptr = c_char_vec.as_ptr();
+        let c_char_vec_clone = c_char_vec.clone();
+        let free_func = Box::new(move || {
+          c_char_vec_clone.iter().for_each(|ptr| {
+            free(*ptr as *mut c_void);
+          })
+        }) as Box<dyn Fn()>;
+        free_funcs.push(free_func);
         std::mem::forget(c_char_vec);
         Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
       }
-      RsArgsValue::Boolean(val) => {
-        let c_bool = Box::new(val);
-        Ok(Box::into_raw(c_bool) as *mut c_void)
-      }
-      RsArgsValue::Void(_) => Ok(Box::into_raw(Box::new(())) as *mut c_void),
       RsArgsValue::Object(val) => {
         Ok(Box::into_raw(Box::new(generate_c_struct(&env, val)?)) as *mut c_void)
       }
       RsArgsValue::Function(func_desc, js_function) => {
         use libffi::low;
         use libffi::middle::*;
-        let func_args_type: JsObject = func_desc
-          .get_property(env.create_string("paramsType").unwrap())
-          .unwrap();
+        let func_args_type: JsObject = func_desc.get_property(env.create_string("paramsType")?)?;
         let func_args_type_rs = type_object_to_rs_vector(env, &func_args_type)?;
         let tsfn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal> = (&js_function)
           .create_threadsafe_function(0, |ctx| {

@@ -1,6 +1,7 @@
 const Koa = require('koa');
 const app = new Koa();
 process.env.MEMORY = 1
+process.env.SILENT = 1
 const { unitTest } = require('./test')
 
 app.use(async ctx => {

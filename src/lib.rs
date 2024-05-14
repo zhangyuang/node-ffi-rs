@@ -185,7 +185,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
   let func = get_symbol(&library, &func_name)?;
   let params_type_len = params_type.len();
   let (mut arg_types, arg_values) = get_arg_types_values(&env, params_type, params_value)?;
-  let mut arg_values_c_void = get_value_pointer(&env, arg_values)?;
+  let (mut arg_values_c_void, free_funcs) = get_value_pointer(&env, arg_values)?;
   let ret_type_rs = type_define_to_rs_args(&env, ret_type)?;
   let r_type: *mut ffi_type = match ret_type_rs {
     RsArgsValue::I32(number) => {
@@ -268,7 +268,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     }
     let task = FFICALL::new(FFICALLPARAMS {
       cif: Box::into_raw(Box::new(cif)),
-      arg_values_c_void: arg_values_c_void.0,
+      arg_values_c_void,
       ret_type_rs,
       fn_pointer: func,
       errno,
@@ -277,15 +277,10 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     Ok(async_work_promise.promise_object().into_unknown())
   } else {
     let result = malloc(std::mem::size_of::<*mut c_void>());
-    ffi_call(
-      &mut cif,
-      Some(func),
-      result,
-      arg_values_c_void.0.as_mut_ptr(),
-    );
-    free_args_types_memory(arg_types);
+    ffi_call(&mut cif, Some(func), result, arg_values_c_void.as_mut_ptr());
     free(r_type as *mut c_void);
     let call_result = get_js_unknown_from_pointer(&env, &ret_type_rs, result);
+    free_funcs.into_iter().for_each(|f| f());
     if errno.is_some() && errno.unwrap() {
       add_errno(&env, call_result?)
     } else {
@@ -294,14 +289,6 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
   }
 }
 
-unsafe fn free_args_types_memory(arg_types: Vec<*mut ffi_type>) {
-  free_one_heavy_pointer(OneHeavyPointer::Array(
-    arg_types
-      .into_iter()
-      .map(|ptr| ptr as *mut c_void)
-      .collect(),
-  ));
-}
 fn add_errno(env: &Env, call_result: JsUnknown) -> Result<JsUnknown> {
   use std::io::Error;
   let last_error = Error::last_os_error();

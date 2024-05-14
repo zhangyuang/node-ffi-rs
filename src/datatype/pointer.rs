@@ -1,4 +1,4 @@
-use std::ffi::{c_char, CString};
+use std::ffi::{c_char, CStr};
 
 use libc::{c_void, free};
 
@@ -29,7 +29,7 @@ impl ArrayPointer for *mut *mut c_char {
   unsafe fn get_and_advance(&mut self) -> Self::Output {
     let value = **self;
     *self = self.offset(1);
-    CString::from_raw(value).into_string().unwrap()
+    CStr::from_ptr(value).to_string_lossy().to_string()
   }
 }
 pub fn create_array_from_pointer<P>(mut pointer: P, len: usize) -> Vec<P::Output>

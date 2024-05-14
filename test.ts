@@ -1,5 +1,5 @@
-import { equal, deepStrictEqual } from "assert"
-import {
+const { equal, deepStrictEqual } = require("assert")
+const {
   load,
   open,
   close,
@@ -11,11 +11,12 @@ import {
   unwrapPointer,
   wrapPointer,
   define,
-} from "./index"
+} = require("./index")
 
 const platform = process.platform;
 const dynamicLib = platform === "win32" ? "./sum.dll" : "./libsum.so";
 const logGreen = (text) => {
+  if (process.env.SILENT) return
   console.log('\x1b[32m%s\x1b[0m', text);
 }
 
@@ -78,20 +79,6 @@ const testString = () => {
       paramsValue: [c, d],
     }),
   );
-  let stringArr = [c, c.repeat(20)];
-  deepStrictEqual(
-    stringArr,
-    load({
-      library: "libsum",
-      funcName: "createArrayString",
-      retType: arrayConstructor({
-        type: DataType.StringArray,
-        length: stringArr.length,
-      }),
-      paramsType: [DataType.StringArray, DataType.I32],
-      paramsValue: [stringArr, stringArr.length],
-    }),
-  );
 }
 const testVoid = () => {
   equal(
@@ -119,6 +106,21 @@ const testBool = () => {
   );
 }
 const testArray = () => {
+  let stringArr = [c, c.repeat(20)];
+  deepStrictEqual(
+    stringArr,
+    load({
+      library: "libsum",
+      funcName: "createArrayString",
+      retType: arrayConstructor({
+        type: DataType.StringArray,
+        length: stringArr.length,
+      }),
+      paramsType: [DataType.StringArray, DataType.I32],
+      paramsValue: [stringArr, stringArr.length],
+    }),
+  );
+  logGreen('test createArrayString succeed')
   let bigArr = new Array(100).fill(100);
   deepStrictEqual(
     bigArr,
@@ -419,7 +421,7 @@ const testFunction = () => {
     deepStrictEqual(e, ["Hello", "world"]);
     deepStrictEqual(f, [101, 202, 303]);
     deepStrictEqual(g, person);
-    console.log("callback called");
+    logGreen("callback called");
     count++;
     if (count === 4) {
       logGreen("test succeed");
