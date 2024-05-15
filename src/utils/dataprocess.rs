@@ -295,7 +295,9 @@ pub unsafe fn get_value_pointer(
       }
       RsArgsValue::U64(val) => {
         let ptr = Box::into_raw(Box::new(val)) as *mut c_void;
-        let free_func = Box::new(move || Box::from_raw(ptr)) as Box<dyn Fn()>;
+        let free_func = Box::new(move || {
+          Box::from_raw(ptr);
+        }) as Box<dyn Fn()>;
         free_funcs.push(free_func);
         Ok(ptr)
       }
