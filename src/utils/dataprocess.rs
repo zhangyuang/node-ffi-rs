@@ -355,7 +355,7 @@ pub unsafe fn get_value_pointer(
         std::mem::forget(val);
         let ptr = Box::into_raw(Box::new(val_ptr)) as *mut c_void;
         let free_func = Box::new(move || {
-          let _val = Vec::from_raw_parts(val_ptr as *mut i32, val_len, val_capacity);
+          let _ = Vec::from_raw_parts(val_ptr as *mut i32, val_len, val_capacity);
         }) as Box<dyn Fn()>;
         free_funcs.push(free_func);
         Ok(ptr)
@@ -367,7 +367,7 @@ pub unsafe fn get_value_pointer(
         std::mem::forget(val);
         let ptr = Box::into_raw(Box::new(val_ptr)) as *mut c_void;
         let free_func = Box::new(move || {
-          let _val = Vec::from_raw_parts(val_ptr as *mut f64, val_len, val_capacity);
+          let _ = Vec::from_raw_parts(val_ptr as *mut f64, val_len, val_capacity);
         }) as Box<dyn Fn()>;
         free_funcs.push(free_func);
         Ok(ptr)
@@ -379,7 +379,7 @@ pub unsafe fn get_value_pointer(
         std::mem::forget(val);
         let ptr = Box::into_raw(Box::new(val_ptr)) as *mut c_void;
         let free_func = Box::new(move || {
-          let _val = Vec::from_raw_parts(val_ptr as *mut f32, val_len, val_capacity);
+          let _ = Vec::from_raw_parts(val_ptr as *mut f32, val_len, val_capacity);
         }) as Box<dyn Fn()>;
         free_funcs.push(free_func);
         Ok(ptr)
@@ -395,11 +395,14 @@ pub unsafe fn get_value_pointer(
           })
           .collect();
         let ptr = c_char_vec.as_ptr();
+        let val_len = c_char_vec.len();
+        let val_capacity = c_char_vec.capacity();
         let c_char_vec_clone = c_char_vec.clone();
         let free_func = Box::new(move || {
           c_char_vec_clone.iter().for_each(|ptr| {
             CString::from_raw(*ptr as *mut i8);
-          })
+          });
+          let _ = Vec::from_raw_parts(ptr as *mut *const i8, val_len, val_capacity);
         }) as Box<dyn Fn()>;
         free_funcs.push(free_func);
         std::mem::forget(c_char_vec);
