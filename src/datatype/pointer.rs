@@ -1,6 +1,6 @@
+use crate::utils::dataprocess::{get_array_desc, get_ffi_tag};
+use libc::{c_double, c_float, c_int, c_void, free};
 use std::ffi::{c_char, CStr, CString};
-
-use libc::{c_void, free};
 
 use crate::define::*;
 pub trait ArrayPointer {
@@ -83,32 +83,28 @@ pub unsafe fn free_pointer_memory(ptr: *mut c_void, ptr_desc: RsArgsValue) {
         } = array_desc;
         match array_type {
           RefDataType::U8Array => {
-            let arr = create_array_from_pointer(*(ptr as *mut *mut c_uchar), array_len);
-            rs_value_to_js_unknown(env, get_safe_buffer(env, arr, false))
+            let _ = Vec::from_raw_parts(*(ptr as *mut *mut c_char), array_len, array_len);
           }
           RefDataType::I32Array => {
-            let arr = create_array_from_pointer(*(ptr as *mut *mut c_int), array_len);
-            rs_value_to_js_unknown(env, RsArgsValue::I32Array(arr))
+            let _ = Vec::from_raw_parts(*(ptr as *mut *mut c_int), array_len, array_len);
           }
           RefDataType::DoubleArray => {
-            let arr = create_array_from_pointer(*(ptr as *mut *mut c_double), array_len);
-            rs_value_to_js_unknown(env, RsArgsValue::DoubleArray(arr))
+            let _ = Vec::from_raw_parts(*(ptr as *mut *mut c_double), array_len, array_len);
           }
           RefDataType::FloatArray => {
-            let arr = create_array_from_pointer(*(ptr as *mut *mut c_float), array_len);
-            rs_value_to_js_unknown(env, RsArgsValue::FloatArray(arr))
+            let _ = Vec::from_raw_parts(*(ptr as *mut *mut c_float), array_len, array_len);
           }
           RefDataType::StringArray => {
-            let arr = create_array_from_pointer(*(ptr as *mut *mut *mut c_char), array_len);
-            rs_value_to_js_unknown(env, RsArgsValue::StringArray(arr))
+            let v = Vec::from_raw_parts(*(ptr as *mut *mut *mut c_char), array_len, array_len);
+            v.into_iter().for_each(|str_ptr| {
+              let _ = CString::from_raw(str_ptr);
+            });
           }
         }
       } else {
         // raw object
-        let rs_struct = create_rs_struct_from_pointer(env, *(ptr as *mut *mut c_void), &obj, false);
-        rs_value_to_js_unknown(env, RsArgsValue::Object(rs_struct))
       }
     }
-    _ => Err(FFIError::Panic(format!("ret_type err {:?}", ret_type_rs)).into()),
+    _ => panic!("free memory error"),
   }
 }
