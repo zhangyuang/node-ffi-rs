@@ -19,7 +19,7 @@ use napi::{
   bindgen_prelude::*, Env, JsBoolean, JsBuffer, JsExternal, JsNumber, JsObject, JsString,
   JsUnknown, NapiRaw,
 };
-use std::ffi::CStr;
+use std::ffi::{CStr, CString};
 
 pub unsafe fn get_js_external_wrap_data(env: &Env, js_external: JsExternal) -> Result<*mut c_void> {
   use std::any::TypeId;
@@ -265,7 +265,7 @@ macro_rules! match_args_len {
     };
 }
 pub unsafe fn get_value_pointer(
-  env: &Env,
+  env: Env,
   arg_values: Vec<RsArgsValue>,
 ) -> Result<(Vec<*mut c_void>, Vec<Box<dyn Fn()>>)> {
   let mut free_funcs = Vec::new();
@@ -295,32 +295,40 @@ pub unsafe fn get_value_pointer(
       }
       RsArgsValue::U64(val) => {
         let ptr = Box::into_raw(Box::new(val)) as *mut c_void;
-        let free_func = Box::new(move || free(ptr)) as Box<dyn Fn()>;
+        let free_func = Box::new(move || Box::from_raw(ptr)) as Box<dyn Fn()>;
         free_funcs.push(free_func);
         Ok(ptr)
       }
 
       RsArgsValue::Float(val) => {
         let ptr = Box::into_raw(Box::new(val)) as *mut c_void;
-        let free_func = Box::new(move || free(ptr)) as Box<dyn Fn()>;
+        let free_func = Box::new(move || {
+          Box::from_raw(ptr);
+        }) as Box<dyn Fn()>;
         free_funcs.push(free_func);
         Ok(ptr)
       }
       RsArgsValue::Double(val) => {
         let ptr = Box::into_raw(Box::new(val)) as *mut c_void;
-        let free_func = Box::new(move || free(ptr)) as Box<dyn Fn()>;
+        let free_func = Box::new(move || {
+          Box::from_raw(ptr);
+        }) as Box<dyn Fn()>;
         free_funcs.push(free_func);
         Ok(ptr)
       }
       RsArgsValue::Boolean(val) => {
         let ptr = Box::into_raw(Box::new(val)) as *mut c_void;
-        let free_func = Box::new(move || free(ptr)) as Box<dyn Fn()>;
+        let free_func = Box::new(move || {
+          Box::from_raw(ptr);
+        }) as Box<dyn Fn()>;
         free_funcs.push(free_func);
         Ok(ptr)
       }
       RsArgsValue::Void(val) => {
         let ptr = Box::into_raw(Box::new(val)) as *mut c_void;
-        let free_func = Box::new(move || free(ptr)) as Box<dyn Fn()>;
+        let free_func = Box::new(move || {
+          Box::from_raw(ptr);
+        }) as Box<dyn Fn()>;
         free_funcs.push(free_func);
         Ok(ptr)
       }
@@ -328,7 +336,9 @@ pub unsafe fn get_value_pointer(
         let c_string = string_to_c_string(val);
         let ptr = c_string.as_ptr();
         std::mem::forget(c_string);
-        let free_func = Box::new(move || free(ptr as *mut c_void)) as Box<dyn Fn()>;
+        let free_func = Box::new(move || {
+          CString::from_raw(ptr as *mut i8);
+        }) as Box<dyn Fn()>;
         free_funcs.push(free_func);
         Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
       }
@@ -340,25 +350,37 @@ pub unsafe fn get_value_pointer(
       }
       RsArgsValue::I32Array(val) => {
         let val_ptr = val.as_ptr();
+        let val_len = val.len();
+        let val_capacity = val.capacity();
         std::mem::forget(val);
         let ptr = Box::into_raw(Box::new(val_ptr)) as *mut c_void;
-        let free_func = Box::new(move || free(val_ptr as *mut c_void)) as Box<dyn Fn()>;
+        let free_func = Box::new(move || {
+          let _val = Vec::from_raw_parts(val_ptr as *mut i32, val_len, val_capacity);
+        }) as Box<dyn Fn()>;
         free_funcs.push(free_func);
         Ok(ptr)
       }
       RsArgsValue::DoubleArray(val) => {
         let val_ptr = val.as_ptr();
+        let val_len = val.len();
+        let val_capacity = val.capacity();
         std::mem::forget(val);
         let ptr = Box::into_raw(Box::new(val_ptr)) as *mut c_void;
-        let free_func = Box::new(move || free(val_ptr as *mut c_void)) as Box<dyn Fn()>;
+        let free_func = Box::new(move || {
+          let _val = Vec::from_raw_parts(val_ptr as *mut f64, val_len, val_capacity);
+        }) as Box<dyn Fn()>;
         free_funcs.push(free_func);
         Ok(ptr)
       }
       RsArgsValue::FloatArray(val) => {
         let val_ptr = val.as_ptr();
+        let val_len = val.len();
+        let val_capacity = val.capacity();
         std::mem::forget(val);
         let ptr = Box::into_raw(Box::new(val_ptr)) as *mut c_void;
-        let free_func = Box::new(move || free(val_ptr as *mut c_void)) as Box<dyn Fn()>;
+        let free_func = Box::new(move || {
+          let _val = Vec::from_raw_parts(val_ptr as *mut f32, val_len, val_capacity);
+        }) as Box<dyn Fn()>;
         free_funcs.push(free_func);
         Ok(ptr)
       }
@@ -376,7 +398,7 @@ pub unsafe fn get_value_pointer(
         let c_char_vec_clone = c_char_vec.clone();
         let free_func = Box::new(move || {
           c_char_vec_clone.iter().for_each(|ptr| {
-            free(*ptr as *mut c_void);
+            CString::from_raw(*ptr as *mut i8);
           })
         }) as Box<dyn Fn()>;
         free_funcs.push(free_func);
@@ -390,7 +412,7 @@ pub unsafe fn get_value_pointer(
         use libffi::low;
         use libffi::middle::*;
         let func_args_type: JsObject = func_desc.get_property(env.create_string("paramsType")?)?;
-        let func_args_type_rs = type_object_to_rs_vector(env, &func_args_type)?;
+        let func_args_type_rs = type_object_to_rs_vector(&env, &func_args_type)?;
         let tsfn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal> = (&js_function)
           .create_threadsafe_function(0, |ctx| {
             let value: Vec<RsArgsValue> = ctx.value;
@@ -425,19 +447,18 @@ pub unsafe fn get_value_pointer(
             .enumerate()
             .map(|(index, c_param)| {
               let arg_type = &(func_args_type_rs)[index];
-              let param = get_rs_value_from_pointer(env, arg_type, c_param, true);
+              let param = get_rs_value_from_pointer(&env, arg_type, c_param, true);
               param
             })
             .collect();
           tsfn.call(value, ThreadsafeFunctionCallMode::Blocking);
         };
-
-        let closure = Box::into_raw(Box::new(Closure::new(
-          cif,
-          lambda_callback,
-          &*Box::into_raw(Box::new(lambda)),
-        )));
-
+        let lambda_ptr = Box::into_raw(Box::new(lambda));
+        let closure = Box::into_raw(Box::new(Closure::new(cif, lambda_callback, &*lambda_ptr)));
+        let free_func = Box::new(move || {
+          let _ = Box::from_raw(closure);
+        }) as Box<dyn Fn()>;
+        free_funcs.push(free_func);
         Ok(std::mem::transmute((*closure).code_ptr()))
 
         // has been deprecated

@@ -39,7 +39,7 @@ unsafe fn create_pointer(env: Env, params: CreatePointerParams) -> Result<Vec<Js
     params_value,
   } = params;
   let (_, arg_values) = get_arg_types_values(&env, params_type, params_value)?;
-  let arg_values_c_void = get_value_pointer(&env, arg_values)?;
+  let arg_values_c_void = get_value_pointer(env, arg_values)?;
 
   arg_values_c_void
     .0
@@ -185,7 +185,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
   let func = get_symbol(&library, &func_name)?;
   let params_type_len = params_type.len();
   let (mut arg_types, arg_values) = get_arg_types_values(&env, params_type, params_value)?;
-  let (mut arg_values_c_void, free_funcs) = get_value_pointer(&env, arg_values)?;
+  let (mut arg_values_c_void, free_funcs) = get_value_pointer(env.clone(), arg_values)?;
   let ret_type_rs = type_define_to_rs_args(&env, ret_type)?;
   let r_type: *mut ffi_type = match ret_type_rs {
     RsArgsValue::I32(number) => {
