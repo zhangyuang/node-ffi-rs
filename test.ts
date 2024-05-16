@@ -319,12 +319,12 @@ const testObject = () => {
     age: DataType.I32,
     doubleArray: DataType.DoubleArray,
     parent: {
-      parent: {},
       age: DataType.I32,
+      doubleArray: DataType.DoubleArray,
+      parent: {},
       doubleProps: DataType.Double,
       name: DataType.String,
       stringArray: DataType.StringArray,
-      doubleArray: DataType.DoubleArray,
       i32Array: DataType.I32Array,
       staticBytes: arrayConstructor({
         type: DataType.U8Array,

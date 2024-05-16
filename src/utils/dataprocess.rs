@@ -333,7 +333,7 @@ pub unsafe fn get_value_pointer(
       RsArgsValue::Function(func_desc, js_function) => {
         use libffi::low;
         use libffi::middle::*;
-        let func_args_type = func_desc.get("paramsType").unwrap();
+        let func_args_type = func_desc.get("paramsType").unwrap().clone();
         let tsfn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal> = (&js_function)
           .create_threadsafe_function(0, |ctx| {
             let value: Vec<RsArgsValue> = ctx.value;
@@ -359,8 +359,9 @@ pub unsafe fn get_value_pointer(
         let (cif, lambda) = if let RsArgsValue::Object(func_args_type_rs) = func_args_type {
           let cif = Cif::new(
             func_args_type_rs
-              .iter()
-              .map(|(key, val)| rs_value_to_ffi_type(val)),
+              .values()
+              .into_iter()
+              .map(|val| rs_value_to_ffi_type(val)),
             Type::void(),
           );
           let lambda = move |args: Vec<*mut c_void>| {
@@ -368,7 +369,7 @@ pub unsafe fn get_value_pointer(
               .into_iter()
               .enumerate()
               .map(|(index, c_param)| {
-                let arg_type = &(func_args_type_rs)[index];
+                let arg_type = func_args_type_rs.get(&index.to_string()).unwrap();
                 let param = get_rs_value_from_pointer(env, arg_type, c_param, true);
                 param
               })
@@ -564,12 +565,11 @@ pub unsafe fn type_object_to_rs_struct(
   params_type: &JsObject,
 ) -> Result<IndexMap<String, RsArgsValue>> {
   let mut index_map = IndexMap::new();
-  let parse_result: Result<()> = JsObject::keys(params_type)
-    .unwrap()
+  let parse_result: Result<()> = JsObject::keys(params_type)?
     .into_iter()
     .try_for_each(|field| {
-      let field_type: JsUnknown = params_type.get_named_property(&field).unwrap();
-      match field_type.get_type().unwrap() {
+      let field_type: JsUnknown = params_type.get_named_property(&field)?;
+      match field_type.get_type()? {
         ValueType::Number => {
           let number: JsNumber = field_type.try_into()?;
           let val: i32 = number.try_into()?;
@@ -650,8 +650,8 @@ pub unsafe fn type_object_to_rs_vector(
 
 // describe paramsType or retType, field can only be number or object
 pub unsafe fn type_define_to_rs_args(env: &Env, type_define: JsUnknown) -> Result<RsArgsValue> {
-  let ret_value_type = type_define.get_type()?;
-  let ret_value = match ret_value_type {
+  let params_type_value_type = type_define.get_type()?;
+  let ret_value = match params_type_value_type {
     ValueType::Number => RsArgsValue::I32(js_number_to_i32(create_js_value_unchecked::<JsNumber>(
       env,
       type_define,
@@ -664,7 +664,7 @@ pub unsafe fn type_define_to_rs_args(env: &Env, type_define: JsUnknown) -> Resul
       return Err(
         FFIError::UnsupportedValueType(format!(
           "ret_value_type can only be number or object but receive {}",
-          ret_value_type
+          params_type_value_type
         ))
         .into(),
       )

@@ -219,7 +219,29 @@ pub enum RsArgsValue {
   Function(IndexMap<String, RsArgsValue>, JsFunction),
   External(JsExternal),
 }
-
+impl Clone for RsArgsValue {
+  fn clone(&self) -> Self {
+    match self {
+      RsArgsValue::String(s) => RsArgsValue::String(s.clone()),
+      RsArgsValue::U8(u) => RsArgsValue::U8(*u),
+      RsArgsValue::I32(i) => RsArgsValue::I32(*i),
+      RsArgsValue::I64(i) => RsArgsValue::I64(*i),
+      RsArgsValue::U64(u) => RsArgsValue::U64(*u),
+      RsArgsValue::Float(f) => RsArgsValue::Float(*f),
+      RsArgsValue::Double(d) => RsArgsValue::Double(*d),
+      RsArgsValue::I32Array(vec) => RsArgsValue::I32Array(vec.clone()),
+      RsArgsValue::StringArray(vec) => RsArgsValue::StringArray(vec.clone()),
+      RsArgsValue::DoubleArray(vec) => RsArgsValue::DoubleArray(vec.clone()),
+      RsArgsValue::FloatArray(vec) => RsArgsValue::FloatArray(vec.clone()),
+      RsArgsValue::Object(map) => RsArgsValue::Object(map.clone()),
+      RsArgsValue::Boolean(b) => RsArgsValue::Boolean(*b),
+      RsArgsValue::Void(()) => RsArgsValue::Void(()),
+      RsArgsValue::U8Array(_, _) => panic!("Function cannot be cloned"),
+      RsArgsValue::Function(_, _) => panic!("Function cannot be cloned"),
+      RsArgsValue::External(_) => panic!("External cannot be cloned"),
+    }
+  }
+}
 unsafe impl Send for RsArgsValue {}
 unsafe impl Sync for RsArgsValue {}
 
