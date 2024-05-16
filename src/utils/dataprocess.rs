@@ -8,7 +8,6 @@ use crate::datatype::pointer::*;
 use crate::datatype::string::{js_string_to_string, string_to_c_string};
 use crate::define::*;
 use indexmap::IndexMap;
-use libc::free;
 use libc::{c_char, c_double, c_float, c_int, c_uchar, c_void};
 use libffi_sys::{
   ffi_type, ffi_type_double, ffi_type_float, ffi_type_pointer, ffi_type_sint32, ffi_type_sint64,
@@ -19,7 +18,7 @@ use napi::{
   bindgen_prelude::*, Env, JsBoolean, JsBuffer, JsExternal, JsNumber, JsObject, JsString,
   JsUnknown, NapiRaw,
 };
-use std::ffi::{CStr, CString};
+use std::ffi::CStr;
 
 pub unsafe fn get_js_external_wrap_data(env: &Env, js_external: JsExternal) -> Result<*mut c_void> {
   use std::any::TypeId;
@@ -78,7 +77,7 @@ pub fn js_number_to_i32(js_number: JsNumber) -> i32 {
 
 pub unsafe fn get_arg_types_values(
   env: &Env,
-  params_type: Vec<JsUnknown>,
+  params_type: Vec<RsArgsValue>,
   params_value: Vec<JsUnknown>,
 ) -> Result<(Vec<*mut ffi_type>, Vec<RsArgsValue>)> {
   if params_type.len() != params_value.len() {
@@ -93,11 +92,9 @@ pub unsafe fn get_arg_types_values(
     .into_iter()
     .zip(params_value.into_iter())
     .map(|(param, value)| {
-      let value_type = param.get_type()?;
-      let res = match value_type {
-        ValueType::Number => {
-          let param_data_type =
-            number_to_data_type(create_js_value_unchecked::<JsNumber>(env, param).try_into()?);
+      let res = match param {
+        RsArgsValue::I32(number) => {
+          let param_data_type = number_to_data_type(number);
           match param_data_type {
             DataType::I32 => {
               let arg_type = Box::into_raw(Box::new(ffi_type_sint32)) as *mut ffi_type;
@@ -206,25 +203,23 @@ pub unsafe fn get_arg_types_values(
             }
           }
         }
-        ValueType::Object => {
-          let params_type_object: JsObject = create_js_value_unchecked::<JsObject>(env, param);
-          let params_type_object_rs = type_object_to_rs_struct(env, &params_type_object)?;
+        RsArgsValue::Object(params_type_object_rs) => {
           let arg_type = &mut ffi_type_pointer as *mut ffi_type;
           if let FFITag::Function = get_ffi_tag(&params_type_object_rs) {
             let params_val_function: JsFunction = value.try_into()?;
             let arg_type = &mut ffi_type_pointer as *mut ffi_type;
             (
               arg_type,
-              RsArgsValue::Function(params_type_object, params_val_function),
+              RsArgsValue::Function(params_type_object_rs, params_val_function),
             )
           } else {
             let params_value_object = create_js_value_unchecked::<JsObject>(env, value);
             let index_map =
-              get_params_value_rs_struct(&env, &params_type_object, &params_value_object);
+              get_params_value_rs_struct(&env, params_type_object_rs, &params_value_object);
             (arg_type, RsArgsValue::Object(index_map.unwrap()))
           }
         }
-        _ => panic!("unsupported params type {:?}", value_type),
+        _ => panic!("unsupported params type {:?}", param),
       };
       Ok(res)
     })
@@ -265,84 +260,32 @@ macro_rules! match_args_len {
     };
 }
 pub unsafe fn get_value_pointer(
-  env: Env,
+  env: &Env,
   arg_values: Vec<RsArgsValue>,
-) -> Result<(Vec<*mut c_void>, Vec<Box<dyn Fn()>>)> {
-  let mut free_funcs = Vec::new();
-  let res = arg_values
+) -> Result<Vec<*mut c_void>> {
+  arg_values
     .into_iter()
     .map(|val| match val {
       RsArgsValue::External(val) => {
         Ok(Box::into_raw(Box::new(get_js_external_wrap_data(&env, val)?)) as *mut c_void)
       }
-      RsArgsValue::U8(val) => {
-        let ptr = Box::into_raw(Box::new(val)) as *mut c_void;
-        let free_func = Box::new(move || free(ptr)) as Box<dyn Fn()>;
-        free_funcs.push(free_func);
-        Ok(ptr)
-      }
-      RsArgsValue::I32(val) => {
-        let ptr = Box::into_raw(Box::new(val)) as *mut c_void;
-        let free_func = Box::new(move || free(ptr)) as Box<dyn Fn()>;
-        free_funcs.push(free_func);
-        Ok(ptr)
-      }
-      RsArgsValue::I64(val) => {
-        let ptr = Box::into_raw(Box::new(val)) as *mut c_void;
-        let free_func = Box::new(move || free(ptr)) as Box<dyn Fn()>;
-        free_funcs.push(free_func);
-        Ok(ptr)
-      }
-      RsArgsValue::U64(val) => {
-        let ptr = Box::into_raw(Box::new(val)) as *mut c_void;
-        let free_func = Box::new(move || {
-          Box::from_raw(ptr);
-        }) as Box<dyn Fn()>;
-        free_funcs.push(free_func);
-        Ok(ptr)
-      }
-
-      RsArgsValue::Float(val) => {
-        let ptr = Box::into_raw(Box::new(val)) as *mut c_void;
-        let free_func = Box::new(move || {
-          Box::from_raw(ptr);
-        }) as Box<dyn Fn()>;
-        free_funcs.push(free_func);
-        Ok(ptr)
-      }
-      RsArgsValue::Double(val) => {
-        let ptr = Box::into_raw(Box::new(val)) as *mut c_void;
-        let free_func = Box::new(move || {
-          Box::from_raw(ptr);
-        }) as Box<dyn Fn()>;
-        free_funcs.push(free_func);
-        Ok(ptr)
-      }
-      RsArgsValue::Boolean(val) => {
-        let ptr = Box::into_raw(Box::new(val)) as *mut c_void;
-        let free_func = Box::new(move || {
-          Box::from_raw(ptr);
-        }) as Box<dyn Fn()>;
-        free_funcs.push(free_func);
-        Ok(ptr)
-      }
-      RsArgsValue::Void(val) => {
-        let ptr = Box::into_raw(Box::new(val)) as *mut c_void;
-        let free_func = Box::new(move || {
-          Box::from_raw(ptr);
-        }) as Box<dyn Fn()>;
-        free_funcs.push(free_func);
-        Ok(ptr)
-      }
+      RsArgsValue::U8(val) => Ok(Box::into_raw(Box::new(val)) as *mut c_void),
+      RsArgsValue::I32(val) => Ok(Box::into_raw(Box::new(val)) as *mut c_void),
+      RsArgsValue::I64(val) => Ok(Box::into_raw(Box::new(val)) as *mut c_void),
+      RsArgsValue::U64(val) => Ok(Box::into_raw(Box::new(val)) as *mut c_void),
       RsArgsValue::String(val) => {
         let c_string = string_to_c_string(val);
         let ptr = c_string.as_ptr();
         std::mem::forget(c_string);
-        let free_func = Box::new(move || {
-          CString::from_raw(ptr as *mut i8);
-        }) as Box<dyn Fn()>;
-        free_funcs.push(free_func);
         Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
+      }
+      RsArgsValue::Float(val) => {
+        let c_float = Box::new(val);
+        Ok(Box::into_raw(c_float) as *mut c_void)
+      }
+      RsArgsValue::Double(val) => {
+        let c_double = Box::new(val);
+        Ok(Box::into_raw(c_double) as *mut c_void)
       }
       RsArgsValue::U8Array(buffer, v) => {
         let buffer = buffer.unwrap();
@@ -351,40 +294,19 @@ pub unsafe fn get_value_pointer(
         Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
       }
       RsArgsValue::I32Array(val) => {
-        let val_ptr = val.as_ptr();
-        let val_len = val.len();
-        let val_capacity = val.capacity();
+        let ptr = val.as_ptr();
         std::mem::forget(val);
-        let ptr = Box::into_raw(Box::new(val_ptr)) as *mut c_void;
-        let free_func = Box::new(move || {
-          let _ = Vec::from_raw_parts(val_ptr as *mut i32, val_len, val_capacity);
-        }) as Box<dyn Fn()>;
-        free_funcs.push(free_func);
-        Ok(ptr)
+        Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
       }
       RsArgsValue::DoubleArray(val) => {
-        let val_ptr = val.as_ptr();
-        let val_len = val.len();
-        let val_capacity = val.capacity();
+        let ptr = val.as_ptr();
         std::mem::forget(val);
-        let ptr = Box::into_raw(Box::new(val_ptr)) as *mut c_void;
-        let free_func = Box::new(move || {
-          let _ = Vec::from_raw_parts(val_ptr as *mut f64, val_len, val_capacity);
-        }) as Box<dyn Fn()>;
-        free_funcs.push(free_func);
-        Ok(ptr)
+        Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
       }
       RsArgsValue::FloatArray(val) => {
-        let val_ptr = val.as_ptr();
-        let val_len = val.len();
-        let val_capacity = val.capacity();
+        let ptr = val.as_ptr();
         std::mem::forget(val);
-        let ptr = Box::into_raw(Box::new(val_ptr)) as *mut c_void;
-        let free_func = Box::new(move || {
-          let _ = Vec::from_raw_parts(val_ptr as *mut f32, val_len, val_capacity);
-        }) as Box<dyn Fn()>;
-        free_funcs.push(free_func);
-        Ok(ptr)
+        Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
       }
       RsArgsValue::StringArray(val) => {
         let c_char_vec: Vec<*const c_char> = val
@@ -397,27 +319,21 @@ pub unsafe fn get_value_pointer(
           })
           .collect();
         let ptr = c_char_vec.as_ptr();
-        let val_len = c_char_vec.len();
-        let val_capacity = c_char_vec.capacity();
-        let c_char_vec_clone = c_char_vec.clone();
-        let free_func = Box::new(move || {
-          c_char_vec_clone.iter().for_each(|ptr| {
-            CString::from_raw(*ptr as *mut i8);
-          });
-          let _ = Vec::from_raw_parts(ptr as *mut *const i8, val_len, val_capacity);
-        }) as Box<dyn Fn()>;
-        free_funcs.push(free_func);
         std::mem::forget(c_char_vec);
         Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
       }
+      RsArgsValue::Boolean(val) => {
+        let c_bool = Box::new(val);
+        Ok(Box::into_raw(c_bool) as *mut c_void)
+      }
+      RsArgsValue::Void(_) => Ok(Box::into_raw(Box::new(())) as *mut c_void),
       RsArgsValue::Object(val) => {
         Ok(Box::into_raw(Box::new(generate_c_struct(&env, val)?)) as *mut c_void)
       }
       RsArgsValue::Function(func_desc, js_function) => {
         use libffi::low;
         use libffi::middle::*;
-        let func_args_type: JsObject = func_desc.get_property(env.create_string("paramsType")?)?;
-        let func_args_type_rs = type_object_to_rs_vector(&env, &func_args_type)?;
+        let func_args_type = func_desc.get("paramsType").unwrap();
         let tsfn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal> = (&js_function)
           .create_threadsafe_function(0, |ctx| {
             let value: Vec<RsArgsValue> = ctx.value;
@@ -440,30 +356,36 @@ pub unsafe fn get_value_pointer(
             .collect();
           userdata(params);
         }
-        let cif = Cif::new(
-          func_args_type_rs
-            .iter()
-            .map(|arg_type| rs_value_to_ffi_type(arg_type)),
-          Type::void(),
-        );
-        let lambda = move |args: Vec<*mut c_void>| {
-          let value: Vec<RsArgsValue> = args
-            .into_iter()
-            .enumerate()
-            .map(|(index, c_param)| {
-              let arg_type = &(func_args_type_rs)[index];
-              let param = get_rs_value_from_pointer(&env, arg_type, c_param, true);
-              param
-            })
-            .collect();
-          tsfn.call(value, ThreadsafeFunctionCallMode::Blocking);
+        let (cif, lambda) = if let RsArgsValue::Object(func_args_type_rs) = func_args_type {
+          let cif = Cif::new(
+            func_args_type_rs
+              .iter()
+              .map(|(key, val)| rs_value_to_ffi_type(val)),
+            Type::void(),
+          );
+          let lambda = move |args: Vec<*mut c_void>| {
+            let value: Vec<RsArgsValue> = args
+              .into_iter()
+              .enumerate()
+              .map(|(index, c_param)| {
+                let arg_type = &(func_args_type_rs)[index];
+                let param = get_rs_value_from_pointer(env, arg_type, c_param, true);
+                param
+              })
+              .collect();
+            tsfn.call(value, ThreadsafeFunctionCallMode::Blocking);
+          };
+          (cif, lambda)
+        } else {
+          return Err(FFIError::Panic(format!("generate cif error")).into());
         };
-        let lambda_ptr = Box::into_raw(Box::new(lambda));
-        let closure = Box::into_raw(Box::new(Closure::new(cif, lambda_callback, &*lambda_ptr)));
-        let free_func = Box::new(move || {
-          let _ = Box::from_raw(closure);
-        }) as Box<dyn Fn()>;
-        free_funcs.push(free_func);
+
+        let closure = Box::into_raw(Box::new(Closure::new(
+          cif,
+          lambda_callback,
+          &*Box::into_raw(Box::new(lambda)),
+        )));
+
         Ok(std::mem::transmute((*closure).code_ptr()))
 
         // has been deprecated
@@ -483,125 +405,74 @@ pub unsafe fn get_value_pointer(
         // )
       }
     })
-    .collect::<Result<Vec<*mut c_void>>>();
-  Ok((res?, free_funcs))
+    .collect::<Result<Vec<*mut c_void>>>()
 }
 
 pub unsafe fn get_params_value_rs_struct(
   env: &Env,
-  params_type_object: &JsObject,
+  params_type_object: IndexMap<String, RsArgsValue>,
   params_value_object: &JsObject,
 ) -> Result<IndexMap<String, RsArgsValue>> {
   let mut index_map = IndexMap::new();
-  let parse_result: Result<()> = JsObject::keys(&params_value_object)?
-    .into_iter()
-    .try_for_each(|field| {
-      let field_type: JsUnknown = params_type_object.get_named_property(&field)?;
-      match field_type.get_type()? {
-        ValueType::Number => {
-          let data_type: DataType =
-            number_to_data_type(create_js_value_unchecked::<JsNumber>(env, field_type).try_into()?);
-          let val = match data_type {
-            DataType::String => {
-              let val: JsString = params_value_object.get_named_property(&field)?;
-              let val: String = js_string_to_string(val)?;
-              RsArgsValue::String(val)
-            }
-            DataType::U8 => {
-              let val: JsNumber = params_value_object.get_named_property(&field)?;
-              let val: u32 = val.try_into()?;
-              RsArgsValue::U8(val as u8)
-            }
-            DataType::I32 => {
-              let val: JsNumber = params_value_object.get_named_property(&field)?;
-              let val: i32 = val.try_into()?;
-              RsArgsValue::I32(val)
-            }
-            DataType::I64 => {
-              let val: JsNumber = params_value_object.get_named_property(&field)?;
-              let val: i64 = val.try_into()?;
-              RsArgsValue::I64(val)
-            }
-            DataType::U64 => {
-              let val: JsNumber = params_value_object.get_named_property(&field)?;
-              let val: i64 = val.try_into()?;
-              RsArgsValue::U64(val as u64)
-            }
-            DataType::Boolean => {
-              let val: JsBoolean = params_value_object.get_named_property(&field)?;
-              let val: bool = val.get_value()?;
-              RsArgsValue::Boolean(val)
-            }
-            DataType::Float => {
-              let val: JsNumber = params_value_object.get_named_property(&field)?;
-              let val: f64 = val.try_into()?;
-              RsArgsValue::Float(val as f32)
-            }
-            DataType::Double => {
-              let val: JsNumber = params_value_object.get_named_property(&field)?;
-              let val: f64 = val.try_into()?;
-              RsArgsValue::Double(val)
-            }
-            DataType::StringArray => {
-              let js_array: JsObject = params_value_object.get_named_property(&field)?;
-              let arg_val = js_array.to_rs_array()?;
-              RsArgsValue::StringArray(arg_val)
-            }
-            DataType::DoubleArray => {
-              let js_array: JsObject = params_value_object.get_named_property(&field)?;
-              let arg_val: Vec<f64> = js_array.to_rs_array()?;
-              RsArgsValue::DoubleArray(arg_val)
-            }
-            DataType::FloatArray => {
-              let js_array: JsObject = params_value_object.get_named_property(&field)?;
-              let arg_val: Vec<f32> = js_array
-                .to_rs_array()?
-                .into_iter()
-                .map(|item: f64| item as f32)
-                .collect();
-              RsArgsValue::FloatArray(arg_val)
-            }
-            DataType::I32Array => {
-              let js_array: JsObject = params_value_object.get_named_property(&field)?;
-              let arg_val = js_array.to_rs_array()?;
-              RsArgsValue::I32Array(arg_val)
-            }
-            DataType::U8Array => {
-              let js_buffer: JsBuffer = params_value_object.get_named_property(&field)?;
-              RsArgsValue::U8Array(Some(js_buffer.into_value()?), None)
-            }
-            DataType::External => {
-              let val: JsExternal = params_value_object.get_named_property(&field)?;
-              RsArgsValue::External(val)
-            }
-            DataType::Void => RsArgsValue::Void(()),
-          };
-          index_map.insert(field, val);
-        }
-
-        ValueType::Object => {
-          let params_type = create_js_value_unchecked::<JsObject>(env, field_type);
-          let params_value: JsObject = params_value_object.get_named_property(&field)?;
-          let mut params_type_rs_value = type_object_to_rs_struct(env, &params_type)?;
-          if let FFITag::Array = get_ffi_tag(&params_type_rs_value) {
-            let array_desc = get_array_desc(&params_type_rs_value);
-            let FFIARRARYDESC { array_type, .. } = array_desc;
-            let array_value = match array_type {
-              RefDataType::U8Array => {
-                let js_buffer: JsBuffer = params_value_object.get_named_property(&field)?;
-                RsArgsValue::U8Array(Some(js_buffer.into_value()?), None)
+  let parse_result: Result<()> =
+    params_type_object
+      .into_iter()
+      .try_for_each(|(field, field_type)| {
+        match field_type {
+          RsArgsValue::I32(data_type_number) => {
+            let data_type: DataType = number_to_data_type(data_type_number);
+            let val = match data_type {
+              DataType::String => {
+                let val: JsString = params_value_object.get_named_property(&field)?;
+                let val: String = js_string_to_string(val)?;
+                RsArgsValue::String(val)
               }
-              RefDataType::I32Array => {
+              DataType::U8 => {
+                let val: JsNumber = params_value_object.get_named_property(&field)?;
+                let val: u32 = val.try_into()?;
+                RsArgsValue::U8(val as u8)
+              }
+              DataType::I32 => {
+                let val: JsNumber = params_value_object.get_named_property(&field)?;
+                let val: i32 = val.try_into()?;
+                RsArgsValue::I32(val)
+              }
+              DataType::I64 => {
+                let val: JsNumber = params_value_object.get_named_property(&field)?;
+                let val: i64 = val.try_into()?;
+                RsArgsValue::I64(val)
+              }
+              DataType::U64 => {
+                let val: JsNumber = params_value_object.get_named_property(&field)?;
+                let val: i64 = val.try_into()?;
+                RsArgsValue::U64(val as u64)
+              }
+              DataType::Boolean => {
+                let val: JsBoolean = params_value_object.get_named_property(&field)?;
+                let val: bool = val.get_value()?;
+                RsArgsValue::Boolean(val)
+              }
+              DataType::Float => {
+                let val: JsNumber = params_value_object.get_named_property(&field)?;
+                let val: f64 = val.try_into()?;
+                RsArgsValue::Float(val as f32)
+              }
+              DataType::Double => {
+                let val: JsNumber = params_value_object.get_named_property(&field)?;
+                let val: f64 = val.try_into()?;
+                RsArgsValue::Double(val)
+              }
+              DataType::StringArray => {
                 let js_array: JsObject = params_value_object.get_named_property(&field)?;
                 let arg_val = js_array.to_rs_array()?;
-                RsArgsValue::I32Array(arg_val)
+                RsArgsValue::StringArray(arg_val)
               }
-              RefDataType::DoubleArray => {
+              DataType::DoubleArray => {
                 let js_array: JsObject = params_value_object.get_named_property(&field)?;
-                let arg_val = js_array.to_rs_array()?;
+                let arg_val: Vec<f64> = js_array.to_rs_array()?;
                 RsArgsValue::DoubleArray(arg_val)
               }
-              RefDataType::FloatArray => {
+              DataType::FloatArray => {
                 let js_array: JsObject = params_value_object.get_named_property(&field)?;
                 let arg_val: Vec<f32> = js_array
                   .to_rs_array()?
@@ -610,32 +481,78 @@ pub unsafe fn get_params_value_rs_struct(
                   .collect();
                 RsArgsValue::FloatArray(arg_val)
               }
-              RefDataType::StringArray => {
+              DataType::I32Array => {
                 let js_array: JsObject = params_value_object.get_named_property(&field)?;
                 let arg_val = js_array.to_rs_array()?;
-                RsArgsValue::StringArray(arg_val)
+                RsArgsValue::I32Array(arg_val)
               }
+              DataType::U8Array => {
+                let js_buffer: JsBuffer = params_value_object.get_named_property(&field)?;
+                RsArgsValue::U8Array(Some(js_buffer.into_value()?), None)
+              }
+              DataType::External => {
+                let val: JsExternal = params_value_object.get_named_property(&field)?;
+                RsArgsValue::External(val)
+              }
+              DataType::Void => RsArgsValue::Void(()),
             };
-            params_type_rs_value.insert(ARRAY_VALUE_TAG.to_string(), array_value);
-            index_map.insert(field, RsArgsValue::Object(params_type_rs_value));
-          } else {
-            let map = get_params_value_rs_struct(env, &params_type, &params_value);
-            index_map.insert(field, RsArgsValue::Object(map?));
+            index_map.insert(field, val);
           }
-        }
-        _ => {
-          return Err(
-            FFIError::UnsupportedValueType(format!(
-              "Get field {:?} received {:?} but params type only supported number or object ",
-              field,
-              field_type.get_type().unwrap()
-            ))
-            .into(),
-          )
-        }
-      };
-      Ok(())
-    });
+
+          RsArgsValue::Object(mut params_type_rs_value) => {
+            let params_value: JsObject = params_value_object.get_named_property(&field)?;
+            if let FFITag::Array = get_ffi_tag(&params_type_rs_value) {
+              let array_desc = get_array_desc(&params_type_rs_value);
+              let FFIARRARYDESC { array_type, .. } = array_desc;
+              let array_value = match array_type {
+                RefDataType::U8Array => {
+                  let js_buffer: JsBuffer = params_value_object.get_named_property(&field)?;
+                  RsArgsValue::U8Array(Some(js_buffer.into_value()?), None)
+                }
+                RefDataType::I32Array => {
+                  let js_array: JsObject = params_value_object.get_named_property(&field)?;
+                  let arg_val = js_array.to_rs_array()?;
+                  RsArgsValue::I32Array(arg_val)
+                }
+                RefDataType::DoubleArray => {
+                  let js_array: JsObject = params_value_object.get_named_property(&field)?;
+                  let arg_val = js_array.to_rs_array()?;
+                  RsArgsValue::DoubleArray(arg_val)
+                }
+                RefDataType::FloatArray => {
+                  let js_array: JsObject = params_value_object.get_named_property(&field)?;
+                  let arg_val: Vec<f32> = js_array
+                    .to_rs_array()?
+                    .into_iter()
+                    .map(|item: f64| item as f32)
+                    .collect();
+                  RsArgsValue::FloatArray(arg_val)
+                }
+                RefDataType::StringArray => {
+                  let js_array: JsObject = params_value_object.get_named_property(&field)?;
+                  let arg_val = js_array.to_rs_array()?;
+                  RsArgsValue::StringArray(arg_val)
+                }
+              };
+              params_type_rs_value.insert(ARRAY_VALUE_TAG.to_string(), array_value);
+              index_map.insert(field, RsArgsValue::Object(params_type_rs_value));
+            } else {
+              let map = get_params_value_rs_struct(env, params_type_rs_value, &params_value);
+              index_map.insert(field, RsArgsValue::Object(map?));
+            }
+          }
+          _ => {
+            return Err(
+              FFIError::UnsupportedValueType(format!(
+                "Get field {:?} received {:?} but params type only supported number or object ",
+                field, field_type
+              ))
+              .into(),
+            )
+          }
+        };
+        Ok(())
+      });
   match parse_result {
     Ok(_) => Ok(index_map),
     Err(e) => Err(e),

@@ -216,7 +216,7 @@ pub enum RsArgsValue {
   Object(IndexMap<String, RsArgsValue>),
   Boolean(bool),
   Void(()),
-  Function(JsObject, JsFunction),
+  Function(IndexMap<String, RsArgsValue>, JsFunction),
   External(JsExternal),
 }
 

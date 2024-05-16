@@ -1,5 +1,5 @@
-const { equal, deepStrictEqual } = require("assert")
-const {
+import { equal, deepStrictEqual } from "assert"
+import {
   load,
   open,
   close,
@@ -11,7 +11,7 @@ const {
   unwrapPointer,
   wrapPointer,
   define,
-} = require("./index")
+} from "./index"
 
 const platform = process.platform;
 const dynamicLib = platform === "win32" ? "./sum.dll" : "./libsum.so";

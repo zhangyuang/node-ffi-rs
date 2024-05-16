@@ -57,7 +57,7 @@ pub unsafe fn free_pointer_memory(ptr: *mut c_void, ptr_desc: RsArgsValue) {
       let basic_data_type = number_to_basic_data_type(number);
       match basic_data_type {
         BasicDataType::String => {
-          CString::from_raw(ptr as *mut i8);
+          let _ = CString::from_raw(ptr as *mut i8);
         }
         BasicDataType::U8 => free(ptr),
         BasicDataType::I32 => free(ptr),
