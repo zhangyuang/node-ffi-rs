@@ -55,7 +55,8 @@
     "publish:npm": "node scripts/publish.js",
     "test": "esno ./test.ts",
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0 && git add . && git commit -m \"docs: update changelog.md\" && git push origin master",
-    "pub": "npm version patch && git push origin master --tags && npm run changelog"
+    "pub": "npm version patch && git push origin master --tags && npm run changelog",
+    "pub:alpha": "npm version prerelease --preid=alpha && git push origin master --tags && npm run changelog"
   },
   "optionalDependencies": {
     "@yuuang/ffi-rs-darwin-arm64": "1.0.55",
