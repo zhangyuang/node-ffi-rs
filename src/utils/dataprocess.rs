@@ -8,7 +8,6 @@ use crate::datatype::pointer::*;
 use crate::datatype::string::{js_string_to_string, string_to_c_string};
 use crate::define::*;
 use indexmap::IndexMap;
-use libc::free;
 use libc::{c_char, c_double, c_float, c_int, c_uchar, c_void};
 use libffi_sys::{
   ffi_type, ffi_type_double, ffi_type_float, ffi_type_pointer, ffi_type_sint32, ffi_type_sint64,
@@ -20,6 +19,7 @@ use napi::{
   JsUnknown, NapiRaw,
 };
 use std::ffi::CStr;
+use std::fmt::format;
 
 pub unsafe fn get_js_external_wrap_data(env: &Env, js_external: JsExternal) -> Result<*mut c_void> {
   use std::any::TypeId;
@@ -267,58 +267,30 @@ macro_rules! match_args_len {
 pub unsafe fn get_value_pointer(
   env: &Env,
   arg_values: Vec<RsArgsValue>,
-) -> Result<(Vec<*mut c_void>, Vec<Box<dyn Fn()>>)> {
-  let mut free_funcs = Vec::new();
-  let res = arg_values
+) -> Result<Vec<*mut c_void>> {
+  arg_values
     .into_iter()
     .map(|val| match val {
       RsArgsValue::External(val) => {
         Ok(Box::into_raw(Box::new(get_js_external_wrap_data(&env, val)?)) as *mut c_void)
       }
-      RsArgsValue::U8(val) => {
-        let ptr = Box::into_raw(Box::new(val)) as *mut c_void;
-        let free_func = Box::new(move || free(ptr)) as Box<dyn Fn()>;
-        free_funcs.push(free_func);
-        Ok(ptr)
-      }
-      RsArgsValue::I32(val) => {
-        let ptr = Box::into_raw(Box::new(val)) as *mut c_void;
-        let free_func = Box::new(move || free(ptr)) as Box<dyn Fn()>;
-        free_funcs.push(free_func);
-        Ok(ptr)
-      }
-      RsArgsValue::I64(val) => {
-        let ptr = Box::into_raw(Box::new(val)) as *mut c_void;
-        let free_func = Box::new(move || free(ptr)) as Box<dyn Fn()>;
-        free_funcs.push(free_func);
-        Ok(ptr)
-      }
-      RsArgsValue::U64(val) => {
-        let ptr = Box::into_raw(Box::new(val)) as *mut c_void;
-        let free_func = Box::new(move || free(ptr)) as Box<dyn Fn()>;
-        free_funcs.push(free_func);
-        Ok(ptr)
-      }
-
-      RsArgsValue::Float(val) => {
-        let ptr = Box::into_raw(Box::new(val)) as *mut c_void;
-        let free_func = Box::new(move || free(ptr)) as Box<dyn Fn()>;
-        free_funcs.push(free_func);
-        Ok(ptr)
-      }
-      RsArgsValue::Double(val) => {
-        let ptr = Box::into_raw(Box::new(val)) as *mut c_void;
-        let free_func = Box::new(move || free(ptr)) as Box<dyn Fn()>;
-        free_funcs.push(free_func);
-        Ok(ptr)
-      }
+      RsArgsValue::U8(val) => Ok(Box::into_raw(Box::new(val)) as *mut c_void),
+      RsArgsValue::I32(val) => Ok(Box::into_raw(Box::new(val)) as *mut c_void),
+      RsArgsValue::I64(val) => Ok(Box::into_raw(Box::new(val)) as *mut c_void),
+      RsArgsValue::U64(val) => Ok(Box::into_raw(Box::new(val)) as *mut c_void),
       RsArgsValue::String(val) => {
         let c_string = string_to_c_string(val);
         let ptr = c_string.as_ptr();
         std::mem::forget(c_string);
-        let free_func = Box::new(move || free(ptr as *mut c_void)) as Box<dyn Fn()>;
-        free_funcs.push(free_func);
         Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
+      }
+      RsArgsValue::Float(val) => {
+        let c_float = Box::new(val);
+        Ok(Box::into_raw(c_float) as *mut c_void)
+      }
+      RsArgsValue::Double(val) => {
+        let c_double = Box::new(val);
+        Ok(Box::into_raw(c_double) as *mut c_void)
       }
       RsArgsValue::U8Array(buffer, v) => {
         let buffer = buffer.unwrap();
@@ -327,12 +299,9 @@ pub unsafe fn get_value_pointer(
         Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
       }
       RsArgsValue::I32Array(val) => {
-        let val_ptr = val.as_ptr();
+        let ptr = val.as_ptr();
         std::mem::forget(val);
-        let ptr = Box::into_raw(Box::new(val_ptr)) as *mut c_void;
-        let free_func = Box::new(move || free(val_ptr as *mut c_void)) as Box<dyn Fn()>;
-        free_funcs.push(free_func);
-        Ok(ptr)
+        Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
       }
       RsArgsValue::DoubleArray(val) => {
         let ptr = val.as_ptr();
@@ -439,8 +408,7 @@ pub unsafe fn get_value_pointer(
         // )
       }
     })
-    .collect::<Result<Vec<*mut c_void>>>();
-  Ok((res?, free_funcs))
+    .collect::<Result<Vec<*mut c_void>>>()
 }
 
 pub unsafe fn get_params_value_rs_struct(
