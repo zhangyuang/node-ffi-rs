@@ -94,109 +94,55 @@ pub unsafe fn get_arg_types_values(
     .map(|(param, value)| {
       let res = match param {
         RsArgsValue::I32(number) => {
-          let param_data_type = number_to_data_type(number);
+          let param_data_type = number_to_basic_data_type(number);
           match param_data_type {
-            DataType::I32 => {
+            BasicDataType::I32 => {
               let arg_type = Box::into_raw(Box::new(ffi_type_sint32)) as *mut ffi_type;
               let arg_val: i32 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
               (arg_type, RsArgsValue::I32(arg_val))
             }
-            DataType::U8 => {
+            BasicDataType::U8 => {
               let arg_type = Box::into_raw(Box::new(ffi_type_sint32)) as *mut ffi_type;
               let arg_val: u32 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
               (arg_type, RsArgsValue::U8(arg_val as u8))
             }
-            DataType::I64 => {
+            BasicDataType::I64 => {
               let arg_type = Box::into_raw(Box::new(ffi_type_sint64)) as *mut ffi_type;
               let arg_val: i64 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
               (arg_type, RsArgsValue::I64(arg_val))
             }
-            DataType::U64 => {
+            BasicDataType::U64 => {
               let arg_type = Box::into_raw(Box::new(ffi_type_uint64)) as *mut ffi_type;
               let arg_val: i64 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
               (arg_type, RsArgsValue::U64(arg_val as u64))
             }
-            DataType::Float => {
+            BasicDataType::Float => {
               let arg_type = Box::into_raw(Box::new(ffi_type_float)) as *mut ffi_type;
               let arg_val: f64 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
               (arg_type, RsArgsValue::Float(arg_val as f32))
             }
-            DataType::Double => {
+            BasicDataType::Double => {
               let arg_type = Box::into_raw(Box::new(ffi_type_double)) as *mut ffi_type;
               let arg_val: f64 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
               (arg_type, RsArgsValue::Double(arg_val))
             }
-            DataType::String => {
+            BasicDataType::String => {
               let arg_type = Box::into_raw(Box::new(ffi_type_pointer)) as *mut ffi_type;
               let arg_val: String =
                 js_string_to_string(create_js_value_unchecked::<JsString>(env, value))?;
 
               (arg_type, RsArgsValue::String(arg_val))
             }
-            DataType::U8Array => {
-              let arg_type = Box::into_raw(Box::new(ffi_type_pointer)) as *mut ffi_type;
-              let js_buffer: JsBuffer = value.try_into()?;
-              (
-                arg_type,
-                RsArgsValue::U8Array(Some(js_buffer.into_value()?), None),
-              )
-            }
-            DataType::I32Array => {
-              let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-              let js_object = create_js_value_unchecked::<JsObject>(env, value);
-              let arg_val = vec![0; js_object.get_array_length()? as usize]
-                .iter()
-                .enumerate()
-                .map(|(index, _)| {
-                  let js_element: JsNumber = js_object.get_element(index as u32).unwrap();
-                  js_element.get_int32().unwrap()
-                })
-                .collect::<Vec<i32>>();
-              (arg_type, RsArgsValue::I32Array(arg_val))
-            }
-            DataType::DoubleArray => {
-              let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-              let js_object = create_js_value_unchecked::<JsObject>(env, value);
-              let arg_val = vec![0; js_object.get_array_length()? as usize]
-                .iter()
-                .enumerate()
-                .map(|(index, _)| {
-                  let js_element: JsNumber = js_object.get_element(index as u32).unwrap();
-                  js_element.get_double().unwrap()
-                })
-                .collect::<Vec<f64>>();
-
-              (arg_type, RsArgsValue::DoubleArray(arg_val))
-            }
-            DataType::FloatArray => {
-              let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-              let js_object = create_js_value_unchecked::<JsObject>(env, value);
-              let arg_val = vec![0; js_object.get_array_length()? as usize]
-                .iter()
-                .enumerate()
-                .map(|(index, _)| {
-                  let js_element: JsNumber = js_object.get_element(index as u32).unwrap();
-                  js_element.get_double().unwrap() as f32
-                })
-                .collect::<Vec<f32>>();
-              (arg_type, RsArgsValue::FloatArray(arg_val))
-            }
-            DataType::StringArray => {
-              let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-              let js_object = create_js_value_unchecked::<JsObject>(env, value);
-              let arg_val = js_object.to_rs_array()?;
-              (arg_type, RsArgsValue::StringArray(arg_val))
-            }
-            DataType::Boolean => {
+            BasicDataType::Boolean => {
               let arg_type = &mut ffi_type_uint8 as *mut ffi_type;
               let arg_val: bool = create_js_value_unchecked::<JsBoolean>(env, value).get_value()?;
               (arg_type, RsArgsValue::Boolean(arg_val))
             }
-            DataType::Void => {
+            BasicDataType::Void => {
               let arg_type = &mut ffi_type_void as *mut ffi_type;
               (arg_type, RsArgsValue::Void(()))
             }
-            DataType::External => {
+            BasicDataType::External => {
               let arg_type = &mut ffi_type_pointer as *mut ffi_type;
               let js_external: JsExternal = value.try_into()?;
               (arg_type, RsArgsValue::External(js_external))
@@ -205,7 +151,67 @@ pub unsafe fn get_arg_types_values(
         }
         RsArgsValue::Object(params_type_object_rs) => {
           let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-          if let FFITag::Function = get_ffi_tag(&params_type_object_rs) {
+          if let FFITag::Array = get_ffi_tag(&params_type_object_rs) {
+            let array_desc = get_array_desc(&params_type_object_rs);
+            let FFIARRARYDESC { array_type, .. } = array_desc;
+            match array_type {
+              RefDataType::U8Array => {
+                let arg_type = Box::into_raw(Box::new(ffi_type_pointer)) as *mut ffi_type;
+                let js_buffer: JsBuffer = value.try_into()?;
+                (
+                  arg_type,
+                  RsArgsValue::U8Array(Some(js_buffer.into_value()?), None),
+                )
+              }
+              RefDataType::I32Array => {
+                let arg_type = &mut ffi_type_pointer as *mut ffi_type;
+                let js_object = create_js_value_unchecked::<JsObject>(env, value);
+                let arg_val = vec![0; js_object.get_array_length()? as usize]
+                  .iter()
+                  .enumerate()
+                  .map(|(index, _)| {
+                    let js_element: JsNumber = js_object.get_element(index as u32).unwrap();
+                    js_element.get_int32().unwrap()
+                  })
+                  .collect::<Vec<i32>>();
+                (arg_type, RsArgsValue::I32Array(arg_val))
+              }
+
+              RefDataType::FloatArray => {
+                let arg_type = &mut ffi_type_pointer as *mut ffi_type;
+                let js_object = create_js_value_unchecked::<JsObject>(env, value);
+                let arg_val = vec![0; js_object.get_array_length()? as usize]
+                  .iter()
+                  .enumerate()
+                  .map(|(index, _)| {
+                    let js_element: JsNumber = js_object.get_element(index as u32).unwrap();
+                    js_element.get_double().unwrap() as f32
+                  })
+                  .collect::<Vec<f32>>();
+                (arg_type, RsArgsValue::FloatArray(arg_val))
+              }
+              RefDataType::DoubleArray => {
+                let arg_type = &mut ffi_type_pointer as *mut ffi_type;
+                let js_object = create_js_value_unchecked::<JsObject>(env, value);
+                let arg_val = vec![0; js_object.get_array_length()? as usize]
+                  .iter()
+                  .enumerate()
+                  .map(|(index, _)| {
+                    let js_element: JsNumber = js_object.get_element(index as u32).unwrap();
+                    js_element.get_double().unwrap()
+                  })
+                  .collect::<Vec<f64>>();
+
+                (arg_type, RsArgsValue::DoubleArray(arg_val))
+              }
+              RefDataType::StringArray => {
+                let arg_type = &mut ffi_type_pointer as *mut ffi_type;
+                let js_object = create_js_value_unchecked::<JsObject>(env, value);
+                let arg_val = js_object.to_rs_array()?;
+                (arg_type, RsArgsValue::StringArray(arg_val))
+              }
+            }
+          } else if let FFITag::Function = get_ffi_tag(&params_type_object_rs) {
             let params_val_function: JsFunction = value.try_into()?;
             let arg_type = &mut ffi_type_pointer as *mut ffi_type;
             (

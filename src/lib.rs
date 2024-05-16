@@ -14,6 +14,7 @@ use libffi_sys::{
 };
 use napi::{Env, JsExternal, JsUnknown, Result};
 
+use datatype::pointer::free_pointer_memory;
 use std::collections::HashMap;
 use std::ffi::c_void;
 use utils::dataprocess::{
@@ -190,7 +191,8 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     .into_iter()
     .map(|param| type_define_to_rs_args(&env, param).unwrap())
     .collect();
-  let (mut arg_types, arg_values) = get_arg_types_values(&env, params_type_rs, params_value)?;
+  let (mut arg_types, arg_values) =
+    get_arg_types_values(&env, params_type_rs.clone(), params_value)?;
   let mut arg_values_c_void = get_value_pointer(&env, arg_values)?;
   let ret_type_rs = type_define_to_rs_args(&env, ret_type)?;
   let r_type: *mut ffi_type = match ret_type_rs {
@@ -285,11 +287,11 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     let result = malloc(std::mem::size_of::<*mut c_void>());
     ffi_call(&mut cif, Some(func), result, arg_values_c_void.as_mut_ptr());
     let call_result = get_js_unknown_from_pointer(&env, &ret_type_rs, result);
-    // let params_type_rs: Vec<RsArgsValue> = params_type
+    free_pointer_memory(result, ret_type_rs);
+    // arg_values_c_void
     //   .into_iter()
-    //   .map(|param| type_define_to_rs_args(&env, param).unwrap())
-    //   .collect();
-
+    //   .zip(params_type_rs.into_iter())
+    //   .for_each(|(ptr, ptr_desc)| free_pointer_memory(ptr, ptr_desc));
     if errno.is_some() && errno.unwrap() {
       add_errno(&env, call_result?)
     } else {

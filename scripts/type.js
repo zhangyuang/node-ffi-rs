@@ -1,39 +1,354 @@
-const { readFile, writeFile } = require("fs/promises");
-const { resolve } = require("path");
+const { existsSync, readFileSync } = require('fs')
+const { join } = require('path')
 
-(async () => {
-  const entryContent = (await readFile(resolve(process.cwd(), "./index.js")))
-    .toString()
-    .replace("paramsType: Array<unknown>", "paramsType: Array<DataFieldType>")
-    .replace("retType: unknown", "retType: DataFieldType");
-  await writeFile(
-    resolve(process.cwd(), "./index.js"),
-    `
-    ${entryContent}
-    exports.arrayConstructor = (options) => ({
-      dynamicArray: true,
-      ...options,
-      ffiTypeTag: 'array'
-    })
-    exports.funcConstructor = (options) => ({
-      ffiTypeTag: 'function',
-      ...options,
-    })
-    exports.define = (obj) => {
-      const res = {}
-      Object.entries(obj).map(([funcName, funcDesc]) => {
-        res[funcName] = (paramsValue) => load({
-          ...obj[funcName],
-          funcName,
-          paramsValue
-        })
-      })
-      return res
+const { platform, arch } = process
+
+let nativeBinding = null
+let localFileExisted = false
+let loadError = null
+
+function isMusl() {
+  // For Node 10
+  if (!process.report || typeof process.report.getReport !== 'function') {
+    try {
+      const lddPath = require('child_process').execSync('which ldd').toString().trim()
+      return readFileSync(lddPath, 'utf8').includes('musl')
+    } catch (e) {
+      return true
     }
-    `,
-  );
-  const typesContent = (
-    await readFile(resolve(process.cwd(), "./scripts/types.d.ts"))
-  ).toString();
-  await writeFile(resolve(process.cwd(), "./index.d.ts"), typesContent);
-})();
+  } else {
+    const { glibcVersionRuntime } = process.report.getReport().header
+    return !glibcVersionRuntime
+  }
+}
+
+switch (platform) {
+  case 'android':
+    switch (arch) {
+      case 'arm64':
+        localFileExisted = existsSync(join(__dirname, 'ffi-rs.android-arm64.node'))
+        try {
+          if (localFileExisted) {
+            nativeBinding = require('./ffi-rs.android-arm64.node')
+          } else {
+            nativeBinding = require('@yuuang/ffi-rs-android-arm64')
+          }
+        } catch (e) {
+          loadError = e
+        }
+        break
+      case 'arm':
+        localFileExisted = existsSync(join(__dirname, 'ffi-rs.android-arm-eabi.node'))
+        try {
+          if (localFileExisted) {
+            nativeBinding = require('./ffi-rs.android-arm-eabi.node')
+          } else {
+            nativeBinding = require('@yuuang/ffi-rs-android-arm-eabi')
+          }
+        } catch (e) {
+          loadError = e
+        }
+        break
+      default:
+        throw new Error(`Unsupported architecture on Android ${arch}`)
+    }
+    break
+  case 'win32':
+    switch (arch) {
+      case 'x64':
+        localFileExisted = existsSync(
+          join(__dirname, 'ffi-rs.win32-x64-msvc.node')
+        )
+        try {
+          if (localFileExisted) {
+            nativeBinding = require('./ffi-rs.win32-x64-msvc.node')
+          } else {
+            nativeBinding = require('@yuuang/ffi-rs-win32-x64-msvc')
+          }
+        } catch (e) {
+          loadError = e
+        }
+        break
+      case 'ia32':
+        localFileExisted = existsSync(
+          join(__dirname, 'ffi-rs.win32-ia32-msvc.node')
+        )
+        try {
+          if (localFileExisted) {
+            nativeBinding = require('./ffi-rs.win32-ia32-msvc.node')
+          } else {
+            nativeBinding = require('@yuuang/ffi-rs-win32-ia32-msvc')
+          }
+        } catch (e) {
+          loadError = e
+        }
+        break
+      case 'arm64':
+        localFileExisted = existsSync(
+          join(__dirname, 'ffi-rs.win32-arm64-msvc.node')
+        )
+        try {
+          if (localFileExisted) {
+            nativeBinding = require('./ffi-rs.win32-arm64-msvc.node')
+          } else {
+            nativeBinding = require('@yuuang/ffi-rs-win32-arm64-msvc')
+          }
+        } catch (e) {
+          loadError = e
+        }
+        break
+      default:
+        throw new Error(`Unsupported architecture on Windows: ${arch}`)
+    }
+    break
+  case 'darwin':
+    localFileExisted = existsSync(join(__dirname, 'ffi-rs.darwin-universal.node'))
+    try {
+      if (localFileExisted) {
+        nativeBinding = require('./ffi-rs.darwin-universal.node')
+      } else {
+        nativeBinding = require('@yuuang/ffi-rs-darwin-universal')
+      }
+      break
+    } catch { }
+    switch (arch) {
+      case 'x64':
+        localFileExisted = existsSync(join(__dirname, 'ffi-rs.darwin-x64.node'))
+        try {
+          if (localFileExisted) {
+            nativeBinding = require('./ffi-rs.darwin-x64.node')
+          } else {
+            nativeBinding = require('@yuuang/ffi-rs-darwin-x64')
+          }
+        } catch (e) {
+          loadError = e
+        }
+        break
+      case 'arm64':
+        localFileExisted = existsSync(
+          join(__dirname, 'ffi-rs.darwin-arm64.node')
+        )
+        try {
+          if (localFileExisted) {
+            nativeBinding = require('./ffi-rs.darwin-arm64.node')
+          } else {
+            nativeBinding = require('@yuuang/ffi-rs-darwin-arm64')
+          }
+        } catch (e) {
+          loadError = e
+        }
+        break
+      default:
+        throw new Error(`Unsupported architecture on macOS: ${arch}`)
+    }
+    break
+  case 'freebsd':
+    if (arch !== 'x64') {
+      throw new Error(`Unsupported architecture on FreeBSD: ${arch}`)
+    }
+    localFileExisted = existsSync(join(__dirname, 'ffi-rs.freebsd-x64.node'))
+    try {
+      if (localFileExisted) {
+        nativeBinding = require('./ffi-rs.freebsd-x64.node')
+      } else {
+        nativeBinding = require('@yuuang/ffi-rs-freebsd-x64')
+      }
+    } catch (e) {
+      loadError = e
+    }
+    break
+  case 'linux':
+    switch (arch) {
+      case 'x64':
+        if (isMusl()) {
+          localFileExisted = existsSync(
+            join(__dirname, 'ffi-rs.linux-x64-musl.node')
+          )
+          try {
+            if (localFileExisted) {
+              nativeBinding = require('./ffi-rs.linux-x64-musl.node')
+            } else {
+              nativeBinding = require('@yuuang/ffi-rs-linux-x64-musl')
+            }
+          } catch (e) {
+            loadError = e
+          }
+        } else {
+          localFileExisted = existsSync(
+            join(__dirname, 'ffi-rs.linux-x64-gnu.node')
+          )
+          try {
+            if (localFileExisted) {
+              nativeBinding = require('./ffi-rs.linux-x64-gnu.node')
+            } else {
+              nativeBinding = require('@yuuang/ffi-rs-linux-x64-gnu')
+            }
+          } catch (e) {
+            loadError = e
+          }
+        }
+        break
+      case 'arm64':
+        if (isMusl()) {
+          localFileExisted = existsSync(
+            join(__dirname, 'ffi-rs.linux-arm64-musl.node')
+          )
+          try {
+            if (localFileExisted) {
+              nativeBinding = require('./ffi-rs.linux-arm64-musl.node')
+            } else {
+              nativeBinding = require('@yuuang/ffi-rs-linux-arm64-musl')
+            }
+          } catch (e) {
+            loadError = e
+          }
+        } else {
+          localFileExisted = existsSync(
+            join(__dirname, 'ffi-rs.linux-arm64-gnu.node')
+          )
+          try {
+            if (localFileExisted) {
+              nativeBinding = require('./ffi-rs.linux-arm64-gnu.node')
+            } else {
+              nativeBinding = require('@yuuang/ffi-rs-linux-arm64-gnu')
+            }
+          } catch (e) {
+            loadError = e
+          }
+        }
+        break
+      case 'arm':
+        if (isMusl()) {
+          localFileExisted = existsSync(
+            join(__dirname, 'ffi-rs.linux-arm-musleabihf.node')
+          )
+          try {
+            if (localFileExisted) {
+              nativeBinding = require('./ffi-rs.linux-arm-musleabihf.node')
+            } else {
+              nativeBinding = require('@yuuang/ffi-rs-linux-arm-musleabihf')
+            }
+          } catch (e) {
+            loadError = e
+          }
+        } else {
+          localFileExisted = existsSync(
+            join(__dirname, 'ffi-rs.linux-arm-gnueabihf.node')
+          )
+          try {
+            if (localFileExisted) {
+              nativeBinding = require('./ffi-rs.linux-arm-gnueabihf.node')
+            } else {
+              nativeBinding = require('@yuuang/ffi-rs-linux-arm-gnueabihf')
+            }
+          } catch (e) {
+            loadError = e
+          }
+        }
+        break
+      case 'riscv64':
+        if (isMusl()) {
+          localFileExisted = existsSync(
+            join(__dirname, 'ffi-rs.linux-riscv64-musl.node')
+          )
+          try {
+            if (localFileExisted) {
+              nativeBinding = require('./ffi-rs.linux-riscv64-musl.node')
+            } else {
+              nativeBinding = require('@yuuang/ffi-rs-linux-riscv64-musl')
+            }
+          } catch (e) {
+            loadError = e
+          }
+        } else {
+          localFileExisted = existsSync(
+            join(__dirname, 'ffi-rs.linux-riscv64-gnu.node')
+          )
+          try {
+            if (localFileExisted) {
+              nativeBinding = require('./ffi-rs.linux-riscv64-gnu.node')
+            } else {
+              nativeBinding = require('@yuuang/ffi-rs-linux-riscv64-gnu')
+            }
+          } catch (e) {
+            loadError = e
+          }
+        }
+        break
+      case 's390x':
+        localFileExisted = existsSync(
+          join(__dirname, 'ffi-rs.linux-s390x-gnu.node')
+        )
+        try {
+          if (localFileExisted) {
+            nativeBinding = require('./ffi-rs.linux-s390x-gnu.node')
+          } else {
+            nativeBinding = require('@yuuang/ffi-rs-linux-s390x-gnu')
+          }
+        } catch (e) {
+          loadError = e
+        }
+        break
+      default:
+        throw new Error(`Unsupported architecture on Linux: ${arch}`)
+    }
+    break
+  default:
+    throw new Error(`Unsupported OS: ${platform}, architecture: ${arch}`)
+}
+
+if (!nativeBinding) {
+  if (loadError) {
+    throw loadError
+  }
+  throw new Error(`Failed to load native binding`)
+    (processParamsTypeForArray(params))
+}
+
+const { DataType, createPointer, restorePointer, unwrapPointer, wrapPointer, freePointer, open, close, load } = nativeBinding
+
+module.exports.DataType = DataType
+module.exports.open = open
+module.exports.close = close
+module.exports.load = load
+
+const arrayDataType = [DataType.I32Array, DataType.StringArray, DataType.DoubleArray, DataType.U8Array, DataType.FloatArray]
+const arrayConstructor = (options) => ({
+  dynamicArray: true,
+  ...options,
+  ffiTypeTag: 'array'
+})
+const processParamsTypeForArray = (params) => {
+  params.paramsType = params.paramsType?.map((paramType, index) => {
+    if (arrayDataType.includes(paramType)) {
+      return arrayConstructor({
+        type: paramType,
+        length: params.paramsValue[index].length,
+      })
+    }
+    return paramType
+  })
+  return params
+}
+exports.load = (params) => load(processParamsTypeForArray(params))
+exports.createPointer = (params) => createPointer(processParamsTypeForArray(params))
+exports.restorePointer = (params) => restorePointer(processParamsTypeForArray(params))
+exports.unwrapPointer = (params) => unwrapPointer(processParamsTypeForArray(params))
+exports.wrapPointer = (params) => wrapPointer(processParamsTypeForArray(params))
+exports.freePointer = (params) => freePointer(processParamsTypeForArray(params))
+exports.arrayConstructor = arrayConstructor
+exports.funcConstructor = (options) => ({
+  ffiTypeTag: 'function',
+  ...options,
+})
+exports.define = (obj) => {
+  const res = {}
+  Object.entries(obj).map(([funcName, funcDesc]) => {
+    res[funcName] = (paramsValue) => load({
+      ...obj[funcName],
+      funcName,
+      paramsValue
+    })
+  })
+  return res
+}

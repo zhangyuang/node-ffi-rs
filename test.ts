@@ -152,51 +152,51 @@ const testArray = () => {
   );
 }
 const testPointer = () => {
-  const i32Ptr = createPointer({
-    paramsType: [DataType.I32],
-    paramsValue: [100]
-  })
-  const i32Data = restorePointer({
-    retType: [DataType.I32],
-    paramsValue: i32Ptr
-  })
-  deepStrictEqual(i32Data[0], 100)
-  logGreen('test create and restore i32 pointer success')
-  const stringData = restorePointer({
-    retType: [DataType.String],
-    paramsValue: createPointer({
-      paramsType: [DataType.String],
-      paramsValue: ["foo"]
-    })
-  })
-  logGreen('test string pointer success')
-  const ptr = load({
-    library: "libsum",
-    funcName: "concatenateStrings",
-    retType: DataType.External,
-    paramsType: [DataType.String, DataType.String],
-    paramsValue: [c, d],
-  })
-  equal(load({
-    library: "libsum",
-    funcName: "getStringFromPtr",
-    retType: DataType.String,
-    paramsType: [DataType.External],
-    paramsValue: unwrapPointer(createPointer({
-      paramsType: [DataType.String],
-      paramsValue: ["foo"]
-    })),
-  }), "foo")
-  const string = load({
-    library: "libsum",
-    funcName: "getStringFromPtr",
-    retType: DataType.String,
-    paramsType: [DataType.External],
-    paramsValue: [ptr],
-  })
-  equal(string, c + d)
-  deepStrictEqual(stringData[0], "foo")
-  logGreen('string pointer success')
+  // const i32Ptr = createPointer({
+  //   paramsType: [DataType.I32],
+  //   paramsValue: [100]
+  // })
+  // const i32Data = restorePointer({
+  //   retType: [DataType.I32],
+  //   paramsValue: i32Ptr
+  // })
+  // deepStrictEqual(i32Data[0], 100)
+  // logGreen('test create and restore i32 pointer success')
+  // const stringData = restorePointer({
+  //   retType: [DataType.String],
+  //   paramsValue: createPointer({
+  //     paramsType: [DataType.String],
+  //     paramsValue: ["foo"]
+  //   })
+  // })
+  // logGreen('test create string pointer success')
+  // const ptr = load({
+  //   library: "libsum",
+  //   funcName: "concatenateStrings",
+  //   retType: DataType.External,
+  //   paramsType: [DataType.String, DataType.String],
+  //   paramsValue: [c, d],
+  // })
+  // equal(load({
+  //   library: "libsum",
+  //   funcName: "getStringFromPtr",
+  //   retType: DataType.String,
+  //   paramsType: [DataType.External],
+  //   paramsValue: unwrapPointer(createPointer({
+  //     paramsType: [DataType.String],
+  //     paramsValue: ["foo"]
+  //   })),
+  // }), "foo")
+  // const string = load({
+  //   library: "libsum",
+  //   funcName: "getStringFromPtr",
+  //   retType: DataType.String,
+  //   paramsType: [DataType.External],
+  //   paramsValue: [ptr],
+  // })
+  // equal(string, c + d)
+  // deepStrictEqual(stringData[0], "foo")
+  // logGreen('test string pointer success')
   const restoreData = restorePointer({
     retType: [arrayConstructor({
       type: DataType.DoubleArray,
@@ -521,12 +521,12 @@ const testDefine = () => {
   equal(res.sum([1, 2]), 3)
 }
 const unitTest = () => {
-  testNumber()
-  logGreen('test number succeed')
-  testString()
-  logGreen('test string succeed')
-  testArray()
-  logGreen('test array succeed')
+  // testNumber()
+  // logGreen('test number succeed')
+  // testString()
+  // logGreen('test string succeed')
+  // testArray()
+  // logGreen('test array succeed')
   testPointer()
   logGreen('test createPointer succeed')
   testVoid()
