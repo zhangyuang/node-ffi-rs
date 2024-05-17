@@ -330,15 +330,27 @@ const processParamsTypeForArray = (params) => {
   })
   return params
 }
+
+const setFreeFuncTag = (params) => {
+  params.paramsType = params.paramsType?.map((paramType, index) => {
+    if (paramType.ffiTypeTag === 'function') {
+      paramType.needFree = true
+    }
+    return paramType
+  })
+  return params
+}
+
 exports.load = (params) => load(processParamsTypeForArray(params))
 exports.createPointer = (params) => createPointer(processParamsTypeForArray(params))
 exports.restorePointer = (params) => restorePointer(processParamsTypeForArray(params))
 exports.unwrapPointer = (params) => unwrapPointer(processParamsTypeForArray(params))
 exports.wrapPointer = (params) => wrapPointer(processParamsTypeForArray(params))
-exports.freePointer = (params) => freePointer(processParamsTypeForArray(params))
+exports.freePointer = (params) => freePointer(setFreeFuncTag(processParamsTypeForArray(params)))
 exports.arrayConstructor = arrayConstructor
 exports.funcConstructor = (options) => ({
   ffiTypeTag: 'function',
+  needFree: false,
   ...options,
 })
 exports.define = (obj) => {

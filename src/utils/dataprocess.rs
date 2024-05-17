@@ -71,6 +71,14 @@ pub fn get_array_desc(obj: &IndexMap<String, RsArgsValue>) -> FFIARRARYDESC {
   }
 }
 
+pub fn get_func_desc(obj: &IndexMap<String, RsArgsValue>) -> FFIFUNCDESC {
+  let mut need_free = false;
+  if let RsArgsValue::Boolean(val) = obj.get(FUNCTION_FREE_TAG).unwrap() {
+    need_free = *val
+  }
+  FFIFUNCDESC { need_free }
+}
+
 pub fn js_number_to_i32(js_number: JsNumber) -> i32 {
   js_number.try_into().unwrap()
 }

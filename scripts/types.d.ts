@@ -79,6 +79,7 @@ export type ArrayConstructorOptions = {
 export type FuncConstructorOptions = {
   paramsType: Array<FieldType>;
   retType: FieldType;
+  needFree?: boolean
 };
 
 export function arrayConstructor<T extends ArrayConstructorOptions>(

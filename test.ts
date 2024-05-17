@@ -10,6 +10,7 @@ import {
   restorePointer,
   unwrapPointer,
   wrapPointer,
+  freePointer,
   define,
 } from "./index"
 
@@ -421,6 +422,21 @@ const testFunction = () => {
     deepStrictEqual(f, [101, 202, 303]);
     deepStrictEqual(g, person);
     logGreen("test function succeed");
+    freePointer({
+      paramsType: [funcConstructor({
+        paramsType: [
+          DataType.I32,
+          DataType.Boolean,
+          DataType.String,
+          DataType.Double,
+          arrayConstructor({ type: DataType.StringArray, length: 2 }),
+          arrayConstructor({ type: DataType.I32Array, length: 3 }),
+          personType,
+        ],
+        retType: DataType.Void,
+      })],
+      paramsValue: funcExternal
+    })
     if (!process.env.MEMORY) {
       close("libsum");
     }
@@ -440,24 +456,6 @@ const testFunction = () => {
     })],
     paramsValue: [func]
   })
-  load({
-    library: "libsum",
-    funcName: "callFunction",
-    retType: DataType.Void,
-    paramsType: [funcConstructor({
-      paramsType: [
-        DataType.I32,
-        DataType.Boolean,
-        DataType.String,
-        DataType.Double,
-        arrayConstructor({ type: DataType.StringArray, length: 2 }),
-        arrayConstructor({ type: DataType.I32Array, length: 3 }),
-        personType,
-      ],
-      retType: DataType.Void,
-    })],
-    paramsValue: [func]
-  });
   load({
     library: "libsum",
     funcName: "callFunction",
@@ -530,7 +528,6 @@ const unitTest = () => {
   // testMainProgram()
   // logGreen('test main program succeed')
   testFunction()
-  logGreen('test function succeed')
   // testCpp()
   // logGreen('test cpp succeed')
   // testObject()

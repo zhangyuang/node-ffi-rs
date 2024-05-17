@@ -1,4 +1,4 @@
-use crate::utils::dataprocess::{get_array_desc, get_ffi_tag};
+use crate::utils::dataprocess::{get_array_desc, get_ffi_tag, get_func_desc};
 use libc::{c_double, c_float, c_int, c_void, free};
 use libffi::middle::Closure;
 use std::ffi::{c_char, CStr, CString};
@@ -47,7 +47,7 @@ pub unsafe fn free_pointer_memory(ptr: *mut c_void, ptr_desc: RsArgsValue) {
       let basic_data_type = number_to_basic_data_type(number);
       match basic_data_type {
         BasicDataType::String => {
-          let _ = CString::from_raw(ptr as *mut i8);
+          let _ = CString::from_raw(*(ptr as *mut *mut i8));
         }
         BasicDataType::U8 => free(ptr),
         BasicDataType::I32 => free(ptr),
@@ -94,7 +94,10 @@ pub unsafe fn free_pointer_memory(ptr: *mut c_void, ptr_desc: RsArgsValue) {
         }
       }
       if let FFITag::Function = ffi_tag {
-        let _ = Box::from_raw(*(ptr as *mut *mut Closure));
+        let func_desc = get_func_desc(&obj);
+        if func_desc.need_free {
+          let _ = Box::from_raw(*(ptr as *mut *mut Closure));
+        }
       } else {
         // raw object
       }

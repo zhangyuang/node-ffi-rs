@@ -154,8 +154,6 @@ typedef const void (*FunctionPointer)(int a, bool b, char *c, double d,
 
 extern "C" void callFunction(FunctionPointer func) {
   // printf("callFunction\n");
-
-  for (int i = 0; i < 2; i++) {
     int a = 100;
     bool b = false;
     double d = 100.11;
@@ -173,7 +171,6 @@ extern "C" void callFunction(FunctionPointer func) {
 
     Person *p = createPerson();
     func(a, b, c, d, stringArray, i32Array, p);
-  }
 }
 
 // 定义 C++ 类

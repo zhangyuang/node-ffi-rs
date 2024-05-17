@@ -80,6 +80,11 @@ pub struct FFIARRARYDESC<'a> {
   pub array_len: usize,
   pub array_value: Option<&'a RsArgsValue>,
 }
+
+pub struct FFIFUNCDESC {
+  pub need_free: bool,
+}
+
 #[napi]
 #[derive(Debug)]
 pub enum DataType {
@@ -338,6 +343,7 @@ pub const ARRAY_VALUE_TAG: &str = "value";
 pub const FFI_TAG_FIELD: &str = "ffiTypeTag";
 pub const ARRAY_FFI_TAG: &str = "array";
 pub const FUNCTION_FFI_TAG: &str = "function";
+pub const FUNCTION_FREE_TAG: &str = "needFree";
 #[derive(Debug)]
 pub enum FFITag {
   Array,
