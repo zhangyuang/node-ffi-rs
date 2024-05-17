@@ -103,6 +103,7 @@ export function createPointer(params: {
 }): JsExternal[]
 
 export function freePointer(params: {
+  paramsType: Array<FieldType>;
   paramsValue: Array<JsExternal>;
 }): void
 

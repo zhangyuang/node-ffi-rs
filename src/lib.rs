@@ -91,12 +91,24 @@ unsafe fn wrap_pointer(env: Env, params: Vec<JsExternal>) -> Result<Vec<JsExtern
     })
     .collect()
 }
+
 #[napi]
-unsafe fn free_pointer(env: Env, params: Vec<JsExternal>) {
-  params.into_iter().for_each(|js_external| {
-    let ptr = get_js_external_wrap_data(&env, js_external).unwrap();
-    free(ptr)
-  });
+unsafe fn free_pointer(env: Env, params: FreePointerParams) {
+  let FreePointerParams {
+    params_type,
+    params_value,
+  } = params;
+  let params_type_rs: Vec<RsArgsValue> = params_type
+    .into_iter()
+    .map(|param| type_define_to_rs_args(&env, param).unwrap())
+    .collect();
+  params_value
+    .into_iter()
+    .zip(params_type_rs.into_iter())
+    .for_each(|(js_external, ptr_desc)| {
+      let ptr = get_js_external_wrap_data(&env, js_external).unwrap();
+      free_pointer_memory(ptr, ptr_desc)
+    });
 }
 
 #[napi]
@@ -288,10 +300,10 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     ffi_call(&mut cif, Some(func), result, arg_values_c_void.as_mut_ptr());
     let call_result = get_js_unknown_from_pointer(&env, &ret_type_rs, result);
     free_pointer_memory(result, ret_type_rs);
-    // arg_values_c_void
-    //   .into_iter()
-    //   .zip(params_type_rs.into_iter())
-    //   .for_each(|(ptr, ptr_desc)| free_pointer_memory(ptr, ptr_desc));
+    arg_values_c_void
+      .into_iter()
+      .zip(params_type_rs.into_iter())
+      .for_each(|(ptr, ptr_desc)| free_pointer_memory(ptr, ptr_desc));
     if errno.is_some() && errno.unwrap() {
       add_errno(&env, call_result?)
     } else {

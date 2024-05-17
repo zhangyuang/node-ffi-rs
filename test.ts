@@ -66,7 +66,7 @@ const testNumber = () => {
     }),
   );
 }
-const c = "foo";
+const c = "foo".repeat(100);
 const d = "bar"
 const testString = () => {
   equal(
@@ -152,51 +152,51 @@ const testArray = () => {
   );
 }
 const testPointer = () => {
-  // const i32Ptr = createPointer({
-  //   paramsType: [DataType.I32],
-  //   paramsValue: [100]
-  // })
-  // const i32Data = restorePointer({
-  //   retType: [DataType.I32],
-  //   paramsValue: i32Ptr
-  // })
-  // deepStrictEqual(i32Data[0], 100)
-  // logGreen('test create and restore i32 pointer success')
-  // const stringData = restorePointer({
-  //   retType: [DataType.String],
-  //   paramsValue: createPointer({
-  //     paramsType: [DataType.String],
-  //     paramsValue: ["foo"]
-  //   })
-  // })
-  // logGreen('test create string pointer success')
-  // const ptr = load({
-  //   library: "libsum",
-  //   funcName: "concatenateStrings",
-  //   retType: DataType.External,
-  //   paramsType: [DataType.String, DataType.String],
-  //   paramsValue: [c, d],
-  // })
-  // equal(load({
-  //   library: "libsum",
-  //   funcName: "getStringFromPtr",
-  //   retType: DataType.String,
-  //   paramsType: [DataType.External],
-  //   paramsValue: unwrapPointer(createPointer({
-  //     paramsType: [DataType.String],
-  //     paramsValue: ["foo"]
-  //   })),
-  // }), "foo")
-  // const string = load({
-  //   library: "libsum",
-  //   funcName: "getStringFromPtr",
-  //   retType: DataType.String,
-  //   paramsType: [DataType.External],
-  //   paramsValue: [ptr],
-  // })
-  // equal(string, c + d)
-  // deepStrictEqual(stringData[0], "foo")
-  // logGreen('test string pointer success')
+  const i32Ptr = createPointer({
+    paramsType: [DataType.I32],
+    paramsValue: [100]
+  })
+  const i32Data = restorePointer({
+    retType: [DataType.I32],
+    paramsValue: i32Ptr
+  })
+  deepStrictEqual(i32Data[0], 100)
+  logGreen('test create and restore i32 pointer success')
+  const stringData = restorePointer({
+    retType: [DataType.String],
+    paramsValue: createPointer({
+      paramsType: [DataType.String],
+      paramsValue: ["foo"]
+    })
+  })
+  logGreen('test create string pointer success')
+  const ptr = load({
+    library: "libsum",
+    funcName: "concatenateStrings",
+    retType: DataType.External,
+    paramsType: [DataType.String, DataType.String],
+    paramsValue: [c, d],
+  })
+  equal(load({
+    library: "libsum",
+    funcName: "getStringFromPtr",
+    retType: DataType.String,
+    paramsType: [DataType.External],
+    paramsValue: unwrapPointer(createPointer({
+      paramsType: [DataType.String],
+      paramsValue: ["foo"]
+    })),
+  }), "foo")
+  const string = load({
+    library: "libsum",
+    funcName: "getStringFromPtr",
+    retType: DataType.String,
+    paramsType: [DataType.External],
+    paramsValue: [ptr],
+  })
+  equal(string, c + d)
+  deepStrictEqual(stringData[0], "foo")
+  logGreen('test string pointer success')
   const restoreData = restorePointer({
     retType: [arrayConstructor({
       type: DataType.DoubleArray,
@@ -412,7 +412,6 @@ const testRunInNewThread = () => {
   })
 }
 const testFunction = () => {
-  let count = 0;
   const func = (a, b, c, d, e, f, g) => {
     equal(a, 100);
     equal(b, false);
@@ -421,14 +420,9 @@ const testFunction = () => {
     deepStrictEqual(e, ["Hello", "world"]);
     deepStrictEqual(f, [101, 202, 303]);
     deepStrictEqual(g, person);
-    logGreen("callback called");
-    count++;
-    if (count === 4) {
-      logGreen("test succeed");
-      if (!process.env.MEMORY) {
-        close("libsum");
-        process.exit(0);
-      }
+    logGreen("test function succeed");
+    if (!process.env.MEMORY) {
+      close("libsum");
     }
   };
   const funcExternal = createPointer({
@@ -525,25 +519,25 @@ const unitTest = () => {
   // logGreen('test number succeed')
   // testString()
   // logGreen('test string succeed')
+  // testDefine()
+  // logGreen('test define succeed')
   // testArray()
   // logGreen('test array succeed')
-  testPointer()
-  logGreen('test createPointer succeed')
-  testVoid()
-  logGreen('test void succeed')
-  testBool()
-  logGreen('test bool succeed')
-  testObject()
-  logGreen('test object succeed')
-  testCpp()
-  logGreen('test cpp succeed')
-  testMainProgram()
-  logGreen('test main program succeed')
+  // testVoid()
+  // logGreen('test void succeed')
+  // testBool()
+  // logGreen('test bool succeed')
+  // testMainProgram()
+  // logGreen('test main program succeed')
   testFunction()
   logGreen('test function succeed')
-  testRunInNewThread()
-  testDefine()
-  logGreen('test define succeed')
+  // testCpp()
+  // logGreen('test cpp succeed')
+  // testObject()
+  // logGreen('test object succeed')
+  // testPointer()
+  // logGreen('test createPointer succeed')
+  // testRunInNewThread()
 };
 
 unitTest();

@@ -313,6 +313,12 @@ pub struct CreatePointerParams {
 }
 
 #[napi(object)]
+pub struct FreePointerParams {
+  pub params_type: Vec<JsUnknown>,
+  pub params_value: Vec<JsExternal>,
+}
+
+#[napi(object)]
 pub struct StorePointerParams {
   pub ret_type: Vec<JsUnknown>,
   pub params_value: Vec<JsExternal>,

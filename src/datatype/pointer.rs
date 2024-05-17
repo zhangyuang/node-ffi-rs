@@ -1,5 +1,6 @@
 use crate::utils::dataprocess::{get_array_desc, get_ffi_tag};
 use libc::{c_double, c_float, c_int, c_void, free};
+use libffi::middle::Closure;
 use std::ffi::{c_char, CStr, CString};
 
 use crate::define::*;
@@ -40,17 +41,6 @@ where
   unsafe { (0..len).map(|_| pointer.get_and_advance()).collect() }
 }
 
-pub enum OneHeavyPointer {
-  Single(*mut c_void),
-  Array(Vec<*mut c_void>),
-}
-pub unsafe fn free_one_heavy_pointer(ptr: OneHeavyPointer) {
-  match ptr {
-    OneHeavyPointer::Single(ptr) => free(ptr),
-    OneHeavyPointer::Array(ptr_arr) => ptr_arr.into_iter().for_each(|ptr| free(ptr)),
-  }
-}
-
 pub unsafe fn free_pointer_memory(ptr: *mut c_void, ptr_desc: RsArgsValue) {
   match ptr_desc {
     RsArgsValue::I32(number) => {
@@ -73,7 +63,8 @@ pub unsafe fn free_pointer_memory(ptr: *mut c_void, ptr_desc: RsArgsValue) {
       }
     }
     RsArgsValue::Object(obj) => {
-      if let FFITag::Array = get_ffi_tag(&obj) {
+      let ffi_tag = get_ffi_tag(&obj);
+      if let FFITag::Array = ffi_tag {
         let array_desc = get_array_desc(&obj);
         // array
         let FFIARRARYDESC {
@@ -101,6 +92,9 @@ pub unsafe fn free_pointer_memory(ptr: *mut c_void, ptr_desc: RsArgsValue) {
             });
           }
         }
+      }
+      if let FFITag::Function = ffi_tag {
+        let _ = Box::from_raw(*(ptr as *mut *mut Closure));
       } else {
         // raw object
       }
