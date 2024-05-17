@@ -422,6 +422,7 @@ const testFunction = () => {
     deepStrictEqual(f, [101, 202, 303]);
     deepStrictEqual(g, person);
     logGreen("test function succeed");
+    // free function memory when it not in use
     freePointer({
       paramsType: [funcConstructor({
         paramsType: [

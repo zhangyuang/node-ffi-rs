@@ -530,7 +530,7 @@ staticBytes: arrayConstructor({
 
 ## Function
 
-`ffi-rs` supports passing js function to c, like this
+`ffi-rs` supports passing js function pointer to c function, like this.
 
 ```cpp
 typedef const void (*FunctionPointer)(int a, bool b, char *c, double d,
@@ -564,64 +564,62 @@ extern "C" void callFunction(FunctionPointer func) {
 Corresponds to the code above，you can use `ffi-rs` like
 
 ```js
-let count = 0;
-const func = (a, b, c, d, e, f, g) => {
-  equal(a, 100);
-  equal(b, false);
-  equal(c, "Hello, World!");
-  equal(d, "100.11");
-  deepStrictEqual(e, ["Hello", "world"]);
-  deepStrictEqual(f, [101, 202, 303]);
-  deepStrictEqual(g, person);
-  console.log("callback called");
-  count++;
-  if (count === 4) {
-    logGreen("test succeed");
-    process.exit(0);
-  }
-};
-const funcExternal = createPointer({
-  paramsType: [funcConstructor({
-    paramsType: [
-      DataType.I32,
-      DataType.Boolean,
-      DataType.String,
-      DataType.Double,
-      arrayConstructor({ type: DataType.StringArray, length: 2 }),
-      arrayConstructor({ type: DataType.I32Array, length: 3 }),
-      personType,
-    ],
+const testFunction = () => {
+  const func = (a, b, c, d, e, f, g) => {
+    equal(a, 100);
+    equal(b, false);
+    equal(c, "Hello, World!");
+    equal(d, "100.11");
+    deepStrictEqual(e, ["Hello", "world"]);
+    deepStrictEqual(f, [101, 202, 303]);
+    deepStrictEqual(g, person);
+    logGreen("test function succeed");
+    // free function memory when it not in use
+    freePointer({
+      paramsType: [funcConstructor({
+        paramsType: [
+          DataType.I32,
+          DataType.Boolean,
+          DataType.String,
+          DataType.Double,
+          arrayConstructor({ type: DataType.StringArray, length: 2 }),
+          arrayConstructor({ type: DataType.I32Array, length: 3 }),
+          personType,
+        ],
+        retType: DataType.Void,
+      })],
+      paramsValue: funcExternal
+    })
+    if (!process.env.MEMORY) {
+      close("libsum");
+    }
+  };
+  // suggest use createPointer to create a function pointer for manual memory management
+  const funcExternal = createPointer({
+    paramsType: [funcConstructor({
+      paramsType: [
+        DataType.I32,
+        DataType.Boolean,
+        DataType.String,
+        DataType.Double,
+        arrayConstructor({ type: DataType.StringArray, length: 2 }),
+        arrayConstructor({ type: DataType.I32Array, length: 3 }),
+        personType,
+      ],
+      retType: DataType.Void,
+    })],
+    paramsValue: [func]
+  })
+  load({
+    library: "libsum",
+    funcName: "callFunction",
     retType: DataType.Void,
-  })],
-  paramsValue: [func]
-})
-load({
-  library: "libsum",
-  funcName: "callFunction",
-  retType: DataType.Void,
-  paramsType: [funcConstructor({
     paramsType: [
-      DataType.I32,
-      DataType.Boolean,
-      DataType.String,
-      DataType.Double,
-      arrayConstructor({ type: DataType.StringArray, length: 2 }),
-      arrayConstructor({ type: DataType.I32Array, length: 3 }),
-      personType,
+      DataType.External,
     ],
-    retType: DataType.Void,
-  })],
-  paramsValue: [func]
-});
-load({
-  library: "libsum",
-  funcName: "callFunction",
-  retType: DataType.Void,
-  paramsType: [
-    DataType.External,
-  ],
-  paramsValue: unwrapPointer(funcExternal),
-});
+    paramsValue: unwrapPointer(funcExternal),
+  });
+}
 ```
 
 The function parameters supports type are all in the example above
