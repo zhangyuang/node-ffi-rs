@@ -67,8 +67,11 @@ pub fn get_array_desc(obj: &IndexMap<String, RsArgsValue>) -> FFIARRARYDESC {
     array_len,
     dynamic_array: array_dynamic,
     array_type,
-    array_value: obj.get(ARRAY_VALUE_TAG),
   }
+}
+
+pub fn get_array_value(obj: &mut IndexMap<String, RsArgsValue>) -> Option<RsArgsValue> {
+  obj.remove(ARRAY_VALUE_TAG)
 }
 
 pub fn get_func_desc(obj: &IndexMap<String, RsArgsValue>) -> FFIFUNCDESC {

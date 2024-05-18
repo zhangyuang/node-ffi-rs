@@ -74,11 +74,10 @@ where
   }
 }
 
-pub struct FFIARRARYDESC<'a> {
+pub struct FFIARRARYDESC {
   pub dynamic_array: bool,
   pub array_type: RefDataType,
   pub array_len: usize,
-  pub array_value: Option<&'a RsArgsValue>,
 }
 
 pub struct FFIFUNCDESC {

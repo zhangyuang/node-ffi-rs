@@ -315,7 +315,7 @@ pub unsafe fn free_rs_pointer_memory(ptr: *mut c_void, ptr_desc: RsArgsValue) {
           let _ = Box::from_raw(*(ptr as *mut *mut Closure));
         }
       } else {
-        free_struct_memory(ptr, obj)
+        // free_struct_memory(ptr, obj)
       }
     }
     _ => panic!("free rust pointer memory error"),

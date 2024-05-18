@@ -1,5 +1,7 @@
 use crate::define::*;
-use crate::utils::dataprocess::{get_array_desc, get_ffi_tag, get_js_external_wrap_data};
+use crate::utils::dataprocess::{
+  get_array_desc, get_array_value, get_ffi_tag, get_js_external_wrap_data,
+};
 use crate::utils::object_utils::get_size_align;
 use crate::RefDataType;
 use indexmap::IndexMap;
@@ -196,15 +198,14 @@ pub unsafe fn generate_c_struct(
       }
       RsArgsValue::Object(mut val) => {
         if let FFITag::Array = get_ffi_tag(&val) {
-          let array_desc = get_array_desc(&mut val);
+          let array_desc = get_array_desc(&val);
+          let array_value = get_array_value(&mut val).unwrap();
           let FFIARRARYDESC {
             array_type,
             array_len,
-            array_value,
             dynamic_array,
             ..
           } = array_desc;
-          let array_value = array_value.unwrap();
           let field_size = match array_type {
             RefDataType::U8Array => {
               if let RsArgsValue::U8Array(buffer, _) = array_value {
@@ -230,7 +231,7 @@ pub unsafe fn generate_c_struct(
               }
             }
             RefDataType::I32Array => {
-              if let RsArgsValue::I32Array(arr) = array_value.clone() {
+              if let RsArgsValue::I32Array(arr) = array_value {
                 if !dynamic_array {
                   let (size, align) = get_size_align::<i32>();
                   let field_size = size * array_len;
@@ -253,7 +254,7 @@ pub unsafe fn generate_c_struct(
               }
             }
             RefDataType::DoubleArray => {
-              if let RsArgsValue::DoubleArray(arr) = array_value.clone() {
+              if let RsArgsValue::DoubleArray(arr) = array_value {
                 if !dynamic_array {
                   let (size, align) = get_size_align::<f64>();
                   let field_size = size * array_len;
@@ -276,7 +277,7 @@ pub unsafe fn generate_c_struct(
               }
             }
             RefDataType::FloatArray => {
-              if let RsArgsValue::FloatArray(arr) = array_value.clone() {
+              if let RsArgsValue::FloatArray(arr) = array_value {
                 if !dynamic_array {
                   let (size, align) = get_size_align::<f32>();
                   let field_size = size * array_len;
@@ -299,7 +300,7 @@ pub unsafe fn generate_c_struct(
               }
             }
             RefDataType::StringArray => {
-              if let RsArgsValue::StringArray(arr) = array_value.clone() {
+              if let RsArgsValue::StringArray(arr) = array_value {
                 if !dynamic_array {
                   panic!(
                     "write {:?} to static array in struct is unsupported",
