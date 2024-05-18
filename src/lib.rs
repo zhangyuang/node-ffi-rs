@@ -14,7 +14,7 @@ use libffi_sys::{
 };
 use napi::{Env, JsExternal, JsUnknown, Result};
 
-use datatype::pointer::free_pointer_memory;
+use datatype::pointer::{free_c_pointer_memory, free_rs_pointer_memory};
 use std::collections::HashMap;
 use std::ffi::c_void;
 use utils::dataprocess::{
@@ -97,6 +97,7 @@ unsafe fn free_pointer(env: Env, params: FreePointerParams) {
   let FreePointerParams {
     params_type,
     params_value,
+    pointer_type,
   } = params;
   let params_type_rs: Vec<RsArgsValue> = params_type
     .into_iter()
@@ -107,7 +108,10 @@ unsafe fn free_pointer(env: Env, params: FreePointerParams) {
     .zip(params_type_rs.into_iter())
     .for_each(|(js_external, ptr_desc)| {
       let ptr = get_js_external_wrap_data(&env, js_external).unwrap();
-      free_pointer_memory(ptr, ptr_desc)
+      match pointer_type {
+        PointerType::CPointer => free_c_pointer_memory(ptr, ptr_desc, false),
+        PointerType::RsPointer => free_rs_pointer_memory(ptr, ptr_desc),
+      }
     });
 }
 
@@ -299,11 +303,11 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     let result = malloc(std::mem::size_of::<*mut c_void>());
     ffi_call(&mut cif, Some(func), result, arg_values_c_void.as_mut_ptr());
     let call_result = get_js_unknown_from_pointer(&env, &ret_type_rs, result);
-    free_pointer_memory(result, ret_type_rs);
+    free_c_pointer_memory(result, ret_type_rs, false);
     arg_values_c_void
       .into_iter()
       .zip(params_type_rs.into_iter())
-      .for_each(|(ptr, ptr_desc)| free_pointer_memory(ptr, ptr_desc));
+      .for_each(|(ptr, ptr_desc)| free_rs_pointer_memory(ptr, ptr_desc));
     if errno.is_some() && errno.unwrap() {
       add_errno(&env, call_result?)
     } else {

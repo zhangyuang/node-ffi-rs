@@ -308,6 +308,7 @@ if (!nativeBinding) {
 const { DataType, createPointer, restorePointer, unwrapPointer, wrapPointer, freePointer, open, close, load } = nativeBinding
 
 module.exports.DataType = DataType
+module.exports.PointerType = nativeBinding.PointerType
 module.exports.open = open
 module.exports.close = close
 module.exports.load = load
@@ -318,6 +319,7 @@ const arrayConstructor = (options) => ({
   ...options,
   ffiTypeTag: 'array'
 })
+
 const processParamsTypeForArray = (params) => {
   params.paramsType = params.paramsType?.map((paramType, index) => {
     if (arrayDataType.includes(paramType)) {
@@ -331,7 +333,7 @@ const processParamsTypeForArray = (params) => {
   return params
 }
 
-const setFreeFuncTag = (params) => {
+const setFreePointerTag = (params) => {
   params.paramsType = params.paramsType?.map((paramType, index) => {
     if (paramType.ffiTypeTag === 'function') {
       paramType.needFree = true
@@ -346,7 +348,7 @@ exports.createPointer = (params) => createPointer(processParamsTypeForArray(para
 exports.restorePointer = (params) => restorePointer(processParamsTypeForArray(params))
 exports.unwrapPointer = (params) => unwrapPointer(processParamsTypeForArray(params))
 exports.wrapPointer = (params) => wrapPointer(processParamsTypeForArray(params))
-exports.freePointer = (params) => freePointer(setFreeFuncTag(processParamsTypeForArray(params)))
+exports.freePointer = (params) => freePointer(setFreePointerTag(processParamsTypeForArray(params)))
 exports.arrayConstructor = arrayConstructor
 exports.funcConstructor = (options) => ({
   ffiTypeTag: 'function',

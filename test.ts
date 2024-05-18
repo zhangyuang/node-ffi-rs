@@ -12,6 +12,7 @@ import {
   wrapPointer,
   freePointer,
   define,
+  PointerType
 } from "./index"
 
 const platform = process.platform;
@@ -161,23 +162,27 @@ const testPointer = () => {
     retType: [DataType.I32],
     paramsValue: i32Ptr
   })
+  freePointer({
+    paramsType: [DataType.I32],
+    paramsValue: i32Ptr,
+    pointerType: PointerType.RsPointer
+  })
   deepStrictEqual(i32Data[0], 100)
   logGreen('test create and restore i32 pointer success')
+  const stringPointer = createPointer({
+    paramsType: [DataType.String],
+    paramsValue: ["foo"]
+  })
   const stringData = restorePointer({
     retType: [DataType.String],
-    paramsValue: createPointer({
-      paramsType: [DataType.String],
-      paramsValue: ["foo"]
-    })
+    paramsValue: stringPointer
+  })
+  freePointer({
+    paramsType: [DataType.String],
+    paramsValue: stringPointer,
+    pointerType: PointerType.RsPointer
   })
   logGreen('test create string pointer success')
-  const ptr = load({
-    library: "libsum",
-    funcName: "concatenateStrings",
-    retType: DataType.External,
-    paramsType: [DataType.String, DataType.String],
-    paramsValue: [c, d],
-  })
   equal(load({
     library: "libsum",
     funcName: "getStringFromPtr",
@@ -188,6 +193,13 @@ const testPointer = () => {
       paramsValue: ["foo"]
     })),
   }), "foo")
+  const ptr = load({
+    library: "libsum",
+    funcName: "concatenateStrings",
+    retType: DataType.External,
+    paramsType: [DataType.String, DataType.String],
+    paramsValue: [c, d],
+  })
   const string = load({
     library: "libsum",
     funcName: "getStringFromPtr",
@@ -316,43 +328,17 @@ const personType = {
   }),
 };
 const testObject = () => {
-  const personObjType = {
-    age: DataType.I32,
-    doubleArray: DataType.DoubleArray,
-    parent: {
-      age: DataType.I32,
-      doubleArray: DataType.DoubleArray,
-      parent: {},
-      doubleProps: DataType.Double,
-      name: DataType.String,
-      stringArray: DataType.StringArray,
-      i32Array: DataType.I32Array,
-      staticBytes: arrayConstructor({
-        type: DataType.U8Array,
-        length: parent.staticBytes.length,
-        dynamicArray: false
-      }),
-      boolTrue: DataType.Boolean,
-      boolFalse: DataType.Boolean,
-      longVal: DataType.U64,
-      byte: DataType.U8,
-      byteArray: DataType.U8Array,
-    },
-    doubleProps: DataType.Double,
-    name: DataType.String,
-    stringArray: DataType.StringArray,
-    i32Array: DataType.I32Array,
-    staticBytes: arrayConstructor({
-      type: DataType.U8Array,
-      length: person.staticBytes.length,
-      dynamicArray: false
-    }),
-    boolTrue: DataType.Boolean,
-    boolFalse: DataType.Boolean,
-    longVal: DataType.U64,
-    byte: DataType.U8,
-    byteArray: DataType.U8Array,
-  }
+  const personObj = load({
+    library: "libsum",
+    funcName: "getStruct",
+    retType: personType,
+    paramsType: [
+      personType
+    ],
+    paramsValue: [person],
+  });
+  deepStrictEqual(person, personObj);
+  logGreen('test getStruct succeed')
   const createdPerson = load({
     library: "libsum",
     funcName: "createPerson",
@@ -362,19 +348,8 @@ const testObject = () => {
   });
   deepStrictEqual(createdPerson, person);
   logGreen('test createdPerson succeed')
-  const personObj = load({
-    library: "libsum",
-    funcName: "getStruct",
-    retType: personType,
-    paramsType: [
-      personObjType
-    ],
-    paramsValue: [person],
-  });
-  deepStrictEqual(person, personObj);
-  logGreen('test getStruct succeed')
   let personPointer = createPointer({
-    paramsType: [personObjType],
+    paramsType: [personType],
     paramsValue: [person]
   })
   const personObjByPointer = load({
@@ -389,7 +364,7 @@ const testObject = () => {
   deepStrictEqual(person, personObjByPointer);
   logGreen('test getStructByPointer succeed')
   personPointer = createPointer({
-    paramsType: [personObjType],
+    paramsType: [personType],
     paramsValue: [person]
   })
   const restorePersonObjByPointer = restorePointer({
@@ -436,7 +411,8 @@ const testFunction = () => {
         ],
         retType: DataType.Void,
       })],
-      paramsValue: funcExternal
+      paramsValue: funcExternal,
+      pointerType: PointerType.RsPointer
     })
     if (!process.env.MEMORY) {
       close("libsum");
@@ -528,11 +504,11 @@ const unitTest = () => {
   // logGreen('test bool succeed')
   // testMainProgram()
   // logGreen('test main program succeed')
-  testFunction()
+  // testFunction()
   // testCpp()
   // logGreen('test cpp succeed')
-  // testObject()
-  // logGreen('test object succeed')
+  testObject()
+  logGreen('test object succeed')
   // testPointer()
   // logGreen('test createPointer succeed')
   // testRunInNewThread()

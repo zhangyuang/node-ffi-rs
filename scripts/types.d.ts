@@ -103,9 +103,15 @@ export function createPointer(params: {
   paramsValue: Array<unknown>;
 }): JsExternal[]
 
+export enum PointerType {
+  RsPointer = 0,
+  CPointer = 1
+}
+
 export function freePointer(params: {
   paramsType: Array<FieldType>;
   paramsValue: Array<JsExternal>;
+  pointerType: PointerType
 }): void
 
 

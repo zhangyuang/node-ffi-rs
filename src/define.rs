@@ -172,7 +172,7 @@ pub fn rs_value_to_ffi_type(value: &RsArgsValue) -> Type {
 
 pub fn number_to_basic_data_type(value: i32) -> BasicDataType {
   if is_array_type(&value) {
-    panic!("If you want to use array type as return value type, you must use arrayConstrutor describe array type in retType field")
+    panic!("In the latest ffi-rs version, please use ffi-rs.arrayConstrutor to describe array type")
   }
   match value {
     0 => BasicDataType::String,
@@ -241,7 +241,7 @@ impl Clone for RsArgsValue {
       RsArgsValue::Object(map) => RsArgsValue::Object(map.clone()),
       RsArgsValue::Boolean(b) => RsArgsValue::Boolean(*b),
       RsArgsValue::Void(()) => RsArgsValue::Void(()),
-      RsArgsValue::U8Array(_, _) => panic!("Function cannot be cloned"),
+      RsArgsValue::U8Array(_, _) => panic!("U8Array is buffer cannot be cloned"),
       RsArgsValue::Function(_, _) => panic!("Function cannot be cloned"),
       RsArgsValue::External(_) => panic!("External cannot be cloned"),
     }
@@ -317,10 +317,17 @@ pub struct CreatePointerParams {
   pub params_value: Vec<JsUnknown>,
 }
 
+#[napi]
+pub enum PointerType {
+  RsPointer,
+  CPointer,
+}
+
 #[napi(object)]
 pub struct FreePointerParams {
   pub params_type: Vec<JsUnknown>,
   pub params_value: Vec<JsExternal>,
+  pub pointer_type: PointerType,
 }
 
 #[napi(object)]

@@ -385,7 +385,7 @@ pub unsafe fn get_value_pointer(
               .map(|(index, c_param)| {
                 let arg_type = func_args_type_rs.get(&index.to_string()).unwrap();
                 let param = get_rs_value_from_pointer(env, arg_type, c_param, true);
-                // free_pointer_memory(c_param, arg_type.clone());
+                free_c_pointer_memory(c_param, arg_type.clone(), true);
                 param
               })
               .collect();
