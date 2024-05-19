@@ -48,7 +48,6 @@ unsafe fn free_struct_memory(ptr: *mut c_void, struct_desc: IndexMap<String, RsA
   let mut offset = 0;
   let mut field_size = 0;
   for (_, val) in struct_desc {
-    println!("xx{:?}:{:?}", val, ptr);
     if let RsArgsValue::I32(number) = val {
       let data_type = number_to_basic_data_type(number);
       match data_type {
@@ -224,11 +223,11 @@ unsafe fn free_struct_memory(ptr: *mut c_void, struct_desc: IndexMap<String, RsA
           let _ = free(*(ptr as *mut *mut Closure) as *mut c_void);
         }
       } else {
-        // raw object
+        // struct
         let (size, align) = get_size_align::<*const c_void>();
         let padding = (align - (offset % align)) % align;
         field_ptr = field_ptr.offset(padding as isize);
-        free_struct_memory(ptr, obj);
+        free_struct_memory(*(field_ptr as *mut *mut c_void), obj);
         offset += size + padding;
         field_size = size
       };
@@ -309,7 +308,7 @@ pub unsafe fn free_rs_pointer_memory(ptr: *mut c_void, ptr_desc: RsArgsValue) {
           let _ = Box::from_raw(*(ptr as *mut *mut Closure));
         }
       } else {
-        free_struct_memory(ptr, obj)
+        free_struct_memory(*(ptr as *mut *mut c_void), obj)
       }
     }
     _ => panic!("free rust pointer memory error"),
@@ -356,8 +355,8 @@ pub unsafe fn free_c_pointer_memory(ptr: *mut c_void, ptr_desc: RsArgsValue) {
           let _ = free(*(ptr as *mut *mut Closure) as *mut c_void);
         }
       } else {
-        // raw object
-        free_struct_memory(ptr, obj)
+        // struct
+        free_struct_memory(*(ptr as *mut *mut c_void), obj)
       }
     }
     _ => panic!("free c pointer memory error"),
