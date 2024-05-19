@@ -6,7 +6,7 @@ mod define;
 mod utils;
 use define::*;
 use dlopen::symbor::{Library, Symbol};
-use libc::{free, malloc};
+use libc::{c_double, free, malloc};
 use libffi_sys::{
   ffi_abi_FFI_DEFAULT_ABI, ffi_call, ffi_cif, ffi_prep_cif, ffi_type, ffi_type_double,
   ffi_type_float, ffi_type_pointer, ffi_type_sint32, ffi_type_sint64, ffi_type_uint64,
@@ -80,7 +80,6 @@ unsafe fn unwrap_pointer(env: Env, params: Vec<JsExternal>) -> Result<Vec<JsExte
     })
     .collect()
 }
-
 #[napi]
 unsafe fn wrap_pointer(env: Env, params: Vec<JsExternal>) -> Result<Vec<JsExternal>> {
   params
@@ -91,7 +90,6 @@ unsafe fn wrap_pointer(env: Env, params: Vec<JsExternal>) -> Result<Vec<JsExtern
     })
     .collect()
 }
-
 #[napi]
 unsafe fn free_pointer(env: Env, params: FreePointerParams) {
   let FreePointerParams {
@@ -109,8 +107,8 @@ unsafe fn free_pointer(env: Env, params: FreePointerParams) {
     .for_each(|(js_external, ptr_desc)| {
       let ptr = get_js_external_wrap_data(&env, js_external).unwrap();
       match pointer_type {
-        PointerType::CPointer => free_c_pointer_memory(ptr, ptr_desc),
-        PointerType::RsPointer => free_rs_pointer_memory(ptr, ptr_desc),
+        PointerType::CPointer => free_c_pointer_memory(ptr, ptr_desc, true),
+        PointerType::RsPointer => free_rs_pointer_memory(ptr, ptr_desc, true),
       }
     });
 }
@@ -200,6 +198,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     params_value,
     errno,
     run_in_new_thread,
+    need_free_result_memory,
   } = params;
   let func = get_symbol(&library, &func_name)?;
   let params_type_len = params_type.len();
@@ -277,10 +276,24 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
 
       fn resolve(&mut self, env: Env, output: Self::Output) -> Result<JsUnknown> {
         let FFICALLPARAMS {
-          ret_type_rs, errno, ..
+          ret_type_rs,
+          errno,
+          arg_values_c_void,
+          need_free_result_memory,
+          params_type_rs,
+          ..
         } = &mut self.data;
         unsafe {
           let call_result = get_js_unknown_from_pointer(&env, &ret_type_rs, output.0);
+          if *need_free_result_memory {
+            free_c_pointer_memory(output.0, ret_type_rs.clone(), false);
+          }
+          arg_values_c_void
+            .into_iter()
+            .zip(params_type_rs.into_iter())
+            .for_each(|(ptr, ptr_desc)| {
+              free_rs_pointer_memory(*ptr, ptr_desc.clone(), false);
+            });
           if errno.is_some() && errno.unwrap() {
             add_errno(&env, call_result?)
           } else {
@@ -295,6 +308,8 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
       ret_type_rs,
       fn_pointer: func,
       errno,
+      need_free_result_memory,
+      params_type_rs,
     });
     let async_work_promise = env.spawn(task)?;
     Ok(async_work_promise.promise_object().into_unknown())
@@ -302,12 +317,14 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     let result = &mut () as *mut _ as *mut c_void;
     ffi_call(&mut cif, Some(func), result, arg_values_c_void.as_mut_ptr());
     let call_result = get_js_unknown_from_pointer(&env, &ret_type_rs, result);
-    free_c_pointer_memory(result, ret_type_rs);
+    if need_free_result_memory {
+      free_c_pointer_memory(result, ret_type_rs, false);
+    }
     arg_values_c_void
       .into_iter()
       .zip(params_type_rs.into_iter())
       .for_each(|(ptr, ptr_desc)| {
-        free_rs_pointer_memory(ptr, ptr_desc);
+        free_rs_pointer_memory(ptr, ptr_desc, false);
       });
     if errno.is_some() && errno.unwrap() {
       add_errno(&env, call_result?)

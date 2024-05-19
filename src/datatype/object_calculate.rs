@@ -209,7 +209,7 @@ pub unsafe fn generate_c_struct(
           let field_size = match array_type {
             RefDataType::U8Array => {
               if let RsArgsValue::U8Array(buffer, _) = array_value {
-                let buffer = buffer.as_ref().unwrap();
+                let buffer = buffer.unwrap();
                 if !dynamic_array {
                   let (size, align) = get_size_align::<u8>();
                   let field_size = size * array_len;

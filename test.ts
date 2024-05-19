@@ -337,17 +337,18 @@ const personType = {
   }),
 };
 const testObject = () => {
-  // const personObj = load({
-  //   library: "libsum",
-  //   funcName: "getStruct",
-  //   retType: DataType.External,
-  //   paramsType: [
-  //     personType
-  //   ],
-  //   paramsValue: [person],
-  // });
-  // deepStrictEqual(person, personObj);
-  // logGreen('test getStruct succeed')
+  const personObj = load({
+    library: "libsum",
+    funcName: "getStruct",
+    retType: personType,
+    paramsType: [
+      personType
+    ],
+    paramsValue: [person],
+    needFreeResultMemory: false
+  });
+  deepStrictEqual(person, personObj);
+  logGreen('test getStruct succeed')
   const createdPerson = load({
     library: "libsum",
     funcName: "createPerson",
@@ -357,7 +358,6 @@ const testObject = () => {
   });
   deepStrictEqual(createdPerson, person);
   logGreen('test createdPerson succeed')
-  return
   let personPointer = createPointer({
     paramsType: [personType],
     paramsValue: [person]
@@ -369,6 +369,7 @@ const testObject = () => {
     paramsType: [
       DataType.External
     ],
+    needFreeResultMemory: false,
     paramsValue: unwrapPointer(personPointer),
   });
   deepStrictEqual(person, personObjByPointer);
@@ -408,22 +409,24 @@ const testFunction = () => {
     deepStrictEqual(g, person);
     logGreen("test function succeed");
     // free function memory when it not in use
-    freePointer({
-      paramsType: [funcConstructor({
-        paramsType: [
-          DataType.I32,
-          DataType.Boolean,
-          DataType.String,
-          DataType.Double,
-          arrayConstructor({ type: DataType.StringArray, length: 2 }),
-          arrayConstructor({ type: DataType.I32Array, length: 3 }),
-          personType,
-        ],
-        retType: DataType.Void,
-      })],
-      paramsValue: funcExternal,
-      pointerType: PointerType.RsPointer
-    })
+    setTimeout(() => {
+      freePointer({
+        paramsType: [funcConstructor({
+          paramsType: [
+            DataType.I32,
+            DataType.Boolean,
+            DataType.String,
+            DataType.Double,
+            arrayConstructor({ type: DataType.StringArray, length: 2 }),
+            arrayConstructor({ type: DataType.I32Array, length: 3 }),
+            personType,
+          ],
+          retType: DataType.Void,
+        })],
+        paramsValue: funcExternal,
+        pointerType: PointerType.RsPointer
+      })
+    }, 1000)
     if (!process.env.MEMORY) {
       close("libsum");
     }
@@ -474,6 +477,11 @@ const testCpp = () => {
     ],
     paramsValue: [classPointer],
   })
+  freePointer({
+    paramsType: [DataType.External],
+    paramsValue: [classPointer],
+    pointerType: PointerType.CPointer
+  })
 }
 const testMainProgram = () => {
   if (platform !== 'win32') {
@@ -500,30 +508,32 @@ const testDefine = () => {
   equal(res.sum([1, 2]), 3)
 }
 const unitTest = () => {
-  // testNumber()
-  // logGreen('test number succeed')
-  // testString()
-  // logGreen('test string succeed')
-  // testDefine()
-  // logGreen('test define succeed')
-  // testArray()
-  // logGreen('test array succeed')
-  // testVoid()
-  // logGreen('test void succeed')
-  // testBool()
-  // logGreen('test bool succeed')
-  // testMainProgram()
-  // logGreen('test main program succeed')
-  // testFunction()
-  // testCpp()
-  // logGreen('test cpp succeed')
+  testNumber()
+  logGreen('test number succeed')
+  testString()
+  logGreen('test string succeed')
+  testDefine()
+  logGreen('test define succeed')
+  testArray()
+  logGreen('test array succeed')
+  testVoid()
+  logGreen('test void succeed')
+  testBool()
+  logGreen('test bool succeed')
+  testMainProgram()
+  logGreen('test main program succeed')
+  testFunction()
+  testCpp()
+  logGreen('test cpp succeed')
   testObject()
   logGreen('test object succeed')
-  // testPointer()
-  // logGreen('test createPointer succeed')
+  testPointer()
+  logGreen('test createPointer succeed')
   // testRunInNewThread()
 };
-
+setInterval(() => {
+  console.log()
+}, 1000)
 unitTest();
 
 exports.unitTest = unitTest;

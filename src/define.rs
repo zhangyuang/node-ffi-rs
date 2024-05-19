@@ -73,7 +73,7 @@ where
     unsafe { JsObject::to_napi_value(raw_env, obj) }
   }
 }
-
+#[derive(Debug)]
 pub struct FFIARRARYDESC {
   pub dynamic_array: bool,
   pub array_type: RefDataType,
@@ -287,6 +287,7 @@ pub struct FFIParams {
   pub params_value: Vec<JsUnknown>,
   pub errno: Option<bool>,
   pub run_in_new_thread: Option<bool>,
+  pub need_free_result_memory: bool,
 }
 
 pub struct FFICALLPARAMS {
@@ -295,6 +296,8 @@ pub struct FFICALLPARAMS {
   pub arg_values_c_void: Vec<*mut c_void>,
   pub ret_type_rs: RsArgsValue,
   pub errno: Option<bool>,
+  pub need_free_result_memory: bool,
+  pub params_type_rs: Vec<RsArgsValue>,
 }
 pub struct BarePointerWrap(pub *mut c_void);
 unsafe impl Send for FFICALL {}
@@ -315,7 +318,7 @@ pub struct CreatePointerParams {
   pub params_type: Vec<JsUnknown>,
   pub params_value: Vec<JsUnknown>,
 }
-
+#[derive(Debug)]
 #[napi]
 pub enum PointerType {
   RsPointer,

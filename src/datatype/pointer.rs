@@ -43,7 +43,11 @@ where
   unsafe { (0..len).map(|_| pointer.get_and_advance()).collect() }
 }
 
-unsafe fn free_struct_memory(ptr: *mut c_void, struct_desc: IndexMap<String, RsArgsValue>) {
+unsafe fn free_struct_memory(
+  ptr: *mut c_void,
+  struct_desc: IndexMap<String, RsArgsValue>,
+  ptr_type: PointerType,
+) {
   let mut field_ptr = ptr;
   let mut offset = 0;
   let mut field_size = 0;
@@ -112,7 +116,12 @@ unsafe fn free_struct_memory(ptr: *mut c_void, struct_desc: IndexMap<String, RsA
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           let type_field_ptr = field_ptr as *mut *mut c_char;
-          free((*type_field_ptr) as *mut c_void);
+          match ptr_type {
+            PointerType::CPointer => free((*type_field_ptr) as *mut c_void),
+            PointerType::RsPointer => {
+              let _ = CString::from_raw(*(type_field_ptr as *mut *mut i8));
+            }
+          }
           offset += size + padding;
           field_size = size
         }
@@ -209,7 +218,11 @@ unsafe fn free_struct_memory(ptr: *mut c_void, struct_desc: IndexMap<String, RsA
             let padding = (align - (offset % align)) % align;
             field_ptr = field_ptr.offset(padding as isize);
             if dynamic_array {
-              free_dynamic_u8_array(field_ptr, array_len)
+              if let PointerType::CPointer = ptr_type {
+                // only free u8 pointer data when the pointer is allocated in c
+                // rust u8 pointer memory is buffer
+                free_dynamic_u8_array(field_ptr, array_len)
+              }
             } else {
               //
             }
@@ -227,7 +240,7 @@ unsafe fn free_struct_memory(ptr: *mut c_void, struct_desc: IndexMap<String, RsA
         let (size, align) = get_size_align::<*const c_void>();
         let padding = (align - (offset % align)) % align;
         field_ptr = field_ptr.offset(padding as isize);
-        free_struct_memory(*(field_ptr as *mut *mut c_void), obj);
+        free_struct_memory(*(field_ptr as *mut *mut c_void), obj, ptr_type);
         offset += size + padding;
         field_size = size
       };
@@ -235,7 +248,11 @@ unsafe fn free_struct_memory(ptr: *mut c_void, struct_desc: IndexMap<String, RsA
     field_ptr = field_ptr.offset(field_size as isize) as *mut c_void;
   }
 }
-pub unsafe fn free_rs_pointer_memory(ptr: *mut c_void, ptr_desc: RsArgsValue) {
+pub unsafe fn free_rs_pointer_memory(
+  ptr: *mut c_void,
+  ptr_desc: RsArgsValue,
+  need_free_external: bool,
+) {
   match ptr_desc {
     RsArgsValue::I32(number) => {
       let basic_data_type = number_to_basic_data_type(number);
@@ -268,7 +285,9 @@ pub unsafe fn free_rs_pointer_memory(ptr: *mut c_void, ptr_desc: RsArgsValue) {
           let _ = Box::from_raw(ptr);
         }
         BasicDataType::External => {
-          //
+          if need_free_external {
+            let _ = Box::from_raw(ptr);
+          }
         }
       }
     }
@@ -283,24 +302,11 @@ pub unsafe fn free_rs_pointer_memory(ptr: *mut c_void, ptr_desc: RsArgsValue) {
           ..
         } = array_desc;
         match array_type {
-          RefDataType::U8Array => {
-            let _ = Vec::from_raw_parts(*(ptr as *mut *mut c_char), array_len, array_len);
-          }
-          RefDataType::I32Array => {
-            let _ = Vec::from_raw_parts(*(ptr as *mut *mut c_int), array_len, array_len);
-          }
-          RefDataType::DoubleArray => {
-            let _ = Vec::from_raw_parts(*(ptr as *mut *mut c_double), array_len, array_len);
-          }
-          RefDataType::FloatArray => {
-            let _ = Vec::from_raw_parts(*(ptr as *mut *mut c_float), array_len, array_len);
-          }
-          RefDataType::StringArray => {
-            let v = Vec::from_raw_parts(*(ptr as *mut *mut *mut c_char), array_len, array_len);
-            v.into_iter().for_each(|str_ptr| {
-              let _ = CString::from_raw(str_ptr);
-            });
-          }
+          RefDataType::U8Array => free_dynamic_u8_array(ptr, array_len),
+          RefDataType::I32Array => free_dynamic_i32_array(ptr, array_len),
+          RefDataType::DoubleArray => free_dynamic_double_array(ptr, array_len),
+          RefDataType::FloatArray => free_dynamic_float_array(ptr, array_len),
+          RefDataType::StringArray => free_dynamic_string_array(ptr, array_len),
         }
       } else if let FFITag::Function = ffi_tag {
         let func_desc = get_func_desc(&obj);
@@ -308,14 +314,27 @@ pub unsafe fn free_rs_pointer_memory(ptr: *mut c_void, ptr_desc: RsArgsValue) {
           let _ = Box::from_raw(*(ptr as *mut *mut Closure));
         }
       } else {
-        free_struct_memory(*(ptr as *mut *mut c_void), obj)
+        use super::object_calculate::calculate_struct_size;
+        use std::alloc::{dealloc, Layout};
+        let (size, align) = calculate_struct_size(&obj);
+        let layout = if size > 0 {
+          Layout::from_size_align(size, align).unwrap()
+        } else {
+          Layout::new::<i32>()
+        };
+        free_struct_memory(*(ptr as *mut *mut c_void), obj, PointerType::RsPointer);
+        dealloc(*(ptr as *mut *mut u8), layout);
       }
     }
     _ => panic!("free rust pointer memory error"),
   }
 }
 
-pub unsafe fn free_c_pointer_memory(ptr: *mut c_void, ptr_desc: RsArgsValue) {
+pub unsafe fn free_c_pointer_memory(
+  ptr: *mut c_void,
+  ptr_desc: RsArgsValue,
+  need_free_external: bool,
+) {
   match ptr_desc {
     RsArgsValue::I32(number) => {
       let basic_data_type = number_to_basic_data_type(number);
@@ -325,7 +344,9 @@ pub unsafe fn free_c_pointer_memory(ptr: *mut c_void, ptr_desc: RsArgsValue) {
         }
 
         BasicDataType::External => {
-          //
+          if need_free_external {
+            free(ptr);
+          }
         }
         _ => {
           //
@@ -356,7 +377,8 @@ pub unsafe fn free_c_pointer_memory(ptr: *mut c_void, ptr_desc: RsArgsValue) {
         }
       } else {
         // struct
-        free_struct_memory(*(ptr as *mut *mut c_void), obj)
+        free_struct_memory(*(ptr as *mut *mut c_void), obj, PointerType::CPointer);
+        free(*(ptr as *mut *mut c_void))
       }
     }
     _ => panic!("free c pointer memory error"),

@@ -159,6 +159,7 @@ export type FFIParams<T extends FieldType, U extends boolean | undefined = undef
   // whether need output errno
   errno?: U
   runInNewThread?: RunInNewThread
+  needFreeResultMemory?: boolean
 }
 export function load<T extends FieldType, U extends boolean | undefined = undefined, RunInNewThread extends boolean | undefined = undefined>(
   params: FFIParams<T, U, RunInNewThread>,

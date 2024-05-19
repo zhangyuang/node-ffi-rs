@@ -354,7 +354,7 @@ deepStrictEqual(stringArr, load({
 
 In `ffi-rs`, we use [DataType.External](https://nodejs.org/api/n-api.html#napi_create_external) for wrapping the `pointer` which enables it to be passed between `Node.js` and `C`.
 
-`Pointer` is complicated and underlying, `ffi-rs` provide four functions to handle this pointer include `createPointer`, `restorePointer`, `wrapPointer`, `unwrapPointer` for different scene.
+`Pointer` is complicated and underlying, `ffi-rs` provide four functions to handle this pointer include `createPointer`, `restorePointer`, `unwrapPointer` for different scene.
 
 ```cpp
 extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
@@ -452,27 +452,6 @@ const restoreData = restorePointer({
   paramsValue: pointerArr
 })
 deepStrictEqual(restoreData, [[1.1, 2.2]])
-```
-
-#### wrapPointer
-
-`wrapPointer` is used to create multiple pointer.
-
-For example, developers can use `wrapPointer` to create a pointer point to other existing pointer.
-
-```js
-const { wrapPointer } = require('ffi-rs')
-// ptr type is *mut c_char
-const ptr = load({
-  library: "libsum",
-  funcName: "concatenateStrings",
-  retType: DataType.External,
-  paramsType: [DataType.String, DataType.String],
-  paramsValue: [c, d],
-})
-
-// wrapPtr type is *mut *mut c_char
-const wrapPtr = wrapPointer([ptr])[0]
 ```
 
 #### unwrapPointer

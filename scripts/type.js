@@ -343,7 +343,13 @@ const setFreePointerTag = (params) => {
   return params
 }
 
-exports.load = (params) => load(processParamsTypeForArray(params))
+const wrapLoad = (params) => {
+  if (params.needFreeResultMemory === undefined) {
+    params.needFreeResultMemory = true
+  }
+  return load(processParamsTypeForArray(params))
+}
+exports.load = wrapLoad
 exports.createPointer = (params) => createPointer(processParamsTypeForArray(params))
 exports.restorePointer = (params) => restorePointer(processParamsTypeForArray(params))
 exports.unwrapPointer = (params) => unwrapPointer(processParamsTypeForArray(params))
@@ -358,7 +364,7 @@ exports.funcConstructor = (options) => ({
 exports.define = (obj) => {
   const res = {}
   Object.entries(obj).map(([funcName, funcDesc]) => {
-    res[funcName] = (paramsValue) => load({
+    res[funcName] = (paramsValue) => wrapLoad({
       ...obj[funcName],
       funcName,
       paramsValue
