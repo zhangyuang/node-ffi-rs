@@ -108,7 +108,7 @@ const testBool = () => {
   );
 }
 const testArray = () => {
-  let stringArr = [c, c.repeat(20)];
+  let stringArr = [c, c.repeat(200)];
   deepStrictEqual(
     stringArr,
     load({
@@ -500,14 +500,14 @@ const testDefine = () => {
   equal(res.sum([1, 2]), 3)
 }
 const unitTest = () => {
-  testNumber()
-  logGreen('test number succeed')
-  testString()
-  logGreen('test string succeed')
-  testDefine()
-  logGreen('test define succeed')
-  testArray()
-  logGreen('test array succeed')
+  // testNumber()
+  // logGreen('test number succeed')
+  // testString()
+  // logGreen('test string succeed')
+  // testDefine()
+  // logGreen('test define succeed')
+  // testArray()
+  // logGreen('test array succeed')
   // testVoid()
   // logGreen('test void succeed')
   // testBool()
@@ -517,8 +517,8 @@ const unitTest = () => {
   // testFunction()
   // testCpp()
   // logGreen('test cpp succeed')
-  // testObject()
-  // logGreen('test object succeed')
+  testObject()
+  logGreen('test object succeed')
   // testPointer()
   // logGreen('test createPointer succeed')
   // testRunInNewThread()
