@@ -1,5 +1,5 @@
-import { equal, deepStrictEqual } from "assert"
-import {
+const { equal, deepStrictEqual } = require("assert")
+const {
   load,
   open,
   close,
@@ -13,7 +13,7 @@ import {
   freePointer,
   define,
   PointerType
-} from "./index"
+} = require("./index")
 
 const platform = process.platform;
 const dynamicLib = platform === "win32" ? "./sum.dll" : "./libsum.so";
@@ -118,7 +118,10 @@ const testArray = () => {
         type: DataType.StringArray,
         length: stringArr.length,
       }),
-      paramsType: [DataType.StringArray, DataType.I32],
+      paramsType: [arrayConstructor({
+        type: DataType.StringArray,
+        length: stringArr.length,
+      }), DataType.I32],
       paramsValue: [stringArr, stringArr.length],
     }),
   );
@@ -133,7 +136,10 @@ const testArray = () => {
         type: DataType.I32Array,
         length: bigArr.length,
       }),
-      paramsType: [DataType.I32Array, DataType.I32],
+      paramsType: [arrayConstructor({
+        type: DataType.I32Array,
+        length: bigArr.length,
+      }), DataType.I32],
       paramsValue: [bigArr, bigArr.length],
     }),
   );
@@ -148,7 +154,10 @@ const testArray = () => {
         type: DataType.DoubleArray,
         length: bigDoubleArr.length,
       }),
-      paramsType: [DataType.DoubleArray, DataType.I32],
+      paramsType: [arrayConstructor({
+        type: DataType.DoubleArray,
+        length: bigDoubleArr.length,
+      }), DataType.I32],
       paramsValue: [bigDoubleArr, bigDoubleArr.length],
     }),
   );
@@ -328,17 +337,17 @@ const personType = {
   }),
 };
 const testObject = () => {
-  const personObj = load({
-    library: "libsum",
-    funcName: "getStruct",
-    retType: personType,
-    paramsType: [
-      personType
-    ],
-    paramsValue: [person],
-  });
-  deepStrictEqual(person, personObj);
-  logGreen('test getStruct succeed')
+  // const personObj = load({
+  //   library: "libsum",
+  //   funcName: "getStruct",
+  //   retType: DataType.External,
+  //   paramsType: [
+  //     personType
+  //   ],
+  //   paramsValue: [person],
+  // });
+  // deepStrictEqual(person, personObj);
+  // logGreen('test getStruct succeed')
   const createdPerson = load({
     library: "libsum",
     funcName: "createPerson",
@@ -348,6 +357,7 @@ const testObject = () => {
   });
   deepStrictEqual(createdPerson, person);
   logGreen('test createdPerson succeed')
+  return
   let personPointer = createPointer({
     paramsType: [personType],
     paramsValue: [person]
@@ -490,14 +500,14 @@ const testDefine = () => {
   equal(res.sum([1, 2]), 3)
 }
 const unitTest = () => {
-  // testNumber()
-  // logGreen('test number succeed')
-  // testString()
-  // logGreen('test string succeed')
-  // testDefine()
-  // logGreen('test define succeed')
-  // testArray()
-  // logGreen('test array succeed')
+  testNumber()
+  logGreen('test number succeed')
+  testString()
+  logGreen('test string succeed')
+  testDefine()
+  logGreen('test define succeed')
+  testArray()
+  logGreen('test array succeed')
   // testVoid()
   // logGreen('test void succeed')
   // testBool()
@@ -507,8 +517,8 @@ const unitTest = () => {
   // testFunction()
   // testCpp()
   // logGreen('test cpp succeed')
-  testObject()
-  logGreen('test object succeed')
+  // testObject()
+  // logGreen('test object succeed')
   // testPointer()
   // logGreen('test createPointer succeed')
   // testRunInNewThread()

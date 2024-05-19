@@ -5,6 +5,10 @@ process.env.SILENT = 1
 const { unitTest } = require('./test')
 
 app.use(async ctx => {
+  if (ctx.req.url === '/gc') {
+    console.log('gc')
+    global.gc()
+  }
   console.log('memory:', (process.memoryUsage().rss / 1024 / 1024).toFixed(2))
   unitTest()
   ctx.body = 'success'

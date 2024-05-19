@@ -108,37 +108,37 @@ pub unsafe fn get_arg_types_values(
           let param_data_type = number_to_basic_data_type(number);
           match param_data_type {
             BasicDataType::I32 => {
-              let arg_type = Box::into_raw(Box::new(ffi_type_sint32)) as *mut ffi_type;
+              let arg_type = &mut ffi_type_sint32 as *mut ffi_type;
               let arg_val: i32 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
               (arg_type, RsArgsValue::I32(arg_val))
             }
             BasicDataType::U8 => {
-              let arg_type = Box::into_raw(Box::new(ffi_type_sint32)) as *mut ffi_type;
+              let arg_type = &mut ffi_type_sint32 as *mut ffi_type;
               let arg_val: u32 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
               (arg_type, RsArgsValue::U8(arg_val as u8))
             }
             BasicDataType::I64 => {
-              let arg_type = Box::into_raw(Box::new(ffi_type_sint64)) as *mut ffi_type;
+              let arg_type = &mut ffi_type_sint64 as *mut ffi_type;
               let arg_val: i64 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
               (arg_type, RsArgsValue::I64(arg_val))
             }
             BasicDataType::U64 => {
-              let arg_type = Box::into_raw(Box::new(ffi_type_uint64)) as *mut ffi_type;
+              let arg_type = &mut ffi_type_uint64 as *mut ffi_type;
               let arg_val: i64 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
               (arg_type, RsArgsValue::U64(arg_val as u64))
             }
             BasicDataType::Float => {
-              let arg_type = Box::into_raw(Box::new(ffi_type_float)) as *mut ffi_type;
+              let arg_type = &mut ffi_type_float as *mut ffi_type;
               let arg_val: f64 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
               (arg_type, RsArgsValue::Float(arg_val as f32))
             }
             BasicDataType::Double => {
-              let arg_type = Box::into_raw(Box::new(ffi_type_double)) as *mut ffi_type;
+              let arg_type = &mut ffi_type_double as *mut ffi_type;
               let arg_val: f64 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
               (arg_type, RsArgsValue::Double(arg_val))
             }
             BasicDataType::String => {
-              let arg_type = Box::into_raw(Box::new(ffi_type_pointer)) as *mut ffi_type;
+              let arg_type = &mut ffi_type_pointer as *mut ffi_type;
               let arg_val: String =
                 js_string_to_string(create_js_value_unchecked::<JsString>(env, value))?;
 
@@ -167,7 +167,7 @@ pub unsafe fn get_arg_types_values(
             let FFIARRARYDESC { array_type, .. } = array_desc;
             match array_type {
               RefDataType::U8Array => {
-                let arg_type = Box::into_raw(Box::new(ffi_type_pointer)) as *mut ffi_type;
+                let arg_type = &mut ffi_type_pointer as *mut ffi_type;
                 let js_buffer: JsBuffer = value.try_into()?;
                 (
                   arg_type,
@@ -388,7 +388,7 @@ pub unsafe fn get_value_pointer(
               .map(|(index, c_param)| {
                 let arg_type = func_args_type_rs.get(&index.to_string()).unwrap();
                 let param = get_rs_value_from_pointer(env, arg_type, c_param, true);
-                free_c_pointer_memory(c_param, arg_type.clone(), true);
+                free_c_pointer_memory(c_param, arg_type.clone());
                 param
               })
               .collect();

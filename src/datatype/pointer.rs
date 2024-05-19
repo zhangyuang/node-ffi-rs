@@ -44,11 +44,11 @@ where
 }
 
 unsafe fn free_struct_memory(ptr: *mut c_void, struct_desc: IndexMap<String, RsArgsValue>) {
-  println!("xx");
   let mut field_ptr = ptr;
   let mut offset = 0;
   let mut field_size = 0;
   for (_, val) in struct_desc {
+    println!("xx{:?}:{:?}", val, ptr);
     if let RsArgsValue::I32(number) = val {
       let data_type = number_to_basic_data_type(number);
       match data_type {
@@ -113,9 +113,7 @@ unsafe fn free_struct_memory(ptr: *mut c_void, struct_desc: IndexMap<String, RsA
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           let type_field_ptr = field_ptr as *mut *mut c_char;
-          let js_string = CStr::from_ptr(*type_field_ptr)
-            .to_string_lossy()
-            .to_string();
+          free((*type_field_ptr) as *mut c_void);
           offset += size + padding;
           field_size = size
         }
@@ -123,8 +121,6 @@ unsafe fn free_struct_memory(ptr: *mut c_void, struct_desc: IndexMap<String, RsA
           let (size, align) = get_size_align::<*const c_void>();
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
-          let type_field_ptr = field_ptr as *mut *mut c_void;
-
           offset += size + padding;
           field_size = size
         }
@@ -139,19 +135,22 @@ unsafe fn free_struct_memory(ptr: *mut c_void, struct_desc: IndexMap<String, RsA
           array_len,
           dynamic_array,
           ..
-        } = &array_desc;
+        } = array_desc;
         match array_type {
           RefDataType::StringArray => {
             let (size, align) = get_size_align::<*const c_void>();
             let padding = (align - (offset % align)) % align;
             field_ptr = field_ptr.offset(padding as isize);
-            let type_field_ptr = field_ptr as *mut *mut *mut c_char;
-            let arr = create_array_from_pointer(*type_field_ptr, *array_len);
+            if dynamic_array {
+              free_dynamic_string_array(field_ptr, array_len);
+            } else {
+              //
+            }
             offset += size + padding;
             field_size = size
           }
           RefDataType::DoubleArray => {
-            let (size, align) = if *dynamic_array {
+            let (size, align) = if dynamic_array {
               get_size_align::<*const c_void>()
             } else {
               let (size, align) = get_size_align::<c_double>();
@@ -159,18 +158,16 @@ unsafe fn free_struct_memory(ptr: *mut c_void, struct_desc: IndexMap<String, RsA
             };
             let padding = (align - (offset % align)) % align;
             field_ptr = field_ptr.offset(padding as isize);
-            if *dynamic_array {
-              let type_field_ptr = field_ptr as *mut *mut c_double;
-              // let arr = create_array_from_pointer(*type_field_ptr, *array_len);
+            if dynamic_array {
+              free_dynamic_double_array(field_ptr, array_len);
             } else {
-              // let arr =
-              //   create_static_array_from_pointer(field_ptr as *mut c_void, &array_desc);
+              //
             }
             offset += size + padding;
             field_size = size
           }
           RefDataType::FloatArray => {
-            let (size, align) = if *dynamic_array {
+            let (size, align) = if dynamic_array {
               get_size_align::<*const c_void>()
             } else {
               let (size, align) = get_size_align::<c_double>();
@@ -178,18 +175,16 @@ unsafe fn free_struct_memory(ptr: *mut c_void, struct_desc: IndexMap<String, RsA
             };
             let padding = (align - (offset % align)) % align;
             field_ptr = field_ptr.offset(padding as isize);
-            if *dynamic_array {
-              let type_field_ptr = field_ptr as *mut *mut c_float;
-              // let arr = create_array_from_pointer(*type_field_ptr, *array_len);
+            if dynamic_array {
+              free_dynamic_float_array(field_ptr, array_len);
             } else {
-              // let arr =
-              //   create_static_array_from_pointer(field_ptr as *mut c_void, &array_desc);
+              //
             }
             offset += size + padding;
             field_size = size
           }
           RefDataType::I32Array => {
-            let (size, align) = if *dynamic_array {
+            let (size, align) = if dynamic_array {
               get_size_align::<*const c_void>()
             } else {
               let (size, align) = get_size_align::<c_int>();
@@ -197,18 +192,16 @@ unsafe fn free_struct_memory(ptr: *mut c_void, struct_desc: IndexMap<String, RsA
             };
             let padding = (align - (offset % align)) % align;
             field_ptr = field_ptr.offset(padding as isize);
-            if *dynamic_array {
-              let type_field_ptr = field_ptr as *mut *mut c_int;
-              let arr = create_array_from_pointer(*type_field_ptr, *array_len);
+            if dynamic_array {
+              free_dynamic_i32_array(field_ptr, array_len)
             } else {
-              // let arr =
-              //   create_static_array_from_pointer(field_ptr as *mut c_void, &array_desc);
+              //
             }
             offset += size + padding;
             field_size = size
           }
           RefDataType::U8Array => {
-            let (size, align) = if *dynamic_array {
+            let (size, align) = if dynamic_array {
               get_size_align::<*const c_void>()
             } else {
               let (size, align) = get_size_align::<u8>();
@@ -216,24 +209,26 @@ unsafe fn free_struct_memory(ptr: *mut c_void, struct_desc: IndexMap<String, RsA
             };
             let padding = (align - (offset % align)) % align;
             field_ptr = field_ptr.offset(padding as isize);
-            if *dynamic_array {
-              let type_field_ptr = field_ptr as *mut *mut c_uchar;
-              // let arr = create_array_from_pointer(*type_field_ptr, array_desc.array_len);
+            if dynamic_array {
+              free_dynamic_u8_array(field_ptr, array_len)
             } else {
-              // let arr =
-              //   create_static_array_from_pointer(field_ptr as *mut c_void, &array_desc);
+              //
             }
             offset += size + padding;
             field_size = size
           }
         };
+      } else if let FFITag::Function = get_ffi_tag(&obj) {
+        let func_desc = get_func_desc(&obj);
+        if func_desc.need_free {
+          let _ = free(*(ptr as *mut *mut Closure) as *mut c_void);
+        }
       } else {
-        // function | raw object
+        // raw object
         let (size, align) = get_size_align::<*const c_void>();
         let padding = (align - (offset % align)) % align;
         field_ptr = field_ptr.offset(padding as isize);
-        let type_field_ptr = field_ptr as *mut *mut c_void;
-
+        free_struct_memory(ptr, obj);
         offset += size + padding;
         field_size = size
       };
@@ -308,55 +303,33 @@ pub unsafe fn free_rs_pointer_memory(ptr: *mut c_void, ptr_desc: RsArgsValue) {
             });
           }
         }
-      }
-      if let FFITag::Function = ffi_tag {
+      } else if let FFITag::Function = ffi_tag {
         let func_desc = get_func_desc(&obj);
         if func_desc.need_free {
           let _ = Box::from_raw(*(ptr as *mut *mut Closure));
         }
       } else {
-        // free_struct_memory(ptr, obj)
+        free_struct_memory(ptr, obj)
       }
     }
     _ => panic!("free rust pointer memory error"),
   }
 }
 
-pub unsafe fn free_c_pointer_memory(ptr: *mut c_void, ptr_desc: RsArgsValue, skip_basic: bool) {
+pub unsafe fn free_c_pointer_memory(ptr: *mut c_void, ptr_desc: RsArgsValue) {
   match ptr_desc {
     RsArgsValue::I32(number) => {
       let basic_data_type = number_to_basic_data_type(number);
-      if skip_basic {
-        match basic_data_type {
-          BasicDataType::String => {
-            free(*(ptr as *mut *mut i8) as *mut c_void);
-          }
-
-          BasicDataType::External => {
-            //
-          }
-          _ => {
-            //
-          }
+      match basic_data_type {
+        BasicDataType::String => {
+          free(*(ptr as *mut *mut i8) as *mut c_void);
         }
-      } else {
-        match basic_data_type {
-          BasicDataType::String => {
-            free(*(ptr as *mut *mut i8) as *mut c_void);
-          }
-          BasicDataType::U8 => free(ptr),
-          BasicDataType::I32 => {
-            free(ptr);
-          }
-          BasicDataType::I64 => free(ptr),
-          BasicDataType::U64 => free(ptr),
-          BasicDataType::Void => free(ptr),
-          BasicDataType::Float => free(ptr),
-          BasicDataType::Double => free(ptr),
-          BasicDataType::Boolean => free(ptr),
-          BasicDataType::External => {
-            //
-          }
+
+        BasicDataType::External => {
+          //
+        }
+        _ => {
+          //
         }
       }
     }
@@ -371,35 +344,41 @@ pub unsafe fn free_c_pointer_memory(ptr: *mut c_void, ptr_desc: RsArgsValue, ski
           ..
         } = array_desc;
         match array_type {
-          RefDataType::U8Array => {
-            let _ = Vec::from_raw_parts(*(ptr as *mut *mut c_char), array_len, array_len);
-          }
-          RefDataType::I32Array => {
-            let _ = Vec::from_raw_parts(*(ptr as *mut *mut c_int), array_len, array_len);
-          }
-          RefDataType::DoubleArray => {
-            let _ = Vec::from_raw_parts(*(ptr as *mut *mut c_double), array_len, array_len);
-          }
-          RefDataType::FloatArray => {
-            let _ = Vec::from_raw_parts(*(ptr as *mut *mut c_float), array_len, array_len);
-          }
-          RefDataType::StringArray => {
-            let v = Vec::from_raw_parts(*(ptr as *mut *mut *mut c_char), array_len, array_len);
-            v.into_iter().for_each(|str_ptr| {
-              let _ = CString::from_raw(str_ptr);
-            });
-          }
+          RefDataType::U8Array => free_dynamic_u8_array(ptr, array_len),
+          RefDataType::I32Array => free_dynamic_i32_array(ptr, array_len),
+          RefDataType::DoubleArray => free_dynamic_double_array(ptr, array_len),
+          RefDataType::FloatArray => free_dynamic_float_array(ptr, array_len),
+          RefDataType::StringArray => free_dynamic_string_array(ptr, array_len),
         }
-      }
-      if let FFITag::Function = ffi_tag {
+      } else if let FFITag::Function = ffi_tag {
         let func_desc = get_func_desc(&obj);
         if func_desc.need_free {
           let _ = free(*(ptr as *mut *mut Closure) as *mut c_void);
         }
       } else {
         // raw object
+        free_struct_memory(ptr, obj)
       }
     }
     _ => panic!("free c pointer memory error"),
   }
+}
+
+unsafe fn free_dynamic_string_array(ptr: *mut c_void, array_len: usize) {
+  let v = Vec::from_raw_parts(*(ptr as *mut *mut *mut c_char), array_len, array_len);
+  v.into_iter().for_each(|str_ptr| {
+    let _ = CString::from_raw(str_ptr);
+  });
+}
+unsafe fn free_dynamic_i32_array(ptr: *mut c_void, array_len: usize) {
+  let _ = Vec::from_raw_parts(*(ptr as *mut *mut c_int), array_len, array_len);
+}
+unsafe fn free_dynamic_double_array(ptr: *mut c_void, array_len: usize) {
+  let _ = Vec::from_raw_parts(*(ptr as *mut *mut c_double), array_len, array_len);
+}
+unsafe fn free_dynamic_float_array(ptr: *mut c_void, array_len: usize) {
+  let _ = Vec::from_raw_parts(*(ptr as *mut *mut c_float), array_len, array_len);
+}
+unsafe fn free_dynamic_u8_array(ptr: *mut c_void, array_len: usize) {
+  let _ = Vec::from_raw_parts(*(ptr as *mut *mut c_char), array_len, array_len);
 }
