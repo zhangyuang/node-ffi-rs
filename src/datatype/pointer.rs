@@ -119,7 +119,7 @@ unsafe fn free_struct_memory(
           match ptr_type {
             PointerType::CPointer => free((*type_field_ptr) as *mut c_void),
             PointerType::RsPointer => {
-              let _ = CString::from_raw(*(type_field_ptr as *mut *mut i8));
+              let _ = CString::from_raw(*(type_field_ptr as *mut *mut c_char));
             }
           }
           offset += size + padding;
