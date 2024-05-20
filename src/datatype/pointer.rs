@@ -258,7 +258,7 @@ pub unsafe fn free_rs_pointer_memory(
       let basic_data_type = number_to_basic_data_type(number);
       match basic_data_type {
         BasicDataType::String => {
-          let _ = CString::from_raw(*(ptr as *mut *mut i8));
+          let _ = CString::from_raw(*(ptr as *mut *mut c_char));
         }
         BasicDataType::U8 => {
           let _ = Box::from_raw(ptr);
