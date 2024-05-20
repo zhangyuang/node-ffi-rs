@@ -344,8 +344,8 @@ const setFreePointerTag = (params) => {
 }
 
 const wrapLoad = (params) => {
-  if (params.needFreeResultMemory === undefined) {
-    params.needFreeResultMemory = true
+  if (params.freeResultMemory === undefined) {
+    params.freeResultMemory = true
   }
   return load(processParamsTypeForArray(params))
 }

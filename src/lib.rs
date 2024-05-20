@@ -203,7 +203,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     params_value,
     errno,
     run_in_new_thread,
-    need_free_result_memory,
+    free_result_memory,
   } = params;
   let func = get_symbol(&library, &func_name)?;
   let params_type_len = params_type.len();
@@ -284,7 +284,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
           ret_type_rs,
           errno,
           arg_values_c_void,
-          need_free_result_memory,
+          free_result_memory,
           params_type_rs,
           cif,
           r_type_p,
@@ -293,7 +293,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
         } = &mut self.data;
         unsafe {
           let call_result = get_js_unknown_from_pointer(&env, &ret_type_rs, output.0);
-          if *need_free_result_memory {
+          if *free_result_memory {
             free_c_pointer_memory(output.0, ret_type_rs.clone(), false);
           }
           arg_values_c_void
@@ -320,7 +320,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
       ret_type_rs,
       fn_pointer: func,
       errno,
-      need_free_result_memory,
+      free_result_memory,
       params_type_rs,
       r_type_p,
       arg_types_p,
@@ -331,7 +331,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     let result = &mut () as *mut _ as *mut c_void;
     ffi_call(&mut cif, Some(func), result, arg_values_c_void.as_mut_ptr());
     let call_result = get_js_unknown_from_pointer(&env, &ret_type_rs, result);
-    if need_free_result_memory {
+    if free_result_memory {
       free_c_pointer_memory(result, ret_type_rs, false);
     }
     arg_values_c_void

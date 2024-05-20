@@ -460,9 +460,9 @@ deepStrictEqual(restoreData, [[1.1, 2.2]])
 
 At default, `ffi-rs` will free data memory for ffi call args and return result prevent memory leak.Except in the following cases.
 
-- set `needFreeResultMemory: false` when call `load` method
+- set `freeResultMemory: false` when call `load` method
 
-If you set needFreeResultMemory to false, `ffi-rs` will not release the return result memory which was malloc in c environment
+If you set freeResultMemory to false, `ffi-rs` will not release the return result memory which was malloc in c environment
 
 - Use `DataType.External` as paramsType or retType
 

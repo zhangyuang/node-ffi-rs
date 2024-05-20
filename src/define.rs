@@ -288,7 +288,7 @@ pub struct FFIParams {
   pub params_value: Vec<JsUnknown>,
   pub errno: Option<bool>,
   pub run_in_new_thread: Option<bool>,
-  pub need_free_result_memory: bool,
+  pub free_result_memory: bool,
 }
 
 pub struct FFICALLPARAMS {
@@ -297,7 +297,7 @@ pub struct FFICALLPARAMS {
   pub arg_values_c_void: Vec<*mut c_void>,
   pub ret_type_rs: RsArgsValue,
   pub errno: Option<bool>,
-  pub need_free_result_memory: bool,
+  pub free_result_memory: bool,
   pub params_type_rs: Vec<RsArgsValue>,
   pub r_type_p: *mut *mut ffi_type,
   pub arg_types_p: *mut Vec<*mut ffi_type>,

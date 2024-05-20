@@ -344,7 +344,7 @@ const testObject = () => {
       personType
     ],
     paramsValue: [person],
-    needFreeResultMemory: false
+    freeResultMemory: false
   });
   deepStrictEqual(person, personObj);
   logGreen('test getStruct succeed')
@@ -368,7 +368,7 @@ const testObject = () => {
     paramsType: [
       DataType.External
     ],
-    needFreeResultMemory: false,
+    freeResultMemory: false,
     paramsValue: unwrapPointer(personPointer),
   });
   deepStrictEqual(person, personObjByPointer);
