@@ -233,7 +233,10 @@ unsafe fn free_struct_memory(
       } else if let FFITag::Function = get_ffi_tag(&obj) {
         let func_desc = get_func_desc(&obj);
         if func_desc.need_free {
-          let _ = free(*(ptr as *mut *mut Closure) as *mut c_void);
+          match ptr_type {
+            PointerType::CPointer => free(*(ptr as *mut *mut c_void)),
+            PointerType::RsPointer => free_closure(ptr),
+          }
         }
       } else {
         // struct
@@ -311,24 +314,7 @@ pub unsafe fn free_rs_pointer_memory(
       } else if let FFITag::Function = ffi_tag {
         let func_desc = get_func_desc(&obj);
         if func_desc.need_free {
-          CLOSURE_MAP
-            .as_ref()
-            .unwrap()
-            .get(&ptr)
-            .unwrap()
-            .iter()
-            .enumerate()
-            .for_each(|(index, p)| {
-              if index == 0 {
-                use napi::threadsafe_function::{ErrorStrategy, ThreadsafeFunction};
-                let _ = Box::from_raw(
-                  (*p) as *mut ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal>,
-                )
-                .abort();
-              } else {
-                let _ = Box::from_raw(*p);
-              }
-            });
+          free_closure(ptr)
         }
       } else {
         use super::object_calculate::calculate_struct_size;
@@ -347,6 +333,25 @@ pub unsafe fn free_rs_pointer_memory(
   }
 }
 
+unsafe fn free_closure(ptr: *mut c_void) {
+  CLOSURE_MAP
+    .as_ref()
+    .unwrap()
+    .get(&ptr)
+    .unwrap()
+    .iter()
+    .enumerate()
+    .for_each(|(index, p)| {
+      if index == 0 {
+        use napi::threadsafe_function::{ErrorStrategy, ThreadsafeFunction};
+        let _ =
+          Box::from_raw((*p) as *mut ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal>)
+            .abort();
+      } else {
+        let _ = Box::from_raw(*p);
+      }
+    });
+}
 pub unsafe fn free_c_pointer_memory(
   ptr: *mut c_void,
   ptr_desc: RsArgsValue,
@@ -390,7 +395,7 @@ pub unsafe fn free_c_pointer_memory(
       } else if let FFITag::Function = ffi_tag {
         let func_desc = get_func_desc(&obj);
         if func_desc.need_free {
-          let _ = free(*(ptr as *mut *mut Closure) as *mut c_void);
+          free(*(ptr as *mut *mut c_void))
         }
       } else {
         // struct

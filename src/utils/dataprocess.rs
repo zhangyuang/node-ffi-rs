@@ -20,7 +20,6 @@ use napi::{
 };
 use std::collections::HashMap;
 use std::ffi::CStr;
-use std::fmt::format;
 
 pub unsafe fn get_js_external_wrap_data(env: &Env, js_external: JsExternal) -> Result<*mut c_void> {
   use std::any::TypeId;
