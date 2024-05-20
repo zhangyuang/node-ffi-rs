@@ -123,25 +123,30 @@ unsafe fn open(params: OpenParams) -> Result<()> {
   if map.get(&library).is_none() {
     let lib = if path == "" {
       Library::open_self().unwrap()
-    } else if !std::path::Path::new(&path).exists() {
-      return Err(FFIError::Panic(format!("{} no such file", path)).into());
     } else {
       match Library::open(&path) {
-          Ok(lib) => lib,
-          Err(e) => match e {
-            dlopen::Error::OpeningLibraryError(e) => return Err(
-              FFIError::Panic(format!(
-                "Please check whether the library has the same compilation and runtime environment \n {:?}",
-                e
-              ))
-              .into(),
-            ),
-            e => return Err(
-              FFIError::Panic(e.to_string())
-              .into(),
-            )
-          },
-        }
+        Ok(lib) => lib,
+        Err(e) => match e {
+          dlopen::Error::OpeningLibraryError(e) => {
+            let err_msg = e.to_string();
+            if err_msg.contains("is not a valid Win32 application")
+              || err_msg.contains("not a mach-o file")
+              || err_msg.contains("invalid ELF header")
+            {
+              return Err(
+                      FFIError::Panic(format!(
+                        "Please check whether the library has the same compilation and runtime environment.\n Error detail info: {:?}",
+                        e
+                      ))
+                      .into(),
+                    );
+            } else {
+              return Err(FFIError::Panic(e.to_string()).into());
+            }
+          }
+          e => return Err(FFIError::Panic(e.to_string()).into()),
+        },
+      }
     };
     map.insert(library, (lib, HashMap::new()));
   }

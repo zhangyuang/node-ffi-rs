@@ -1,3 +1,13 @@
+## [1.0.76](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.75...v1.0.76) (2024-05-16)
+
+
+### Features
+
+* add issue template ([e4aef11](https://github.com/zhangyuang/node-ffi-rs/commit/e4aef11ad3c6aa3924de7dfe92b0be765a842483))
+* update OpeningLibraryError tips ([0aa86b4](https://github.com/zhangyuang/node-ffi-rs/commit/0aa86b4d682edb565b1233381b6b14a93ee9abb4))
+
+
+
 ## [1.0.75](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.74...v1.0.75) (2024-05-10)
 
 
