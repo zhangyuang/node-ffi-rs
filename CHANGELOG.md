@@ -1,3 +1,12 @@
+## [1.0.77-alpha.1](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.77-alpha.0...v1.0.77-alpha.1) (2024-05-20)
+
+
+### Features
+
+* add freeCFuncParamsMemory in funcConstructor ([c5f298e](https://github.com/zhangyuang/node-ffi-rs/commit/c5f298ed12856954fa6ede8ea8cbd30aa328ae81))
+
+
+
 ## [1.0.77-alpha.0](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.76...v1.0.77-alpha.0) (2024-05-20)
 
 
