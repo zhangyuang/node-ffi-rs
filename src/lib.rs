@@ -14,6 +14,7 @@ use libffi_sys::{
 };
 use napi::{Env, JsExternal, JsUnknown, Result};
 
+use datatype::pointer::{free_c_pointer_memory, free_rs_pointer_memory};
 use std::collections::HashMap;
 use std::ffi::c_void;
 use utils::dataprocess::{
@@ -37,7 +38,11 @@ unsafe fn create_pointer(env: Env, params: CreatePointerParams) -> Result<Vec<Js
     params_type,
     params_value,
   } = params;
-  let (_, arg_values) = get_arg_types_values(&env, params_type, params_value)?;
+  let params_type_rs: Vec<RsArgsValue> = params_type
+    .into_iter()
+    .map(|param| type_define_to_rs_args(&env, param).unwrap())
+    .collect();
+  let (_, arg_values) = get_arg_types_values(&env, params_type_rs, params_value)?;
   let arg_values_c_void = get_value_pointer(&env, arg_values)?;
 
   arg_values_c_void
@@ -75,7 +80,6 @@ unsafe fn unwrap_pointer(env: Env, params: Vec<JsExternal>) -> Result<Vec<JsExte
     })
     .collect()
 }
-
 #[napi]
 unsafe fn wrap_pointer(env: Env, params: Vec<JsExternal>) -> Result<Vec<JsExternal>> {
   params
@@ -87,11 +91,26 @@ unsafe fn wrap_pointer(env: Env, params: Vec<JsExternal>) -> Result<Vec<JsExtern
     .collect()
 }
 #[napi]
-unsafe fn free_pointer(env: Env, params: Vec<JsExternal>) {
-  params.into_iter().for_each(|js_external| {
-    let ptr = get_js_external_wrap_data(&env, js_external).unwrap();
-    free(ptr)
-  });
+unsafe fn free_pointer(env: Env, params: FreePointerParams) {
+  let FreePointerParams {
+    params_type,
+    params_value,
+    pointer_type,
+  } = params;
+  let params_type_rs: Vec<RsArgsValue> = params_type
+    .into_iter()
+    .map(|param| type_define_to_rs_args(&env, param).unwrap())
+    .collect();
+  params_value
+    .into_iter()
+    .zip(params_type_rs.into_iter())
+    .for_each(|(js_external, ptr_desc)| {
+      let ptr = get_js_external_wrap_data(&env, js_external).unwrap();
+      match pointer_type {
+        PointerType::CPointer => free_c_pointer_memory(ptr, ptr_desc, true),
+        PointerType::RsPointer => free_rs_pointer_memory(ptr, ptr_desc, true),
+      }
+    });
 }
 
 #[napi]
@@ -184,32 +203,37 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     params_value,
     errno,
     run_in_new_thread,
+    free_result_memory,
   } = params;
   let func = get_symbol(&library, &func_name)?;
   let params_type_len = params_type.len();
-  let (mut arg_types, arg_values) = get_arg_types_values(&env, params_type, params_value)?;
+  let params_type_rs: Vec<RsArgsValue> = params_type
+    .into_iter()
+    .map(|param| type_define_to_rs_args(&env, param).unwrap())
+    .collect();
+  let (mut arg_types, arg_values) =
+    get_arg_types_values(&env, params_type_rs.clone(), params_value)?;
   let mut arg_values_c_void = get_value_pointer(&env, arg_values)?;
   let ret_type_rs = type_define_to_rs_args(&env, ret_type)?;
   let r_type: *mut ffi_type = match ret_type_rs {
     RsArgsValue::I32(number) => {
       let ret_data_type = number_to_basic_data_type(number);
       match ret_data_type {
-        BasicDataType::U8 => Box::into_raw(Box::new(ffi_type_uint8)) as *mut ffi_type,
-        BasicDataType::I32 => Box::into_raw(Box::new(ffi_type_sint32)) as *mut ffi_type,
-        BasicDataType::I64 => Box::into_raw(Box::new(ffi_type_sint64)) as *mut ffi_type,
-        BasicDataType::U64 => Box::into_raw(Box::new(ffi_type_uint64)) as *mut ffi_type,
-        BasicDataType::String => Box::into_raw(Box::new(ffi_type_pointer)) as *mut ffi_type,
-        BasicDataType::Void => Box::into_raw(Box::new(ffi_type_void)) as *mut ffi_type,
-        BasicDataType::Float => Box::into_raw(Box::new(ffi_type_float)) as *mut ffi_type,
-        BasicDataType::Double => Box::into_raw(Box::new(ffi_type_double)) as *mut ffi_type,
-        BasicDataType::Boolean => Box::into_raw(Box::new(ffi_type_uint8)) as *mut ffi_type,
-        BasicDataType::External => Box::into_raw(Box::new(ffi_type_pointer)) as *mut ffi_type,
+        BasicDataType::U8 => &mut ffi_type_uint8 as *mut ffi_type,
+        BasicDataType::I32 => &mut ffi_type_sint32 as *mut ffi_type,
+        BasicDataType::I64 => &mut ffi_type_sint64 as *mut ffi_type,
+        BasicDataType::U64 => &mut ffi_type_uint64 as *mut ffi_type,
+        BasicDataType::String => &mut ffi_type_pointer as *mut ffi_type,
+        BasicDataType::Void => &mut ffi_type_void as *mut ffi_type,
+        BasicDataType::Float => &mut ffi_type_float as *mut ffi_type,
+        BasicDataType::Double => &mut ffi_type_double as *mut ffi_type,
+        BasicDataType::Boolean => &mut ffi_type_uint8 as *mut ffi_type,
+        BasicDataType::External => &mut ffi_type_pointer as *mut ffi_type,
       }
     }
-    RsArgsValue::Object(_) => Box::into_raw(Box::new(ffi_type_pointer)) as *mut ffi_type,
-    _ => Box::into_raw(Box::new(ffi_type_void)) as *mut ffi_type,
+    RsArgsValue::Object(_) => &mut ffi_type_pointer as *mut ffi_type,
+    _ => &mut ffi_type_void as *mut ffi_type,
   };
-
   let mut cif = ffi_cif {
     abi: ffi_abi_FFI_DEFAULT_ABI,
     nargs: params_type_len as u32,
@@ -230,8 +254,8 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     arg_types.as_mut_ptr(),
   );
   if run_in_new_thread.is_some() && run_in_new_thread.unwrap() {
-    Box::into_raw(Box::new(r_type));
-    Box::into_raw(Box::new(arg_types));
+    let r_type_p = Box::into_raw(Box::new(r_type));
+    let arg_types_p = Box::into_raw(Box::new(arg_types));
     use napi::Task;
     impl Task for FFICALL {
       type Output = BarePointerWrap;
@@ -257,10 +281,31 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
 
       fn resolve(&mut self, env: Env, output: Self::Output) -> Result<JsUnknown> {
         let FFICALLPARAMS {
-          ret_type_rs, errno, ..
+          ret_type_rs,
+          errno,
+          arg_values_c_void,
+          free_result_memory,
+          params_type_rs,
+          cif,
+          r_type_p,
+          arg_types_p,
+          ..
         } = &mut self.data;
         unsafe {
           let call_result = get_js_unknown_from_pointer(&env, &ret_type_rs, output.0);
+          if *free_result_memory {
+            free_c_pointer_memory(output.0, ret_type_rs.clone(), false);
+          }
+          arg_values_c_void
+            .into_iter()
+            .zip(params_type_rs.into_iter())
+            .for_each(|(ptr, ptr_desc)| {
+              free_rs_pointer_memory(*ptr, ptr_desc.clone(), false);
+            });
+          let _ = Box::from_raw(*cif);
+          let _ = Box::from_raw(*r_type_p);
+          let _ = Box::from_raw(*arg_types_p);
+          free(output.0);
           if errno.is_some() && errno.unwrap() {
             add_errno(&env, call_result?)
           } else {
@@ -275,13 +320,26 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
       ret_type_rs,
       fn_pointer: func,
       errno,
+      free_result_memory,
+      params_type_rs,
+      r_type_p,
+      arg_types_p,
     });
     let async_work_promise = env.spawn(task)?;
     Ok(async_work_promise.promise_object().into_unknown())
   } else {
-    let result = malloc(std::mem::size_of::<*mut c_void>());
+    let result = &mut () as *mut _ as *mut c_void;
     ffi_call(&mut cif, Some(func), result, arg_values_c_void.as_mut_ptr());
     let call_result = get_js_unknown_from_pointer(&env, &ret_type_rs, result);
+    if free_result_memory {
+      free_c_pointer_memory(result, ret_type_rs, false);
+    }
+    arg_values_c_void
+      .into_iter()
+      .zip(params_type_rs.into_iter())
+      .for_each(|(ptr, ptr_desc)| {
+        free_rs_pointer_memory(ptr, ptr_desc, false);
+      });
     if errno.is_some() && errno.unwrap() {
       add_errno(&env, call_result?)
     } else {

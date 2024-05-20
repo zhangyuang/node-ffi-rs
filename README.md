@@ -354,7 +354,7 @@ deepStrictEqual(stringArr, load({
 
 In `ffi-rs`, we use [DataType.External](https://nodejs.org/api/n-api.html#napi_create_external) for wrapping the `pointer` which enables it to be passed between `Node.js` and `C`.
 
-`Pointer` is complicated and underlying, `ffi-rs` provide four functions to handle this pointer include `createPointer`, `restorePointer`, `wrapPointer`, `unwrapPointer` for different scene.
+`Pointer` is complicated and underlying, `ffi-rs` provide four functions to handle this pointer include `createPointer`, `restorePointer`, `unwrapPointer`, `wrapPointer`, `freePointer` for different scene.
 
 ```cpp
 extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
@@ -454,6 +454,20 @@ const restoreData = restorePointer({
 deepStrictEqual(restoreData, [[1.1, 2.2]])
 ```
 
+#### freePointer
+
+`freePointer` is used to free memory which are not be freed automatically.
+
+At default, `ffi-rs` will free data memory for ffi call args and return result prevent memory leak.Except in the following cases.
+
+- set `freeResultMemory: false` when call `load` method
+
+If you set freeResultMemory to false, `ffi-rs` will not release the return result memory which was malloc in c environment
+
+- Use `DataType.External` as paramsType or retType
+
+If developers use `DataType.External` as paramsType or retType, please use `freePointer` to release the memory of pointer. ref [test.ts](./test.ts#170)
+
 #### wrapPointer
 
 `wrapPointer` is used to create multiple pointer.
@@ -473,7 +487,6 @@ const ptr = load({
 
 // wrapPtr type is *mut *mut c_char
 const wrapPtr = wrapPointer([ptr])[0]
-```
 
 #### unwrapPointer
 
@@ -530,7 +543,7 @@ staticBytes: arrayConstructor({
 
 ## Function
 
-`ffi-rs` supports passing js function to c, like this
+`ffi-rs` supports passing js function pointer to c function, like this.
 
 ```cpp
 typedef const void (*FunctionPointer)(int a, bool b, char *c, double d,
@@ -564,64 +577,62 @@ extern "C" void callFunction(FunctionPointer func) {
 Corresponds to the code above，you can use `ffi-rs` like
 
 ```js
-let count = 0;
-const func = (a, b, c, d, e, f, g) => {
-  equal(a, 100);
-  equal(b, false);
-  equal(c, "Hello, World!");
-  equal(d, "100.11");
-  deepStrictEqual(e, ["Hello", "world"]);
-  deepStrictEqual(f, [101, 202, 303]);
-  deepStrictEqual(g, person);
-  console.log("callback called");
-  count++;
-  if (count === 4) {
-    logGreen("test succeed");
-    process.exit(0);
-  }
-};
-const funcExternal = createPointer({
-  paramsType: [funcConstructor({
-    paramsType: [
-      DataType.I32,
-      DataType.Boolean,
-      DataType.String,
-      DataType.Double,
-      arrayConstructor({ type: DataType.StringArray, length: 2 }),
-      arrayConstructor({ type: DataType.I32Array, length: 3 }),
-      personType,
-    ],
+const testFunction = () => {
+  const func = (a, b, c, d, e, f, g) => {
+    equal(a, 100);
+    equal(b, false);
+    equal(c, "Hello, World!");
+    equal(d, "100.11");
+    deepStrictEqual(e, ["Hello", "world"]);
+    deepStrictEqual(f, [101, 202, 303]);
+    deepStrictEqual(g, person);
+    logGreen("test function succeed");
+    // free function memory when it not in use
+    freePointer({
+      paramsType: [funcConstructor({
+        paramsType: [
+          DataType.I32,
+          DataType.Boolean,
+          DataType.String,
+          DataType.Double,
+          arrayConstructor({ type: DataType.StringArray, length: 2 }),
+          arrayConstructor({ type: DataType.I32Array, length: 3 }),
+          personType,
+        ],
+        retType: DataType.Void,
+      })],
+      paramsValue: funcExternal
+    })
+    if (!process.env.MEMORY) {
+      close("libsum");
+    }
+  };
+  // suggest use createPointer to create a function pointer for manual memory management
+  const funcExternal = createPointer({
+    paramsType: [funcConstructor({
+      paramsType: [
+        DataType.I32,
+        DataType.Boolean,
+        DataType.String,
+        DataType.Double,
+        arrayConstructor({ type: DataType.StringArray, length: 2 }),
+        arrayConstructor({ type: DataType.I32Array, length: 3 }),
+        personType,
+      ],
+      retType: DataType.Void,
+    })],
+    paramsValue: [func]
+  })
+  load({
+    library: "libsum",
+    funcName: "callFunction",
     retType: DataType.Void,
-  })],
-  paramsValue: [func]
-})
-load({
-  library: "libsum",
-  funcName: "callFunction",
-  retType: DataType.Void,
-  paramsType: [funcConstructor({
     paramsType: [
-      DataType.I32,
-      DataType.Boolean,
-      DataType.String,
-      DataType.Double,
-      arrayConstructor({ type: DataType.StringArray, length: 2 }),
-      arrayConstructor({ type: DataType.I32Array, length: 3 }),
-      personType,
+      DataType.External,
     ],
-    retType: DataType.Void,
-  })],
-  paramsValue: [func]
-});
-load({
-  library: "libsum",
-  funcName: "callFunction",
-  retType: DataType.Void,
-  paramsType: [
-    DataType.External,
-  ],
-  paramsValue: unwrapPointer(funcExternal),
-});
+    paramsValue: unwrapPointer(funcExternal),
+  });
+}
 ```
 
 The function parameters supports type are all in the example above
@@ -672,6 +683,11 @@ load({
     DataType.External,
   ],
   paramsValue: [classPointer],
+})
+freePointer({
+  paramsType: [DataType.External],
+  paramsValue: [classPointer],
+  pointerType: PointerType.CPointer
 })
 ```
 

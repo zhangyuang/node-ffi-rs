@@ -1,5 +1,7 @@
 use crate::define::*;
-use crate::utils::dataprocess::{get_array_desc, get_ffi_tag, get_js_external_wrap_data};
+use crate::utils::dataprocess::{
+  get_array_desc, get_array_value, get_ffi_tag, get_js_external_wrap_data,
+};
 use crate::utils::object_utils::get_size_align;
 use crate::RefDataType;
 use indexmap::IndexMap;
@@ -51,23 +53,28 @@ pub fn calculate_struct_size(map: &IndexMap<String, RsArgsValue>) -> (usize, usi
             let FFIARRARYDESC {
               array_type,
               array_len,
+              dynamic_array,
               ..
             } = array_desc;
-            let (mut type_size, type_align) = match array_type {
-              RefDataType::U8Array => get_size_align::<u8>(),
-              RefDataType::I32Array => get_size_align::<i32>(),
-              RefDataType::DoubleArray => get_size_align::<f64>(),
-              _ => panic!(
-                "write {:?} static array in struct is unsupported",
-                array_type
-              ),
-            };
-            type_size = type_size * array_len;
-            let align = align.max(type_align);
-            let padding = (type_align - (offset % type_align)) % type_align;
-            let size = size + padding + type_size;
-            let offset = offset + padding + type_size;
-            (size, align, offset)
+            if !dynamic_array {
+              let (mut type_size, type_align) = match array_type {
+                RefDataType::U8Array => get_size_align::<u8>(),
+                RefDataType::I32Array => get_size_align::<i32>(),
+                RefDataType::DoubleArray => get_size_align::<f64>(),
+                _ => panic!(
+                  "write {:?} to static array in struct is unsupported",
+                  array_type
+                ),
+              };
+              type_size = type_size * array_len;
+              let align = align.max(type_align);
+              let padding = (type_align - (offset % type_align)) % type_align;
+              let size = size + padding + type_size;
+              let offset = offset + padding + type_size;
+              (size, align, offset)
+            } else {
+              calculate_pointer(size, align, offset)
+            }
           } else {
             calculate_pointer(size, align, offset)
           }
@@ -173,125 +180,6 @@ pub unsafe fn generate_c_struct(
         offset += size + padding;
         size
       }
-      RsArgsValue::StringArray(str_arr) => {
-        let (size, align) = get_size_align::<*mut c_void>();
-        let padding = (align - (offset % align)) % align;
-        field_ptr = field_ptr.offset(padding as isize);
-        let c_char_vec: Vec<*const c_char> = str_arr
-          .into_iter()
-          .map(|str| {
-            let c_string = string_to_c_string(str);
-            let ptr = c_string.as_ptr();
-            std::mem::forget(c_string);
-            ptr
-          })
-          .collect();
-        (field_ptr as *mut *const *const c_char).write(c_char_vec.as_ptr());
-        std::mem::forget(c_char_vec);
-        offset += size + padding;
-        size
-      }
-      RsArgsValue::DoubleArray(arr) => {
-        let (size, align) = get_size_align::<*mut c_void>();
-        let padding = (align - (offset % align)) % align;
-        field_ptr = field_ptr.offset(padding as isize);
-        (field_ptr as *mut *const c_double).write(arr.as_ptr());
-        std::mem::forget(arr);
-        offset += size + padding;
-        size
-      }
-      RsArgsValue::FloatArray(arr) => {
-        let (size, align) = get_size_align::<*mut c_void>();
-        let padding = (align - (offset % align)) % align;
-        field_ptr = field_ptr.offset(padding as isize);
-        (field_ptr as *mut *const c_float).write(arr.as_ptr());
-        std::mem::forget(arr);
-        offset += size + padding;
-        size
-      }
-      RsArgsValue::I32Array(arr) => {
-        let (size, align) = get_size_align::<*mut c_void>();
-        let padding = (align - (offset % align)) % align;
-        field_ptr = field_ptr.offset(padding as isize);
-        (field_ptr as *mut *const c_int).write(arr.as_ptr());
-        std::mem::forget(arr);
-        offset += size + padding;
-        size
-      }
-      RsArgsValue::U8Array(buffer, _) => {
-        let buffer = buffer.unwrap();
-        let (size, align) = get_size_align::<*mut c_void>();
-        let padding = (align - (offset % align)) % align;
-        field_ptr = field_ptr.offset(padding as isize);
-        (field_ptr as *mut *const c_uchar).write(buffer.as_ptr());
-        std::mem::forget(buffer);
-        offset += size + padding;
-        size
-      }
-      RsArgsValue::Object(val) => {
-        if let FFITag::Array = get_ffi_tag(&val) {
-          let array_desc = get_array_desc(&val);
-          // write static array data to struct
-          let FFIARRARYDESC {
-            array_type,
-            array_len,
-            array_value,
-            dynamic_array,
-            ..
-          } = array_desc;
-          if dynamic_array {
-            panic!("generate struct field unsupport use object describe array")
-          }
-          match array_type {
-            RefDataType::U8Array => {
-              let (size, align) = get_size_align::<u8>();
-              let field_size = size * array_len;
-              let padding = (align - (offset % align)) % align;
-              field_ptr = field_ptr.offset(padding as isize);
-              if let RsArgsValue::U8Array(buffer, _) = array_value.unwrap() {
-                let buffer = buffer.as_ref().unwrap();
-                std::ptr::copy(buffer.as_ptr(), field_ptr as *mut u8, array_len);
-                offset += field_size + padding;
-              }
-              field_size
-            }
-            RefDataType::I32Array => {
-              let (size, align) = get_size_align::<i32>();
-              let field_size = size * array_len;
-              let padding = (align - (offset % align)) % align;
-              field_ptr = field_ptr.offset(padding as isize);
-              if let RsArgsValue::I32Array(arr) = array_value.unwrap() {
-                std::ptr::copy(arr.as_ptr(), field_ptr as *mut i32, array_len);
-                offset += field_size + padding;
-              }
-              field_size
-            }
-            RefDataType::DoubleArray => {
-              let (size, align) = get_size_align::<f64>();
-              let field_size = size * array_len;
-              let padding = (align - (offset % align)) % align;
-              field_ptr = field_ptr.offset(padding as isize);
-              if let RsArgsValue::DoubleArray(arr) = array_value.unwrap() {
-                std::ptr::copy(arr.as_ptr(), field_ptr as *mut f64, array_len);
-                offset += field_size + padding;
-              }
-              field_size
-            }
-            _ => panic!(
-              "write {:?} static array in struct is unsupported",
-              array_type
-            ),
-          }
-        } else {
-          let (size, align) = get_size_align::<*mut c_void>();
-          let padding = (align - (offset % align)) % align;
-          field_ptr = field_ptr.offset(padding as isize);
-          let obj_ptr = generate_c_struct(env, val)?;
-          (field_ptr as *mut *const c_void).write(obj_ptr);
-          offset += size + padding;
-          size
-        }
-      }
       RsArgsValue::External(val) => {
         let (size, align) = get_size_align::<*mut c_void>();
         let padding = (align - (offset % align)) % align;
@@ -308,7 +196,164 @@ pub unsafe fn generate_c_struct(
         offset += size + padding;
         size
       }
+      RsArgsValue::Object(mut val) => {
+        if let FFITag::Array = get_ffi_tag(&val) {
+          let array_desc = get_array_desc(&val);
+          let array_value = get_array_value(&mut val).unwrap();
+          let FFIARRARYDESC {
+            array_type,
+            array_len,
+            dynamic_array,
+            ..
+          } = array_desc;
+          let field_size = match array_type {
+            RefDataType::U8Array => {
+              if let RsArgsValue::U8Array(buffer, _) = array_value {
+                let buffer = buffer.unwrap();
+                if !dynamic_array {
+                  let (size, align) = get_size_align::<u8>();
+                  let field_size = size * array_len;
+                  let padding = (align - (offset % align)) % align;
+                  field_ptr = field_ptr.offset(padding as isize);
+                  std::ptr::copy(buffer.as_ptr(), field_ptr as *mut u8, array_len);
+                  offset += field_size + padding;
+                  field_size
+                } else {
+                  let (size, align) = get_size_align::<*mut c_void>();
+                  let padding = (align - (offset % align)) % align;
+                  field_ptr = field_ptr.offset(padding as isize);
+                  (field_ptr as *mut *const c_uchar).write(buffer.as_ptr());
+                  offset += size + padding;
+                  size
+                }
+              } else {
+                return Err(FFIError::Panic(format!("error array type {:?}", array_type)).into());
+              }
+            }
+            RefDataType::I32Array => {
+              if let RsArgsValue::I32Array(arr) = array_value {
+                if !dynamic_array {
+                  let (size, align) = get_size_align::<i32>();
+                  let field_size = size * array_len;
+                  let padding = (align - (offset % align)) % align;
+                  field_ptr = field_ptr.offset(padding as isize);
+                  std::ptr::copy(arr.as_ptr(), field_ptr as *mut i32, array_len);
+                  offset += field_size + padding;
+                  field_size
+                } else {
+                  let (size, align) = get_size_align::<*mut c_void>();
+                  let padding = (align - (offset % align)) % align;
+                  field_ptr = field_ptr.offset(padding as isize);
+                  (field_ptr as *mut *const c_int).write(arr.as_ptr());
+                  std::mem::forget(arr);
+                  offset += size + padding;
+                  size
+                }
+              } else {
+                return Err(FFIError::Panic(format!("error array type {:?}", array_type)).into());
+              }
+            }
+            RefDataType::DoubleArray => {
+              if let RsArgsValue::DoubleArray(arr) = array_value {
+                if !dynamic_array {
+                  let (size, align) = get_size_align::<f64>();
+                  let field_size = size * array_len;
+                  let padding = (align - (offset % align)) % align;
+                  field_ptr = field_ptr.offset(padding as isize);
+                  std::ptr::copy(arr.as_ptr(), field_ptr as *mut f64, array_len);
+                  offset += field_size + padding;
+                  field_size
+                } else {
+                  let (size, align) = get_size_align::<*mut c_void>();
+                  let padding = (align - (offset % align)) % align;
+                  field_ptr = field_ptr.offset(padding as isize);
+                  (field_ptr as *mut *const c_double).write(arr.as_ptr());
+                  std::mem::forget(arr);
+                  offset += size + padding;
+                  size
+                }
+              } else {
+                return Err(FFIError::Panic(format!("error array type {:?}", array_type)).into());
+              }
+            }
+            RefDataType::FloatArray => {
+              if let RsArgsValue::FloatArray(arr) = array_value {
+                if !dynamic_array {
+                  let (size, align) = get_size_align::<f32>();
+                  let field_size = size * array_len;
+                  let padding = (align - (offset % align)) % align;
+                  field_ptr = field_ptr.offset(padding as isize);
+                  std::ptr::copy(arr.as_ptr(), field_ptr as *mut f32, array_len);
+                  offset += field_size + padding;
+                  field_size
+                } else {
+                  let (size, align) = get_size_align::<*mut c_void>();
+                  let padding = (align - (offset % align)) % align;
+                  field_ptr = field_ptr.offset(padding as isize);
+                  (field_ptr as *mut *const c_float).write(arr.as_ptr());
+                  std::mem::forget(arr);
+                  offset += size + padding;
+                  size
+                }
+              } else {
+                return Err(FFIError::Panic(format!("error array type {:?}", array_type)).into());
+              }
+            }
+            RefDataType::StringArray => {
+              if let RsArgsValue::StringArray(arr) = array_value {
+                if !dynamic_array {
+                  panic!(
+                    "write {:?} to static array in struct is unsupported",
+                    array_type
+                  )
+                } else {
+                  let (size, align) = get_size_align::<*mut c_void>();
+                  let padding = (align - (offset % align)) % align;
+                  field_ptr = field_ptr.offset(padding as isize);
+                  let c_char_vec: Vec<*const c_char> = arr
+                    .into_iter()
+                    .map(|str| {
+                      let c_string = string_to_c_string(str);
+                      let ptr = c_string.as_ptr();
+                      std::mem::forget(c_string);
+                      ptr
+                    })
+                    .collect();
+                  (field_ptr as *mut *const *const c_char).write(c_char_vec.as_ptr());
+                  std::mem::forget(c_char_vec);
+                  offset += size + padding;
+                  size
+                }
+              } else {
+                return Err(FFIError::Panic(format!("error array type {:?}", array_type)).into());
+              }
+            }
+          };
+          field_size
+        } else {
+          // raw object or function
+          let (size, align) = get_size_align::<*mut c_void>();
+          let padding = (align - (offset % align)) % align;
+          field_ptr = field_ptr.offset(padding as isize);
+          let obj_ptr = generate_c_struct(env, val)?;
+          (field_ptr as *mut *const c_void).write(obj_ptr);
+          offset += size + padding;
+          size
+        }
+      }
       RsArgsValue::Function(_, _) => panic!("write_data error {:?}", field_val),
+      RsArgsValue::StringArray(_)
+      | RsArgsValue::FloatArray(_)
+      | RsArgsValue::I32Array(_)
+      | RsArgsValue::DoubleArray(_)
+      | RsArgsValue::U8Array(_, _) => {
+        return Err(
+          FFIError::Panic(format!(
+          "In the latest ffi-rs version, please use ffi-rs.arrayConstrutor to describe array type"
+        ))
+          .into(),
+        )
+      }
     };
     field_ptr = field_ptr.offset(field_size as isize);
   }

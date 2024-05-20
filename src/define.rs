@@ -4,6 +4,7 @@ use libffi_sys::{ffi_cif, ffi_type};
 use napi::bindgen_prelude::{Error, Result, Status as NapiStatus};
 use napi::{bindgen_prelude::*, JsBufferValue};
 use napi::{Env, JsExternal, JsObject, JsUnknown};
+use std::collections::HashMap;
 use std::hash::Hash;
 
 pub enum FFIError {
@@ -73,13 +74,17 @@ where
     unsafe { JsObject::to_napi_value(raw_env, obj) }
   }
 }
-
-pub struct FFIARRARYDESC<'a> {
+#[derive(Debug)]
+pub struct FFIARRARYDESC {
   pub dynamic_array: bool,
   pub array_type: RefDataType,
   pub array_len: usize,
-  pub array_value: Option<&'a RsArgsValue>,
 }
+
+pub struct FFIFUNCDESC {
+  pub need_free: bool,
+}
+
 #[napi]
 #[derive(Debug)]
 pub enum DataType {
@@ -167,7 +172,7 @@ pub fn rs_value_to_ffi_type(value: &RsArgsValue) -> Type {
 
 pub fn number_to_basic_data_type(value: i32) -> BasicDataType {
   if is_array_type(&value) {
-    panic!("If you want to use array type as return value type, you must use arrayConstrutor describe array type in retType field")
+    panic!("In the latest ffi-rs version, please use ffi-rs.arrayConstrutor to describe array type")
   }
   match value {
     0 => BasicDataType::String,
@@ -216,10 +221,32 @@ pub enum RsArgsValue {
   Object(IndexMap<String, RsArgsValue>),
   Boolean(bool),
   Void(()),
-  Function(JsObject, JsFunction),
+  Function(IndexMap<String, RsArgsValue>, JsFunction),
   External(JsExternal),
 }
-
+impl Clone for RsArgsValue {
+  fn clone(&self) -> Self {
+    match self {
+      RsArgsValue::String(s) => RsArgsValue::String(s.clone()),
+      RsArgsValue::U8(u) => RsArgsValue::U8(*u),
+      RsArgsValue::I32(i) => RsArgsValue::I32(*i),
+      RsArgsValue::I64(i) => RsArgsValue::I64(*i),
+      RsArgsValue::U64(u) => RsArgsValue::U64(*u),
+      RsArgsValue::Float(f) => RsArgsValue::Float(*f),
+      RsArgsValue::Double(d) => RsArgsValue::Double(*d),
+      RsArgsValue::I32Array(vec) => RsArgsValue::I32Array(vec.clone()),
+      RsArgsValue::StringArray(vec) => RsArgsValue::StringArray(vec.clone()),
+      RsArgsValue::DoubleArray(vec) => RsArgsValue::DoubleArray(vec.clone()),
+      RsArgsValue::FloatArray(vec) => RsArgsValue::FloatArray(vec.clone()),
+      RsArgsValue::Object(map) => RsArgsValue::Object(map.clone()),
+      RsArgsValue::Boolean(b) => RsArgsValue::Boolean(*b),
+      RsArgsValue::Void(()) => RsArgsValue::Void(()),
+      RsArgsValue::U8Array(_, _) => panic!("U8Array is buffer cannot be cloned"),
+      RsArgsValue::Function(_, _) => panic!("Function cannot be cloned"),
+      RsArgsValue::External(_) => panic!("External cannot be cloned"),
+    }
+  }
+}
 unsafe impl Send for RsArgsValue {}
 unsafe impl Sync for RsArgsValue {}
 
@@ -261,6 +288,7 @@ pub struct FFIParams {
   pub params_value: Vec<JsUnknown>,
   pub errno: Option<bool>,
   pub run_in_new_thread: Option<bool>,
+  pub free_result_memory: bool,
 }
 
 pub struct FFICALLPARAMS {
@@ -269,6 +297,10 @@ pub struct FFICALLPARAMS {
   pub arg_values_c_void: Vec<*mut c_void>,
   pub ret_type_rs: RsArgsValue,
   pub errno: Option<bool>,
+  pub free_result_memory: bool,
+  pub params_type_rs: Vec<RsArgsValue>,
+  pub r_type_p: *mut *mut ffi_type,
+  pub arg_types_p: *mut Vec<*mut ffi_type>,
 }
 pub struct BarePointerWrap(pub *mut c_void);
 unsafe impl Send for FFICALL {}
@@ -288,6 +320,19 @@ impl FFICALL {
 pub struct CreatePointerParams {
   pub params_type: Vec<JsUnknown>,
   pub params_value: Vec<JsUnknown>,
+}
+#[derive(Debug)]
+#[napi]
+pub enum PointerType {
+  RsPointer,
+  CPointer,
+}
+
+#[napi(object)]
+pub struct FreePointerParams {
+  pub params_type: Vec<JsUnknown>,
+  pub params_value: Vec<JsExternal>,
+  pub pointer_type: PointerType,
 }
 
 #[napi(object)]
@@ -310,6 +355,9 @@ pub const ARRAY_VALUE_TAG: &str = "value";
 pub const FFI_TAG_FIELD: &str = "ffiTypeTag";
 pub const ARRAY_FFI_TAG: &str = "array";
 pub const FUNCTION_FFI_TAG: &str = "function";
+pub const FUNCTION_FREE_TAG: &str = "needFree";
+pub static mut CLOSURE_MAP: Option<HashMap<*mut c_void, Vec<*mut c_void>>> = None;
+
 #[derive(Debug)]
 pub enum FFITag {
   Array,
