@@ -6,7 +6,7 @@ mod define;
 mod utils;
 use define::*;
 use dlopen::symbor::{Library, Symbol};
-use libc::{c_double, free, malloc};
+use libc::{free, malloc};
 use libffi_sys::{
   ffi_abi_FFI_DEFAULT_ABI, ffi_call, ffi_cif, ffi_prep_cif, ffi_type, ffi_type_double,
   ffi_type_float, ffi_type_pointer, ffi_type_sint32, ffi_type_sint64, ffi_type_uint64,

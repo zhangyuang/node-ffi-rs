@@ -18,6 +18,7 @@ use napi::{
   bindgen_prelude::*, Env, JsBoolean, JsBuffer, JsExternal, JsNumber, JsObject, JsString,
   JsUnknown, NapiRaw,
 };
+use std::collections::HashMap;
 use std::ffi::CStr;
 
 pub unsafe fn get_js_external_wrap_data(env: &Env, js_external: JsExternal) -> Result<*mut c_void> {
@@ -351,8 +352,8 @@ pub unsafe fn get_value_pointer(
         use libffi::low;
         use libffi::middle::*;
         let func_args_type = func_desc.get("paramsType").unwrap().clone();
-        let tsfn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal> = (&js_function)
-          .create_threadsafe_function(0, |ctx| {
+        let mut tsfn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal> =
+          (&js_function).create_threadsafe_function(0, |ctx| {
             let value: Vec<RsArgsValue> = ctx.value;
             let js_call_params: Vec<JsUnknown> = value
               .into_iter()
@@ -361,7 +362,7 @@ pub unsafe fn get_value_pointer(
 
             Ok(js_call_params)
           })?;
-
+        let tsfn_ptr = Box::into_raw(Box::new(tsfn));
         unsafe extern "C" fn lambda_callback<F: Fn(Vec<*mut c_void>)>(
           _cif: &low::ffi_cif,
           result: &mut *mut c_void,
@@ -392,20 +393,27 @@ pub unsafe fn get_value_pointer(
                 param
               })
               .collect();
-            tsfn.call(value, ThreadsafeFunctionCallMode::Blocking);
+            (*tsfn_ptr).call(value, ThreadsafeFunctionCallMode::Blocking);
           };
           (cif, lambda)
         } else {
           return Err(FFIError::Panic(format!("generate cif error")).into());
         };
-
-        let closure = Box::into_raw(Box::new(Closure::new(
-          cif,
-          lambda_callback,
-          &*Box::into_raw(Box::new(lambda)),
-        )));
-
-        Ok(std::mem::transmute((*closure).code_ptr()))
+        let lambda_ptr = Box::into_raw(Box::new(lambda));
+        let closure = Box::into_raw(Box::new(Closure::new(cif, lambda_callback, &*lambda_ptr)));
+        if CLOSURE_MAP.is_none() {
+          CLOSURE_MAP = Some(HashMap::new())
+        }
+        let code_ptr = std::mem::transmute((*closure).code_ptr());
+        CLOSURE_MAP.as_mut().unwrap().insert(
+          code_ptr,
+          vec![
+            tsfn_ptr as *mut c_void,
+            closure as *mut c_void,
+            lambda_ptr as *mut c_void,
+          ],
+        );
+        Ok(code_ptr)
 
         // has been deprecated
         // Ok(

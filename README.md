@@ -354,7 +354,7 @@ deepStrictEqual(stringArr, load({
 
 In `ffi-rs`, we use [DataType.External](https://nodejs.org/api/n-api.html#napi_create_external) for wrapping the `pointer` which enables it to be passed between `Node.js` and `C`.
 
-`Pointer` is complicated and underlying, `ffi-rs` provide four functions to handle this pointer include `createPointer`, `restorePointer`, `unwrapPointer` for different scene.
+`Pointer` is complicated and underlying, `ffi-rs` provide four functions to handle this pointer include `createPointer`, `restorePointer`, `unwrapPointer`, `freePointer` for different scene.
 
 ```cpp
 extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
@@ -453,6 +453,20 @@ const restoreData = restorePointer({
 })
 deepStrictEqual(restoreData, [[1.1, 2.2]])
 ```
+
+#### freePointer
+
+`freePointer` is used to free memory which are not be freed automatically.
+
+At default, `ffi-rs` will free data memory for ffi call args and return result prevent memory leak.Except in the following cases.
+
+- set `needFreeResultMemory: false` when call `load` method
+
+If you set needFreeResultMemory to false, `ffi-rs` will not release the return result memory which was malloc in c environment
+
+- Use `DataType.External` as paramsType or retType
+
+If developers use `DataType.External` as paramsType or retType, please use `freePointer` to release the memory of pointer. ref [test.ts](./test.ts#170)
 
 #### unwrapPointer
 
@@ -649,6 +663,11 @@ load({
     DataType.External,
   ],
   paramsValue: [classPointer],
+})
+freePointer({
+  paramsType: [DataType.External],
+  paramsValue: [classPointer],
+  pointerType: PointerType.CPointer
 })
 ```
 

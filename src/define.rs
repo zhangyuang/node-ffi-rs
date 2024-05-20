@@ -4,6 +4,7 @@ use libffi_sys::{ffi_cif, ffi_type};
 use napi::bindgen_prelude::{Error, Result, Status as NapiStatus};
 use napi::{bindgen_prelude::*, JsBufferValue};
 use napi::{Env, JsExternal, JsObject, JsUnknown};
+use std::collections::HashMap;
 use std::hash::Hash;
 
 pub enum FFIError {
@@ -355,6 +356,8 @@ pub const FFI_TAG_FIELD: &str = "ffiTypeTag";
 pub const ARRAY_FFI_TAG: &str = "array";
 pub const FUNCTION_FFI_TAG: &str = "function";
 pub const FUNCTION_FREE_TAG: &str = "needFree";
+pub static mut CLOSURE_MAP: Option<HashMap<*mut c_void, Vec<*mut c_void>>> = None;
+
 #[derive(Debug)]
 pub enum FFITag {
   Array,

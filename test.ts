@@ -1,5 +1,5 @@
-const { equal, deepStrictEqual } = require("assert")
-const {
+import { equal, deepStrictEqual } from "assert"
+import {
   load,
   open,
   close,
@@ -13,7 +13,7 @@ const {
   freePointer,
   define,
   PointerType
-} = require("./index")
+} from "./index"
 
 const platform = process.platform;
 const dynamicLib = platform === "win32" ? "./sum.dll" : "./libsum.so";
@@ -508,27 +508,27 @@ const testDefine = () => {
   equal(res.sum([1, 2]), 3)
 }
 const unitTest = () => {
-  // testNumber()
-  // logGreen('test number succeed')
-  // testString()
-  // logGreen('test string succeed')
-  // testDefine()
-  // logGreen('test define succeed')
-  // testArray()
-  // logGreen('test array succeed')
-  // testVoid()
-  // logGreen('test void succeed')
-  // testBool()
-  // logGreen('test bool succeed')
-  // testMainProgram()
-  // logGreen('test main program succeed')
-  // testFunction()
-  // testCpp()
-  // logGreen('test cpp succeed')
-  // testObject()
-  // logGreen('test object succeed')
-  // testPointer()
-  // logGreen('test createPointer succeed')
+  testNumber()
+  logGreen('test number succeed')
+  testString()
+  logGreen('test string succeed')
+  testDefine()
+  logGreen('test define succeed')
+  testArray()
+  logGreen('test array succeed')
+  testVoid()
+  logGreen('test void succeed')
+  testBool()
+  logGreen('test bool succeed')
+  testMainProgram()
+  logGreen('test main program succeed')
+  testFunction()
+  testCpp()
+  logGreen('test cpp succeed')
+  testObject()
+  logGreen('test object succeed')
+  testPointer()
+  logGreen('test createPointer succeed')
   testRunInNewThread()
 };
 

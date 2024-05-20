@@ -153,7 +153,6 @@ typedef const void (*FunctionPointer)(int a, bool b, char *c, double d,
                                       char **e, int *f, Person *g);
 
 extern "C" void callFunction(FunctionPointer func) {
-  // printf("callFunction\n");
     int a = 100;
     bool b = false;
     double d = 100.11;

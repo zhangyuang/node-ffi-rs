@@ -311,7 +311,24 @@ pub unsafe fn free_rs_pointer_memory(
       } else if let FFITag::Function = ffi_tag {
         let func_desc = get_func_desc(&obj);
         if func_desc.need_free {
-          let _ = Box::from_raw(*(ptr as *mut *mut Closure));
+          CLOSURE_MAP
+            .as_ref()
+            .unwrap()
+            .get(&ptr)
+            .unwrap()
+            .iter()
+            .enumerate()
+            .for_each(|(index, p)| {
+              if index == 0 {
+                use napi::threadsafe_function::{ErrorStrategy, ThreadsafeFunction};
+                let _ = Box::from_raw(
+                  (*p) as *mut ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal>,
+                )
+                .abort();
+              } else {
+                let _ = Box::from_raw(*p);
+              }
+            });
         }
       } else {
         use super::object_calculate::calculate_struct_size;
