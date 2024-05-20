@@ -407,25 +407,23 @@ const testFunction = () => {
     deepStrictEqual(f, [101, 202, 303]);
     deepStrictEqual(g, person);
     logGreen("test function succeed");
-    // free function memory when it not in use
-    setTimeout(() => {
-      freePointer({
-        paramsType: [funcConstructor({
-          paramsType: [
-            DataType.I32,
-            DataType.Boolean,
-            DataType.String,
-            DataType.Double,
-            arrayConstructor({ type: DataType.StringArray, length: 2 }),
-            arrayConstructor({ type: DataType.I32Array, length: 3 }),
-            personType,
-          ],
-          retType: DataType.Void,
-        })],
-        paramsValue: funcExternal,
-        pointerType: PointerType.RsPointer
-      })
-    }, 1000)
+    // free function memory which malloc in c side when it not in use
+    freePointer({
+      paramsType: [funcConstructor({
+        paramsType: [
+          DataType.I32,
+          DataType.Boolean,
+          DataType.String,
+          DataType.Double,
+          arrayConstructor({ type: DataType.StringArray, length: 2 }),
+          arrayConstructor({ type: DataType.I32Array, length: 3 }),
+          personType,
+        ],
+        retType: DataType.Void,
+      })],
+      paramsValue: funcExternal,
+      pointerType: PointerType.RsPointer
+    })
     if (!process.env.MEMORY) {
       close("libsum");
     }
