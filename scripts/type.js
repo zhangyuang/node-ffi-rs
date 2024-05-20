@@ -359,6 +359,7 @@ exports.arrayConstructor = arrayConstructor
 exports.funcConstructor = (options) => ({
   ffiTypeTag: 'function',
   needFree: false,
+  freeCFuncParamsMemory: true,
   ...options,
 })
 exports.define = (obj) => {

@@ -80,6 +80,7 @@ export type FuncConstructorOptions = {
   paramsType: Array<FieldType>;
   retType: FieldType;
   needFree?: boolean
+  freeCFuncParamsMemory?: boolean
 };
 
 export function arrayConstructor<T extends ArrayConstructorOptions>(
