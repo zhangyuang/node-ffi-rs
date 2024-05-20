@@ -79,6 +79,7 @@ export type ArrayConstructorOptions = {
 export type FuncConstructorOptions = {
   paramsType: Array<FieldType>;
   retType: FieldType;
+  needFree?: boolean
 };
 
 export function arrayConstructor<T extends ArrayConstructorOptions>(
@@ -102,8 +103,15 @@ export function createPointer(params: {
   paramsValue: Array<unknown>;
 }): JsExternal[]
 
+export enum PointerType {
+  RsPointer = 0,
+  CPointer = 1
+}
+
 export function freePointer(params: {
+  paramsType: Array<FieldType>;
   paramsValue: Array<JsExternal>;
+  pointerType: PointerType
 }): void
 
 
@@ -151,6 +159,7 @@ export type FFIParams<T extends FieldType, U extends boolean | undefined = undef
   // whether need output errno
   errno?: U
   runInNewThread?: RunInNewThread
+  freeResultMemory?: boolean
 }
 export function load<T extends FieldType, U extends boolean | undefined = undefined, RunInNewThread extends boolean | undefined = undefined>(
   params: FFIParams<T, U, RunInNewThread>,

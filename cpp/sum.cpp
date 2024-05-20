@@ -48,13 +48,16 @@ extern "C" double *createArrayFloat(const float *arr, int size) {
 }
 
 extern "C" char **createArrayString(char **arr, int size) {
-  char **vec = (char **)malloc((size) * sizeof(char *));
+  char **vec = (char **)malloc(size * sizeof(char *));
+  if (vec == NULL) {
+    return NULL;
+  }
+
   for (int i = 0; i < size; i++) {
-    vec[i] = arr[i];
+    vec[i] = strdup(arr[i]);
   }
   return vec;
 }
-
 extern "C" bool return_opposite(bool input) { return !input; }
 
 typedef struct Person {
@@ -150,9 +153,6 @@ typedef const void (*FunctionPointer)(int a, bool b, char *c, double d,
                                       char **e, int *f, Person *g);
 
 extern "C" void callFunction(FunctionPointer func) {
-  printf("callFunction\n");
-
-  for (int i = 0; i < 2; i++) {
     int a = 100;
     bool b = false;
     double d = 100.11;
@@ -170,7 +170,6 @@ extern "C" void callFunction(FunctionPointer func) {
 
     Person *p = createPerson();
     func(a, b, c, d, stringArray, i32Array, p);
-  }
 }
 
 // 定义 C++ 类
