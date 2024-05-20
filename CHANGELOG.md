@@ -1,3 +1,12 @@
+## [1.0.77-alpha.0](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.76...v1.0.77-alpha.0) (2024-05-20)
+
+
+### Bug Fixes
+
+* add freePointer, free memory after ffi-call prevent memory leak ([#40](https://github.com/zhangyuang/node-ffi-rs/issues/40)) ([f639628](https://github.com/zhangyuang/node-ffi-rs/commit/f639628ce8297a64aa72bc14ff00aaf5fcc2a147))
+
+
+
 ## [1.0.76](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.75...v1.0.76) (2024-05-16)
 
 
