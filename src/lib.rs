@@ -249,8 +249,8 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     arg_types.as_mut_ptr(),
   );
   if run_in_new_thread.is_some() && run_in_new_thread.unwrap() {
-    Box::into_raw(Box::new(r_type));
-    Box::into_raw(Box::new(arg_types));
+    let r_type_p = Box::into_raw(Box::new(r_type));
+    let arg_types_p = Box::into_raw(Box::new(arg_types));
     use napi::Task;
     impl Task for FFICALL {
       type Output = BarePointerWrap;
@@ -263,7 +263,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
           ..
         } = &mut self.data;
         unsafe {
-          let result = &mut () as *mut _ as *mut c_void;
+          let result = malloc(std::mem::size_of::<*mut c_void>());
           ffi_call(
             *cif,
             Some(*fn_pointer),
@@ -281,6 +281,9 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
           arg_values_c_void,
           need_free_result_memory,
           params_type_rs,
+          cif,
+          r_type_p,
+          arg_types_p,
           ..
         } = &mut self.data;
         unsafe {
@@ -294,6 +297,10 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
             .for_each(|(ptr, ptr_desc)| {
               free_rs_pointer_memory(*ptr, ptr_desc.clone(), false);
             });
+          let _ = Box::from_raw(*cif);
+          let _ = Box::from_raw(*r_type_p);
+          let _ = Box::from_raw(*arg_types_p);
+          free(output.0);
           if errno.is_some() && errno.unwrap() {
             add_errno(&env, call_result?)
           } else {
@@ -303,13 +310,15 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
       }
     }
     let task = FFICALL::new(FFICALLPARAMS {
-      cif: &mut cif,
+      cif: Box::into_raw(Box::new(cif)),
       arg_values_c_void,
       ret_type_rs,
       fn_pointer: func,
       errno,
       need_free_result_memory,
       params_type_rs,
+      r_type_p,
+      arg_types_p,
     });
     let async_work_promise = env.spawn(task)?;
     Ok(async_work_promise.promise_object().into_unknown())

@@ -298,6 +298,8 @@ pub struct FFICALLPARAMS {
   pub errno: Option<bool>,
   pub need_free_result_memory: bool,
   pub params_type_rs: Vec<RsArgsValue>,
+  pub r_type_p: *mut *mut ffi_type,
+  pub arg_types_p: *mut Vec<*mut ffi_type>,
 }
 pub struct BarePointerWrap(pub *mut c_void);
 unsafe impl Send for FFICALL {}
