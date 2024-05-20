@@ -397,6 +397,7 @@ const testRunInNewThread = () => {
     logGreen('test runInNewThread succeed')
   })
 }
+
 const testFunction = () => {
   const func = (a, b, c, d, e, f, g) => {
     equal(a, 100);

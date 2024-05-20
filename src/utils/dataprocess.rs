@@ -353,8 +353,9 @@ pub unsafe fn get_value_pointer(
         use libffi::low;
         use libffi::middle::*;
         let func_args_type = func_desc.get("paramsType").unwrap().clone();
-        let mut tsfn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal> =
-          (&js_function).create_threadsafe_function(0, |ctx| {
+        let free_c_params_memory = func_desc.get("freeCFuncParamsMemory").unwrap().clone();
+        let tsfn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal> = (&js_function)
+          .create_threadsafe_function(0, |ctx| {
             let value: Vec<RsArgsValue> = ctx.value;
             let js_call_params: Vec<JsUnknown> = value
               .into_iter()
@@ -390,7 +391,11 @@ pub unsafe fn get_value_pointer(
               .map(|(index, c_param)| {
                 let arg_type = func_args_type_rs.get(&index.to_string()).unwrap();
                 let param = get_rs_value_from_pointer(env, arg_type, c_param, true);
-                free_c_pointer_memory(c_param, arg_type.clone(), false);
+                if let RsArgsValue::Boolean(value) = free_c_params_memory {
+                  if value {
+                    free_c_pointer_memory(c_param, arg_type.clone(), false);
+                  }
+                }
                 param
               })
               .collect();
