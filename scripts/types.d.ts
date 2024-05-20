@@ -80,6 +80,7 @@ export type FuncConstructorOptions = {
   paramsType: Array<FieldType>;
   retType: FieldType;
   needFree?: boolean
+  // whether or not free function call params memory automatically which are allocated in c side
   freeCFuncParamsMemory?: boolean
 };
 
@@ -160,6 +161,7 @@ export type FFIParams<T extends FieldType, U extends boolean | undefined = undef
   // whether need output errno
   errno?: U
   runInNewThread?: RunInNewThread
+  // whether or not need to free the result of return value memory automatically, default is true
   freeResultMemory?: boolean
 }
 export function load<T extends FieldType, U extends boolean | undefined = undefined, RunInNewThread extends boolean | undefined = undefined>(
