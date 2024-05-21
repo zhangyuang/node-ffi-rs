@@ -1,3 +1,7 @@
+## [1.0.77](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.77-alpha.1...v1.0.77) (2024-05-21)
+
+
+
 ## [1.0.77-alpha.1](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.77-alpha.0...v1.0.77-alpha.1) (2024-05-20)
 
 
