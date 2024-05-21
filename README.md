@@ -16,7 +16,7 @@ A module written in Rust and N-API provides interface (FFI) features for Node.js
 
 This module aims to provide similar functionality to the node-ffi module but with a completely rewritten underlying codebase. The node-ffi module has been unmaintained for several years and is no longer usable, so ffi-rs was developed to fill that void.
 
-## features
+## Features
 
 - High performance ✨
 - Better type hints 🧐
@@ -47,7 +47,7 @@ Finished 2 cases!
 
 ```
 
-## changelog
+## Changelog
 
 See [CHANGELOG.md](./CHANGELOG.md)
 
@@ -709,6 +709,29 @@ load({
 // The above code will return a object include three fields include errnoCode, errnoMessage, and the foreign function return value
 // { errnoCode: 22, errnoMessage: 'Invalid argument (os error 22)', value: -1 }
 ```
+
+## Memory Management
+
+It's important to free the memory allocations during a single ffi call prevent memory leak.
+
+What kinds of data memory are allocated in this?
+
+- call parameters in Rust environment which are allocated in the heap like `String`
+- return value which in C environment which are allocated in the heap like `char*`
+
+At default, `ffi-rs` will free all of memory both call parameters and return value(except functionConstructor).
+
+In some cases, the called c function also free memory has been allocated after ffi-call will cause repeated release error.
+
+For avoid this error, there are two ways to prevent `ffi-rs` free memory automatically
+
+- set `freeResultMemory: false` when call `load` method
+
+If you set freeResultMemory to false, `ffi-rs` will not release the return result memory which was allocated in c environment
+
+- Use `DataType.External` as paramsType or retType
+
+If developers use `DataType.External` as paramsType or retType, please use `freePointer` to release the memory of pointer when this memory is no longer in use. ref [test.ts](./test.ts#170)
 
 ## runInNewThread
 
