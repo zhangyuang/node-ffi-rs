@@ -60,6 +60,10 @@ extern "C" char **createArrayString(char **arr, int size) {
 }
 extern "C" bool return_opposite(bool input) { return !input; }
 
+typedef struct stackStruct {
+    int age;
+} stackStruct;
+
 typedef struct Person {
   int age;
   double *doubleArray;
@@ -72,11 +76,15 @@ typedef struct Person {
   bool boolTrue;
   bool boolFalse;
   int64_t longVal;
+  struct stackStruct stackStruct;
   char byte;
   char *byteArray;
 } Person;
 
-extern "C" Person *getStruct(Person *person) { return person; }
+extern "C" Person *getStruct(Person *person) {
+    printf("person stack age %d \n", person->parent->byte);
+    return person;
+}
 
 extern "C" Person *createPerson() {
   Person *person = (Person *)malloc(sizeof(Person));

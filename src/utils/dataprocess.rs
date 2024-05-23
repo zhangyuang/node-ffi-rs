@@ -1,10 +1,10 @@
 use super::js_value::create_js_value_unchecked;
 use crate::datatype::array::ToRsArray;
 use crate::datatype::buffer::get_safe_buffer;
+use crate::datatype::create_struct::generate_c_struct;
 use crate::datatype::function::get_rs_value_from_pointer;
-use crate::datatype::object_calculate::generate_c_struct;
-use crate::datatype::object_generate::{create_rs_struct_from_pointer, rs_value_to_js_unknown};
 use crate::datatype::pointer::*;
+use crate::datatype::restore_struct::{create_rs_struct_from_pointer, rs_value_to_js_unknown};
 use crate::datatype::string::{js_string_to_string, string_to_c_string};
 use crate::define::*;
 use indexmap::IndexMap;
@@ -346,7 +346,7 @@ pub unsafe fn get_value_pointer(
       }
       RsArgsValue::Void(_) => Ok(Box::into_raw(Box::new(())) as *mut c_void),
       RsArgsValue::Object(val) => {
-        Ok(Box::into_raw(Box::new(generate_c_struct(&env, val)?)) as *mut c_void)
+        Ok(Box::into_raw(Box::new(generate_c_struct(&env, val, None)?)) as *mut c_void)
       }
       RsArgsValue::Function(func_desc, js_function) => {
         use libffi::low;

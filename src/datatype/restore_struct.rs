@@ -1,16 +1,89 @@
 use super::array::*;
 use super::buffer::*;
 use super::pointer::*;
+use crate::define::*;
 use crate::utils::dataprocess::get_array_desc;
 use crate::utils::dataprocess::get_ffi_tag;
-use crate::utils::object_utils::{create_static_array_from_pointer, get_size_align};
-
-use crate::define::*;
+use crate::utils::object_utils::*;
 use indexmap::IndexMap;
 use libc::c_float;
 use napi::{Env, JsObject, JsUnknown, Result};
 use std::ffi::c_void;
 use std::ffi::{c_char, c_double, c_int, c_longlong, c_uchar, c_ulonglong, CStr};
+
+pub fn calculate_struct_size(struct_type: &IndexMap<String, RsArgsValue>) -> (usize, usize) {
+  let (mut size, align, _) = struct_type.iter().fold(
+    (0, 0, 0),
+    |(size, align, offset), (field_name, field_type)| {
+      if field_name == FFI_STRUCT_MEMORY_TAG {
+        return (size, align, offset);
+      }
+      if let RsArgsValue::I32(number) = field_type {
+        let data_type = number_to_basic_data_type(*number);
+        return match data_type {
+          BasicDataType::U8 => calculate_u8(size, align, offset),
+          BasicDataType::I32 => calculate_i32(size, align, offset),
+          BasicDataType::I64 | BasicDataType::U64 => calculate_i64(size, align, offset),
+          BasicDataType::Float => calculate_float(size, align, offset),
+          BasicDataType::Double => calculate_double(size, align, offset),
+          BasicDataType::String => calculate_string(size, align, offset),
+          BasicDataType::Boolean => calculate_boolean(size, align, offset),
+          BasicDataType::Void => calculate_void(size, align, offset),
+          BasicDataType::External => calculate_pointer(size, align, offset),
+        };
+      } else if let RsArgsValue::Object(obj) = field_type {
+        if let FFITag::Array = get_ffi_tag(obj) {
+          let array_desc = get_array_desc(obj);
+          let FFIARRARYDESC {
+            array_type,
+            array_len,
+            dynamic_array,
+            ..
+          } = array_desc;
+          if !dynamic_array {
+            let (mut type_size, type_align) = match array_type {
+              RefDataType::U8Array => get_size_align::<u8>(),
+              RefDataType::I32Array => get_size_align::<i32>(),
+              RefDataType::DoubleArray => get_size_align::<f64>(),
+              _ => panic!(
+                "write {:?} to static array in struct is unsupported",
+                array_type
+              ),
+            };
+            type_size = type_size * array_len;
+            let align = align.max(type_align);
+            let padding = (type_align - (offset % type_align)) % type_align;
+            let size = size + padding + type_size;
+            let offset = offset + padding + type_size;
+            return (size, align, offset);
+          } else {
+            return calculate_pointer(size, align, offset);
+          }
+        } else {
+          if obj.get(FFI_STRUCT_MEMORY_TAG) == Some(&RsArgsValue::I32(1)) {
+            let (type_size, type_align) = calculate_struct_size(obj);
+            let align = align.max(type_align);
+            let padding = (type_align - (offset % type_align)) % type_align;
+            let size = size + padding + type_size;
+            let offset = offset + padding + type_size;
+            return (size, align, offset);
+          } else {
+            return calculate_pointer(size, align, offset);
+          }
+        };
+      } else {
+        panic!("unknown struct type {:?}", field_type)
+      }
+    },
+  );
+  let padding = if align > 0 && size % align != 0 {
+    align - (size % align)
+  } else {
+    0
+  };
+  size += padding;
+  (size, align)
+}
 
 pub unsafe fn create_rs_struct_from_pointer(
   env: &Env,
@@ -23,6 +96,9 @@ pub unsafe fn create_rs_struct_from_pointer(
   let mut offset = 0;
   let mut field_size = 0;
   for (field, val) in ret_object {
+    if field == "_ffiAllocationType" {
+      continue;
+    }
     if let RsArgsValue::I32(number) = val {
       let field = field.clone();
       let data_type = number_to_basic_data_type(*number);
@@ -230,22 +306,37 @@ pub unsafe fn create_rs_struct_from_pointer(
           }
         };
       } else {
-        // function | raw object
-        let (size, align) = get_size_align::<*const c_void>();
-        let padding = (align - (offset % align)) % align;
-        field_ptr = field_ptr.offset(padding as isize);
-        let type_field_ptr = field_ptr as *mut *mut c_void;
-        rs_struct.insert(
-          field,
-          RsArgsValue::Object(create_rs_struct_from_pointer(
+        // raw object
+        if obj.get(FFI_STRUCT_MEMORY_TAG) == Some(&RsArgsValue::I32(0)) {
+          let (size, align) = calculate_struct_size(obj);
+          let padding = (align - (offset % align)) % align;
+          field_ptr = field_ptr.offset(padding as isize);
+          let child_obj = RsArgsValue::Object(create_rs_struct_from_pointer(
             env,
-            *type_field_ptr,
+            field_ptr,
             obj,
             need_thread_safe,
-          )),
-        );
-        offset += size + padding;
-        field_size = size
+          ));
+          rs_struct.insert(field, child_obj);
+          offset += size + padding;
+          field_size = size
+        } else {
+          let (size, align) = get_size_align::<*const c_void>();
+          let padding = (align - (offset % align)) % align;
+          field_ptr = field_ptr.offset(padding as isize);
+          let type_field_ptr = field_ptr as *mut *mut c_void;
+          rs_struct.insert(
+            field,
+            RsArgsValue::Object(create_rs_struct_from_pointer(
+              env,
+              *type_field_ptr,
+              obj,
+              need_thread_safe,
+            )),
+          );
+          offset += size + padding;
+          field_size = size
+        }
       };
     };
     field_ptr = field_ptr.offset(field_size as isize) as *mut c_void;

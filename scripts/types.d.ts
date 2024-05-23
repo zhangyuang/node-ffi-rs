@@ -177,3 +177,5 @@ type FuncObj<
 export function define<T extends FuncObj<FieldType, boolean | undefined>>(funcs: T): {
   [K in keyof T]: (...paramsValue: Array<unknown>) => ResultWithPromise<ResultWithErrno<FieldTypeToType<T[K]['retType']>, T[K]['errno']>, T[K]['runInNewThread']>;
 }
+export const FFIAllocateTag = "_ffiAllocationType"
+export const FFIStackTag = "stack"

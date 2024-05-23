@@ -1,9 +1,32 @@
 use crate::{RefDataType, RsArgsValue, FFIARRARYDESC};
-use libc::c_void;
+use std::ffi::{c_char, c_double, c_float, c_int, c_longlong, c_uchar, c_void};
 
 pub fn get_size_align<T: Sized>() -> (usize, usize) {
   (std::mem::size_of::<T>(), std::mem::align_of::<T>())
 }
+
+#[macro_export]
+macro_rules! calculate_layout_for {
+  ($variant:ident, $type:ty) => {
+    pub fn $variant(size: usize, align: usize, offset: usize) -> (usize, usize, usize) {
+      let (type_size, type_align) = get_size_align::<$type>();
+      let align = align.max(type_align);
+      let padding = (type_align - (offset % type_align)) % type_align;
+      let size = size + padding + type_size;
+      let offset = offset + padding + type_size;
+      (size, align, offset)
+    }
+  };
+}
+calculate_layout_for!(calculate_u8, c_uchar);
+calculate_layout_for!(calculate_i32, c_int);
+calculate_layout_for!(calculate_i64, c_longlong);
+calculate_layout_for!(calculate_float, c_float);
+calculate_layout_for!(calculate_double, c_double);
+calculate_layout_for!(calculate_boolean, bool);
+calculate_layout_for!(calculate_void, ());
+calculate_layout_for!(calculate_string, *const c_char);
+calculate_layout_for!(calculate_pointer, *const c_void);
 
 pub unsafe fn create_static_array_from_pointer(
   ptr: *mut c_void,
