@@ -39,11 +39,9 @@ pub fn calculate_struct_size(struct_value: &IndexMap<String, RsArgsValue>) -> (u
               let (mut type_size, type_align) = match array_type {
                 RefDataType::U8Array => get_size_align::<u8>(),
                 RefDataType::I32Array => get_size_align::<i32>(),
+                RefDataType::FloatArray => get_size_align::<f32>(),
                 RefDataType::DoubleArray => get_size_align::<f64>(),
-                _ => panic!(
-                  "write {:?} to static array in struct is unsupported",
-                  array_type
-                ),
+                RefDataType::StringArray => get_size_align::<*const c_char>(),
               };
               type_size = type_size * array_len;
               let align = align.max(type_align);
@@ -56,7 +54,6 @@ pub fn calculate_struct_size(struct_value: &IndexMap<String, RsArgsValue>) -> (u
             }
           } else {
             if obj.get(FFI_STRUCT_MEMORY_TAG) == Some(&RsArgsValue::String("stack".to_string())) {
-              println!("xxx");
               let (type_size, type_align) = calculate_struct_size(obj);
               let align = align.max(type_align);
               let padding = (type_align - (offset % type_align)) % type_align;

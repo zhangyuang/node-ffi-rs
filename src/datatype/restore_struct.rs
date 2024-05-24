@@ -60,7 +60,7 @@ pub fn calculate_struct_size(struct_type: &IndexMap<String, RsArgsValue>) -> (us
             return calculate_pointer(size, align, offset);
           }
         } else {
-          if obj.get(FFI_STRUCT_MEMORY_TAG) == Some(&RsArgsValue::I32(1)) {
+          if obj.get(FFI_STRUCT_MEMORY_TAG) == Some(&RsArgsValue::I32(0)) {
             let (type_size, type_align) = calculate_struct_size(obj);
             let align = align.max(type_align);
             let padding = (type_align - (offset % type_align)) % type_align;
@@ -96,7 +96,7 @@ pub unsafe fn create_rs_struct_from_pointer(
   let mut offset = 0;
   let mut field_size = 0;
   for (field, val) in ret_object {
-    if field == "_ffiAllocationType" {
+    if field == FFI_STRUCT_MEMORY_TAG {
       continue;
     }
     if let RsArgsValue::I32(number) = val {
