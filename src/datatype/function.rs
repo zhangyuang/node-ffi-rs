@@ -2,7 +2,7 @@ use super::buffer::*;
 use super::pointer::*;
 use super::restore_struct::create_rs_struct_from_pointer;
 use crate::define::*;
-use crate::utils::dataprocess::{get_array_desc, get_ffi_tag};
+use crate::utils::{get_array_desc, get_ffi_tag};
 use libc::c_float;
 use napi::Env;
 use std::ffi::c_void;

@@ -4,6 +4,7 @@ extern crate napi_derive;
 mod datatype;
 mod define;
 mod utils;
+use datatype::pointer::{free_c_pointer_memory, free_rs_pointer_memory};
 use define::*;
 use dlopen::symbor::{Library, Symbol};
 use libc::{free, malloc};
@@ -13,10 +14,9 @@ use libffi_sys::{
   ffi_type_uint8, ffi_type_void,
 };
 use napi::{Env, JsExternal, JsUnknown, Result};
-
-use datatype::pointer::{free_c_pointer_memory, free_rs_pointer_memory};
 use std::collections::HashMap;
 use std::ffi::c_void;
+use std::rc::Rc;
 use utils::dataprocess::{
   get_arg_types_values, get_js_external_wrap_data, get_js_unknown_from_pointer, get_value_pointer,
   type_define_to_rs_args,
@@ -38,12 +38,14 @@ unsafe fn create_pointer(env: Env, params: CreatePointerParams) -> Result<Vec<Js
     params_type,
     params_value,
   } = params;
-  let params_type_rs: Vec<RsArgsValue> = params_type
-    .into_iter()
-    .map(|param| type_define_to_rs_args(&env, param).unwrap())
-    .collect();
-  let (_, arg_values) = get_arg_types_values(&env, params_type_rs, params_value)?;
-  let arg_values_c_void = get_value_pointer(&env, arg_values)?;
+  let params_type_rs: Rc<Vec<RsArgsValue>> = Rc::new(
+    params_type
+      .into_iter()
+      .map(|param| type_define_to_rs_args(&env, param).unwrap())
+      .collect(),
+  );
+  let (_, arg_values) = get_arg_types_values(&env, Rc::clone(&params_type_rs), params_value)?;
+  let arg_values_c_void = get_value_pointer(&env, Rc::clone(&params_type_rs), arg_values)?;
 
   arg_values_c_void
     .into_iter()
@@ -207,13 +209,16 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
   } = params;
   let func = get_symbol(&library, &func_name)?;
   let params_type_len = params_type.len();
-  let params_type_rs: Vec<RsArgsValue> = params_type
-    .into_iter()
-    .map(|param| type_define_to_rs_args(&env, param).unwrap())
-    .collect();
+  let params_type_rs: Rc<Vec<RsArgsValue>> = Rc::new(
+    params_type
+      .into_iter()
+      .map(|param| type_define_to_rs_args(&env, param).unwrap())
+      .collect(),
+  );
+
   let (mut arg_types, arg_values) =
-    get_arg_types_values(&env, params_type_rs.clone(), params_value)?;
-  let mut arg_values_c_void = get_value_pointer(&env, arg_values)?;
+    get_arg_types_values(&env, Rc::clone(&params_type_rs), params_value)?;
+  let mut arg_values_c_void = get_value_pointer(&env, Rc::clone(&params_type_rs), arg_values)?;
   let ret_type_rs = type_define_to_rs_args(&env, ret_type)?;
   let r_type: *mut ffi_type = match ret_type_rs {
     RsArgsValue::I32(number) => {
@@ -298,7 +303,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
           }
           arg_values_c_void
             .into_iter()
-            .zip(params_type_rs.into_iter())
+            .zip(params_type_rs.iter())
             .for_each(|(ptr, ptr_desc)| {
               free_rs_pointer_memory(*ptr, ptr_desc.clone(), false);
             });

@@ -1,98 +1,23 @@
 use super::string::string_to_c_string;
 use crate::define::*;
-use crate::utils::dataprocess::{
-  get_array_desc, get_array_value, get_ffi_tag, get_js_external_wrap_data,
+use crate::utils::{
+  calculate_struct_size, get_array_desc, get_array_value, get_ffi_tag, get_js_external_wrap_data,
+  get_size_align,
 };
-use crate::utils::object_utils::*;
 use crate::RefDataType;
 use indexmap::IndexMap;
 use napi::{Env, Result};
 use std::alloc::{alloc, Layout};
 use std::ffi::{c_char, c_double, c_float, c_int, c_longlong, c_uchar, c_ulonglong, c_void};
 
-pub fn calculate_struct_size(struct_value: &IndexMap<String, RsArgsValue>) -> (usize, usize) {
-  let (mut size, align, _) = struct_value.iter().fold(
-    (0, 0, 0),
-    |(size, align, offset), (field_name, field_val)| {
-      if field_name == FFI_STRUCT_MEMORY_TAG {
-        return (size, align, offset);
-      }
-      match field_val {
-        RsArgsValue::U8(_) => calculate_u8(size, align, offset),
-        RsArgsValue::I32(_) => calculate_i32(size, align, offset),
-        RsArgsValue::I64(_) | RsArgsValue::U64(_) => calculate_i64(size, align, offset),
-        RsArgsValue::Float(_) => calculate_float(size, align, offset),
-        RsArgsValue::Double(_) => calculate_double(size, align, offset),
-        RsArgsValue::String(_) => calculate_string(size, align, offset),
-        RsArgsValue::Boolean(_) => calculate_boolean(size, align, offset),
-        RsArgsValue::Void(_) => calculate_void(size, align, offset),
-        RsArgsValue::Object(obj) => {
-          if let FFITag::Array = get_ffi_tag(obj) {
-            let array_desc = get_array_desc(obj);
-            let FFIARRARYDESC {
-              array_type,
-              array_len,
-              dynamic_array,
-              ..
-            } = array_desc;
-            if !dynamic_array {
-              let (mut type_size, type_align) = match array_type {
-                RefDataType::U8Array => get_size_align::<u8>(),
-                RefDataType::I32Array => get_size_align::<i32>(),
-                RefDataType::FloatArray => get_size_align::<f32>(),
-                RefDataType::DoubleArray => get_size_align::<f64>(),
-                RefDataType::StringArray => get_size_align::<*const c_char>(),
-              };
-              type_size = type_size * array_len;
-              let align = align.max(type_align);
-              let padding = (type_align - (offset % type_align)) % type_align;
-              let size = size + padding + type_size;
-              let offset = offset + padding + type_size;
-              (size, align, offset)
-            } else {
-              calculate_pointer(size, align, offset)
-            }
-          } else {
-            if obj.get(FFI_STRUCT_MEMORY_TAG) == Some(&RsArgsValue::String("stack".to_string())) {
-              let (type_size, type_align) = calculate_struct_size(obj);
-              let align = align.max(type_align);
-              let padding = (type_align - (offset % type_align)) % type_align;
-              let size = size + padding + type_size;
-              let offset = offset + padding + type_size;
-              (size, align, offset)
-            } else {
-              calculate_pointer(size, align, offset)
-            }
-          }
-        }
-        RsArgsValue::StringArray(_)
-        | RsArgsValue::DoubleArray(_)
-        | RsArgsValue::FloatArray(_)
-        | RsArgsValue::I32Array(_)
-        | RsArgsValue::U8Array(_, _)
-        | RsArgsValue::External(_) => calculate_pointer(size, align, offset),
-        RsArgsValue::Function(_, _) => {
-          panic!("{:?} calculate_layout error", field_val)
-        }
-      }
-    },
-  );
-  let padding = if align > 0 && size % align != 0 {
-    align - (size % align)
-  } else {
-    0
-  };
-  size += padding;
-  (size, align)
-}
-
 pub unsafe fn generate_c_struct(
   env: &Env,
+  struct_type: &IndexMap<String, RsArgsValue>,
   struct_val: IndexMap<String, RsArgsValue>,
   initial_ptr: Option<*mut c_void>,
 ) -> Result<*mut c_void> {
   let ptr = if initial_ptr.is_none() {
-    let (size, align) = calculate_struct_size(&struct_val);
+    let (size, align) = calculate_struct_size(&struct_type);
     let layout = if size > 0 {
       Layout::from_size_align(size, align).unwrap()
     } else {
@@ -105,7 +30,7 @@ pub unsafe fn generate_c_struct(
   let mut field_ptr = ptr;
   let mut offset = 0;
   for (field, field_val) in struct_val {
-    if &field == "_ffiAllocationType" {
+    if &field == FFI_TAG_FIELD {
       continue;
     }
     let field_size = match field_val {
@@ -327,19 +252,23 @@ pub unsafe fn generate_c_struct(
           field_size
         } else {
           // raw object
-          if val.get(FFI_STRUCT_MEMORY_TAG) == Some(&RsArgsValue::String("stack".to_string())) {
+          if val.get(FFI_TAG_FIELD) == Some(&RsArgsValue::I32(0)) {
             let (size, align) = calculate_struct_size(&val);
             let padding = (align - (offset % align)) % align;
             field_ptr = field_ptr.offset(padding as isize);
-            generate_c_struct(env, val, Some(field_ptr))?;
+            if let RsArgsValue::Object(val_type) = struct_type.get(&field).unwrap() {
+              generate_c_struct(env, val_type, val, Some(field_ptr))?;
+            }
             offset += size + padding;
             size
           } else {
             let (size, align) = get_size_align::<*mut c_void>();
             let padding = (align - (offset % align)) % align;
             field_ptr = field_ptr.offset(padding as isize);
-            let obj_ptr = generate_c_struct(env, val, None)?;
-            (field_ptr as *mut *const c_void).write(obj_ptr);
+            if let RsArgsValue::Object(val_type) = struct_type.get(&field).unwrap() {
+              let obj_ptr = generate_c_struct(env, val_type, val, None)?;
+              (field_ptr as *mut *const c_void).write(obj_ptr);
+            }
             offset += size + padding;
             size
           }

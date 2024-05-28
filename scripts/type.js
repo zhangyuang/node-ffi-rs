@@ -306,6 +306,8 @@ if (!nativeBinding) {
 }
 
 const { DataType, createPointer, restorePointer, unwrapPointer, wrapPointer, freePointer, open, close, load } = nativeBinding
+DataType.StackStruct = 999
+
 exports.FFIAllocateTag = "_ffiAllocationType"
 exports.FFIStackTag = "stack"
 module.exports.DataType = DataType

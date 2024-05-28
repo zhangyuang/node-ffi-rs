@@ -1,5 +1,6 @@
-use crate::utils::dataprocess::{get_array_desc, get_ffi_tag, get_func_desc};
-use crate::utils::object_utils::get_size_align;
+use crate::utils::{
+  calculate_struct_size, get_array_desc, get_ffi_tag, get_func_desc, get_size_align,
+};
 use indexmap::IndexMap;
 use libc::{c_double, c_float, c_int, c_void, free};
 use std::ffi::{c_char, c_longlong, c_uchar, c_ulonglong, CStr, CString};
@@ -316,7 +317,6 @@ pub unsafe fn free_rs_pointer_memory(
           free_closure(ptr)
         }
       } else {
-        use super::create_struct::calculate_struct_size;
         use std::alloc::{dealloc, Layout};
         let (size, align) = calculate_struct_size(&obj);
         let layout = if size > 0 {

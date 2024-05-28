@@ -82,7 +82,7 @@ typedef struct Person {
 } Person;
 
 extern "C" Person *getStruct(Person *person) {
-    printf("person stack age %d \n", person->parent->byte);
+    printf("person stack age %d \n", person->byte);
     return person;
 }
 

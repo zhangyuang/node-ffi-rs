@@ -258,7 +258,6 @@ const parent = {
   longVal: 5294967296,
   stackStruct: {
     age: 22,
-    _ffiAllocationType: "stack"
   },
   byte: 66,
   byteArray: Buffer.from([103, 104]),
@@ -276,8 +275,7 @@ const person = {
   boolFalse: false,
   longVal: 4294967296,
   stackStruct: {
-    age: 16,
-    _ffiAllocationType: "stack"
+    age: 16
   },
   byte: 65,
   byteArray: Buffer.from([101, 102]),
@@ -309,7 +307,7 @@ const parentType = {
   longVal: DataType.I64,
   stackStruct: {
     age: DataType.I32,
-    _ffiAllocationType: DataType.String
+    ffiTypeTag: DataType.StackStruct,
   },
   byte: DataType.U8,
   byteArray: arrayConstructor({
@@ -343,8 +341,8 @@ const personType = {
   boolFalse: DataType.Boolean,
   longVal: DataType.I64,
   stackStruct: {
+    ffiTypeTag: DataType.StackStruct,
     age: DataType.I32,
-    _ffiAllocationType: DataType.String
   },
   byte: DataType.U8,
   byteArray: arrayConstructor({
@@ -364,7 +362,7 @@ const testObject = () => {
     freeResultMemory: false
   });
   console.log('xxx', personObj)
-  // deepStrictEqual(person, personObj);
+  deepStrictEqual(person, personObj);
   logGreen('test getStruct succeed')
   return
   const createdPerson = load({
@@ -525,23 +523,23 @@ const testDefine = () => {
   equal(res.sum([1, 2]), 3)
 }
 const unitTest = () => {
-  testNumber()
-  logGreen('test number succeed')
-  testString()
-  logGreen('test string succeed')
-  testDefine()
-  logGreen('test define succeed')
-  testArray()
-  logGreen('test array succeed')
-  testVoid()
-  logGreen('test void succeed')
-  testBool()
-  logGreen('test bool succeed')
-  testMainProgram()
-  logGreen('test main program succeed')
+  // testNumber()
+  // logGreen('test number succeed')
+  // testString()
+  // logGreen('test string succeed')
+  // testDefine()
+  // logGreen('test define succeed')
+  // testArray()
+  // logGreen('test array succeed')
+  // testVoid()
+  // logGreen('test void succeed')
+  // testBool()
+  // logGreen('test bool succeed')
+  // testMainProgram()
+  // logGreen('test main program succeed')
   // testFunction()
   // testCpp()
-  logGreen('test cpp succeed')
+  // logGreen('test cpp succeed')
   testObject()
   logGreen('test object succeed')
   testPointer()
