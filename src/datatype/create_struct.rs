@@ -258,14 +258,16 @@ pub unsafe fn generate_c_struct(
           // struct
           if is_stack_struct {
             // stack struct
-            let (size, align) = calculate_struct_size(&val);
-            let padding = (align - (offset % align)) % align;
-            field_ptr = field_ptr.offset(padding as isize);
             if let RsArgsValue::Object(val_type) = struct_type.get(&field).unwrap() {
+              let (size, align) = calculate_struct_size(val_type);
+              let padding = (align - (offset % align)) % align;
+              field_ptr = field_ptr.offset(padding as isize);
               generate_c_struct(env, val_type, val, Some(field_ptr))?;
+              offset += size + padding;
+              size
+            } else {
+              return Err(FFIError::Panic(format!("unknown field type {:?}", struct_type)).into());
             }
-            offset += size + padding;
-            size
           } else {
             let (size, align) = get_size_align::<*mut c_void>();
             let padding = (align - (offset % align)) % align;

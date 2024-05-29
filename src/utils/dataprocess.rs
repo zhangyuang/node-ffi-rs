@@ -284,7 +284,6 @@ pub unsafe fn get_value_pointer(
 ) -> Result<Vec<*mut c_void>> {
   params_type
     .iter()
-    .into_iter()
     .zip(arg_values.into_iter())
     .map(|(arg_type, val)| match val {
       RsArgsValue::External(val) => {

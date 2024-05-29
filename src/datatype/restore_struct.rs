@@ -124,10 +124,10 @@ pub unsafe fn create_rs_struct_from_pointer(
         }
       };
     }
-    if let RsArgsValue::Object(obj) = val {
+    if let RsArgsValue::Object(sub_obj_type) = val {
       let field = field.clone();
-      if let FFITag::Array = get_ffi_tag(obj) {
-        let array_desc = get_array_desc(obj);
+      if let FFITag::Array = get_ffi_tag(sub_obj_type) {
+        let array_desc = get_array_desc(sub_obj_type);
         // array
         let FFIARRARYDESC {
           array_type,
@@ -231,18 +231,19 @@ pub unsafe fn create_rs_struct_from_pointer(
         };
       } else {
         // raw object
-        if obj.get(FFI_TAG_FIELD) == Some(&RsArgsValue::I32(ReserveDataType::StackStruct.to_i32()))
+        if sub_obj_type.get(FFI_TAG_FIELD)
+          == Some(&RsArgsValue::I32(ReserveDataType::StackStruct.to_i32()))
         {
-          let (size, align) = calculate_struct_size(obj);
+          let (size, align) = calculate_struct_size(sub_obj_type);
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
-          let child_obj = RsArgsValue::Object(create_rs_struct_from_pointer(
+          let sub_object = RsArgsValue::Object(create_rs_struct_from_pointer(
             env,
             field_ptr,
-            obj,
+            sub_obj_type,
             need_thread_safe,
           ));
-          rs_struct.insert(field, child_obj);
+          rs_struct.insert(field, sub_object);
           offset += size + padding;
           field_size = size
         } else {
@@ -255,7 +256,7 @@ pub unsafe fn create_rs_struct_from_pointer(
             RsArgsValue::Object(create_rs_struct_from_pointer(
               env,
               *type_field_ptr,
-              obj,
+              sub_obj_type,
               need_thread_safe,
             )),
           );
