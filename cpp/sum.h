@@ -1,6 +1,6 @@
 #ifndef EXAMPLE_H
 #define EXAMPLE_H
-#include <stdbool.h> // 包含对 bool 类型的支持
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
