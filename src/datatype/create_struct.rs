@@ -30,9 +30,6 @@ pub unsafe fn generate_c_struct(
   let mut field_ptr = ptr;
   let mut offset = 0;
   for (field, field_val) in struct_val {
-    if &field == FFI_TAG_FIELD {
-      continue;
-    }
     let field_size = match field_val {
       RsArgsValue::U8(number) => {
         let (size, align) = get_size_align::<c_uchar>();
@@ -251,8 +248,16 @@ pub unsafe fn generate_c_struct(
           };
           field_size
         } else {
-          // raw object
-          if val.get(FFI_TAG_FIELD) == Some(&RsArgsValue::I32(0)) {
+          let is_stack_struct =
+            if let Some(RsArgsValue::Object(field_type)) = struct_type.get(&field) {
+              field_type.get(FFI_TAG_FIELD)
+                == Some(&RsArgsValue::I32(ReserveDataType::StackStruct.to_i32()))
+            } else {
+              false
+            };
+          // struct
+          if is_stack_struct {
+            // stack struct
             let (size, align) = calculate_struct_size(&val);
             let padding = (align - (offset % align)) % align;
             field_ptr = field_ptr.offset(padding as isize);

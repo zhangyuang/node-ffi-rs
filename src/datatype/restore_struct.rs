@@ -231,7 +231,8 @@ pub unsafe fn create_rs_struct_from_pointer(
         };
       } else {
         // raw object
-        if obj.get(FFI_TAG_FIELD) == Some(&RsArgsValue::I32(0)) {
+        if obj.get(FFI_TAG_FIELD) == Some(&RsArgsValue::I32(ReserveDataType::StackStruct.to_i32()))
+        {
           let (size, align) = calculate_struct_size(obj);
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);

@@ -51,7 +51,10 @@ unsafe fn free_struct_memory(
   let mut field_ptr = ptr;
   let mut offset = 0;
   let mut field_size = 0;
-  for (_, val) in struct_desc {
+  for (field, val) in struct_desc {
+    if field == FFI_TAG_FIELD {
+      continue;
+    }
     if let RsArgsValue::I32(number) = val {
       let data_type = number_to_basic_data_type(number);
       match data_type {
@@ -240,12 +243,21 @@ unsafe fn free_struct_memory(
         }
       } else {
         // struct
-        let (size, align) = get_size_align::<*const c_void>();
-        let padding = (align - (offset % align)) % align;
-        field_ptr = field_ptr.offset(padding as isize);
-        free_struct_memory(*(field_ptr as *mut *mut c_void), obj, ptr_type);
-        offset += size + padding;
-        field_size = size
+        if obj.get(FFI_TAG_FIELD) == Some(&RsArgsValue::I32(ReserveDataType::StackStruct.to_i32()))
+        {
+          let (size, align) = calculate_struct_size(&obj);
+          let padding = (align - (offset % align)) % align;
+          field_ptr = field_ptr.offset(padding as isize);
+          offset += size + padding;
+          field_size = size
+        } else {
+          let (size, align) = get_size_align::<*const c_void>();
+          let padding = (align - (offset % align)) % align;
+          field_ptr = field_ptr.offset(padding as isize);
+          free_struct_memory(*(field_ptr as *mut *mut c_void), obj, ptr_type);
+          offset += size + padding;
+          field_size = size
+        }
       };
     };
     field_ptr = field_ptr.offset(field_size as isize) as *mut c_void;

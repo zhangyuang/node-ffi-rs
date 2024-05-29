@@ -336,15 +336,15 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     let result = &mut () as *mut _ as *mut c_void;
     ffi_call(&mut cif, Some(func), result, arg_values_c_void.as_mut_ptr());
     let call_result = get_js_unknown_from_pointer(&env, &ret_type_rs, result);
-    // if free_result_memory {
-    //   free_c_pointer_memory(result, ret_type_rs, false);
-    // }
-    // arg_values_c_void
-    //   .into_iter()
-    //   .zip(params_type_rs.into_iter())
-    //   .for_each(|(ptr, ptr_desc)| {
-    //     free_rs_pointer_memory(ptr, ptr_desc, false);
-    //   });
+    if free_result_memory {
+      free_c_pointer_memory(result, ret_type_rs, false);
+    }
+    arg_values_c_void
+      .into_iter()
+      .zip(params_type_rs.iter())
+      .for_each(|(ptr, ptr_desc)| {
+        free_rs_pointer_memory(ptr, ptr_desc.clone(), false);
+      });
     if errno.is_some() && errno.unwrap() {
       add_errno(&env, call_result?)
     } else {
