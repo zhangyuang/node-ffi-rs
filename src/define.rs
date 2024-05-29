@@ -6,6 +6,7 @@ use napi::{bindgen_prelude::*, JsBufferValue};
 use napi::{Env, JsExternal, JsObject, JsUnknown};
 use std::collections::HashMap;
 use std::hash::Hash;
+use std::rc::Rc;
 
 pub enum FFIError {
   NapiError(Error<NapiStatus>),
@@ -105,6 +106,16 @@ pub enum DataType {
   Float = 14,
 }
 
+pub enum ReserveDataType {
+  StackStruct = 999,
+}
+impl ReserveDataType {
+  pub fn to_i32(&self) -> i32 {
+    match self {
+      ReserveDataType::StackStruct => 999,
+    }
+  }
+}
 #[derive(Debug)]
 pub enum BasicDataType {
   String = 0,
@@ -247,6 +258,34 @@ impl Clone for RsArgsValue {
     }
   }
 }
+use std::cmp::PartialEq;
+
+impl PartialEq for RsArgsValue {
+  fn eq(&self, other: &Self) -> bool {
+    match (self, other) {
+      (RsArgsValue::String(a), RsArgsValue::String(b)) => a == b,
+      (RsArgsValue::U8(a), RsArgsValue::U8(b)) => a == b,
+      (RsArgsValue::I32(a), RsArgsValue::I32(b)) => a == b,
+      (RsArgsValue::I64(a), RsArgsValue::I64(b)) => a == b,
+      (RsArgsValue::U64(a), RsArgsValue::U64(b)) => a == b,
+      (RsArgsValue::Float(a), RsArgsValue::Float(b)) => a == b,
+      (RsArgsValue::Double(a), RsArgsValue::Double(b)) => a == b,
+      (RsArgsValue::I32Array(a), RsArgsValue::I32Array(b)) => a == b,
+      (RsArgsValue::StringArray(a), RsArgsValue::StringArray(b)) => a == b,
+      (RsArgsValue::DoubleArray(a), RsArgsValue::DoubleArray(b)) => a == b,
+      (RsArgsValue::FloatArray(a), RsArgsValue::FloatArray(b)) => a == b,
+      (RsArgsValue::Object(a), RsArgsValue::Object(b)) => a == b,
+      (RsArgsValue::Boolean(a), RsArgsValue::Boolean(b)) => a == b,
+      (RsArgsValue::Void(a), RsArgsValue::Void(b)) => a == b,
+      (RsArgsValue::U8Array(a1, a2), RsArgsValue::U8Array(b1, b2)) => false,
+      (RsArgsValue::Function(..), _) | (_, RsArgsValue::Function(..)) => false,
+      (RsArgsValue::External(..), _) | (_, RsArgsValue::External(..)) => false,
+      _ => false,
+    }
+  }
+}
+
+impl Eq for RsArgsValue {}
 unsafe impl Send for RsArgsValue {}
 unsafe impl Sync for RsArgsValue {}
 
@@ -298,7 +337,7 @@ pub struct FFICALLPARAMS {
   pub ret_type_rs: RsArgsValue,
   pub errno: Option<bool>,
   pub free_result_memory: bool,
-  pub params_type_rs: Vec<RsArgsValue>,
+  pub params_type_rs: Rc<Vec<RsArgsValue>>,
   pub r_type_p: *mut *mut ffi_type,
   pub arg_types_p: *mut Vec<*mut ffi_type>,
 }
@@ -356,6 +395,7 @@ pub const FFI_TAG_FIELD: &str = "ffiTypeTag";
 pub const ARRAY_FFI_TAG: &str = "array";
 pub const FUNCTION_FFI_TAG: &str = "function";
 pub const FUNCTION_FREE_TAG: &str = "needFree";
+
 pub static mut CLOSURE_MAP: Option<HashMap<*mut c_void, Vec<*mut c_void>>> = None;
 
 #[derive(Debug)]

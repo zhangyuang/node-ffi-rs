@@ -306,6 +306,7 @@ if (!nativeBinding) {
 }
 
 const { DataType, createPointer, restorePointer, unwrapPointer, wrapPointer, freePointer, open, close, load } = nativeBinding
+DataType.StackStruct = 999
 
 module.exports.DataType = DataType
 module.exports.PointerType = nativeBinding.PointerType

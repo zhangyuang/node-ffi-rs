@@ -1,11 +1,8 @@
 use super::array::*;
 use super::buffer::*;
 use super::pointer::*;
-use crate::utils::dataprocess::get_array_desc;
-use crate::utils::dataprocess::get_ffi_tag;
-use crate::utils::object_utils::{create_static_array_from_pointer, get_size_align};
-
 use crate::define::*;
+use crate::utils::*;
 use indexmap::IndexMap;
 use libc::c_float;
 use napi::{Env, JsObject, JsUnknown, Result};
@@ -23,6 +20,9 @@ pub unsafe fn create_rs_struct_from_pointer(
   let mut offset = 0;
   let mut field_size = 0;
   for (field, val) in ret_object {
+    if field == FFI_TAG_FIELD {
+      continue;
+    }
     if let RsArgsValue::I32(number) = val {
       let field = field.clone();
       let data_type = number_to_basic_data_type(*number);
@@ -124,10 +124,10 @@ pub unsafe fn create_rs_struct_from_pointer(
         }
       };
     }
-    if let RsArgsValue::Object(obj) = val {
+    if let RsArgsValue::Object(sub_obj_type) = val {
       let field = field.clone();
-      if let FFITag::Array = get_ffi_tag(obj) {
-        let array_desc = get_array_desc(obj);
+      if let FFITag::Array = get_ffi_tag(sub_obj_type) {
+        let array_desc = get_array_desc(sub_obj_type);
         // array
         let FFIARRARYDESC {
           array_type,
@@ -230,22 +230,39 @@ pub unsafe fn create_rs_struct_from_pointer(
           }
         };
       } else {
-        // function | raw object
-        let (size, align) = get_size_align::<*const c_void>();
-        let padding = (align - (offset % align)) % align;
-        field_ptr = field_ptr.offset(padding as isize);
-        let type_field_ptr = field_ptr as *mut *mut c_void;
-        rs_struct.insert(
-          field,
-          RsArgsValue::Object(create_rs_struct_from_pointer(
+        // raw object
+        if sub_obj_type.get(FFI_TAG_FIELD)
+          == Some(&RsArgsValue::I32(ReserveDataType::StackStruct.to_i32()))
+        {
+          let (size, align) = calculate_struct_size(sub_obj_type);
+          let padding = (align - (offset % align)) % align;
+          field_ptr = field_ptr.offset(padding as isize);
+          let sub_object = RsArgsValue::Object(create_rs_struct_from_pointer(
             env,
-            *type_field_ptr,
-            obj,
+            field_ptr,
+            sub_obj_type,
             need_thread_safe,
-          )),
-        );
-        offset += size + padding;
-        field_size = size
+          ));
+          rs_struct.insert(field, sub_object);
+          offset += size + padding;
+          field_size = size
+        } else {
+          let (size, align) = get_size_align::<*const c_void>();
+          let padding = (align - (offset % align)) % align;
+          field_ptr = field_ptr.offset(padding as isize);
+          let type_field_ptr = field_ptr as *mut *mut c_void;
+          rs_struct.insert(
+            field,
+            RsArgsValue::Object(create_rs_struct_from_pointer(
+              env,
+              *type_field_ptr,
+              sub_obj_type,
+              need_thread_safe,
+            )),
+          );
+          offset += size + padding;
+          field_size = size
+        }
       };
     };
     field_ptr = field_ptr.offset(field_size as isize) as *mut c_void;

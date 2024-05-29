@@ -1,10 +1,10 @@
 use super::js_value::create_js_value_unchecked;
 use crate::datatype::array::ToRsArray;
 use crate::datatype::buffer::get_safe_buffer;
+use crate::datatype::create_struct::generate_c_struct;
 use crate::datatype::function::get_rs_value_from_pointer;
-use crate::datatype::object_calculate::generate_c_struct;
-use crate::datatype::object_generate::{create_rs_struct_from_pointer, rs_value_to_js_unknown};
 use crate::datatype::pointer::*;
+use crate::datatype::restore_struct::{create_rs_struct_from_pointer, rs_value_to_js_unknown};
 use crate::datatype::string::{js_string_to_string, string_to_c_string};
 use crate::define::*;
 use indexmap::IndexMap;
@@ -20,6 +20,7 @@ use napi::{
 };
 use std::collections::HashMap;
 use std::ffi::CStr;
+use std::rc::Rc;
 
 pub unsafe fn get_js_external_wrap_data(env: &Env, js_external: JsExternal) -> Result<*mut c_void> {
   use std::any::TypeId;
@@ -86,10 +87,9 @@ pub fn get_func_desc(obj: &IndexMap<String, RsArgsValue>) -> FFIFUNCDESC {
 pub fn js_number_to_i32(js_number: JsNumber) -> i32 {
   js_number.try_into().unwrap()
 }
-
 pub unsafe fn get_arg_types_values(
   env: &Env,
-  params_type: Vec<RsArgsValue>,
+  params_type: Rc<Vec<RsArgsValue>>,
   params_value: Vec<JsUnknown>,
 ) -> Result<(Vec<*mut ffi_type>, Vec<RsArgsValue>)> {
   if params_type.len() != params_value.len() {
@@ -101,12 +101,12 @@ pub unsafe fn get_arg_types_values(
     );
   }
   params_type
-    .into_iter()
+    .iter()
     .zip(params_value.into_iter())
     .map(|(param, value)| {
       let res = match param {
         RsArgsValue::I32(number) => {
-          let param_data_type = number_to_basic_data_type(number);
+          let param_data_type = number_to_basic_data_type(*number);
           match param_data_type {
             BasicDataType::I32 => {
               let arg_type = &mut ffi_type_sint32 as *mut ffi_type;
@@ -228,7 +228,7 @@ pub unsafe fn get_arg_types_values(
             let arg_type = &mut ffi_type_pointer as *mut ffi_type;
             (
               arg_type,
-              RsArgsValue::Function(params_type_object_rs, params_val_function),
+              RsArgsValue::Function(params_type_object_rs.clone(), params_val_function),
             )
           } else {
             let params_value_object = create_js_value_unchecked::<JsObject>(env, value);
@@ -279,11 +279,13 @@ macro_rules! match_args_len {
 }
 pub unsafe fn get_value_pointer(
   env: &Env,
+  params_type: Rc<Vec<RsArgsValue>>,
   arg_values: Vec<RsArgsValue>,
 ) -> Result<Vec<*mut c_void>> {
-  arg_values
-    .into_iter()
-    .map(|val| match val {
+  params_type
+    .iter()
+    .zip(arg_values.into_iter())
+    .map(|(arg_type, val)| match val {
       RsArgsValue::External(val) => {
         Ok(Box::into_raw(Box::new(get_js_external_wrap_data(&env, val)?)) as *mut c_void)
       }
@@ -346,7 +348,14 @@ pub unsafe fn get_value_pointer(
       }
       RsArgsValue::Void(_) => Ok(Box::into_raw(Box::new(())) as *mut c_void),
       RsArgsValue::Object(val) => {
-        Ok(Box::into_raw(Box::new(generate_c_struct(&env, val)?)) as *mut c_void)
+        if let RsArgsValue::Object(arg_type_rs) = arg_type {
+          Ok(
+            Box::into_raw(Box::new(generate_c_struct(&env, &arg_type_rs, val, None)?))
+              as *mut c_void,
+          )
+        } else {
+          Err(FFIError::Panic(format!("uncorrect params type {:?}", arg_type)).into())
+        }
       }
       RsArgsValue::Function(func_desc, js_function) => {
         use libffi::low;
@@ -442,7 +451,7 @@ pub unsafe fn get_value_pointer(
 
 pub unsafe fn get_params_value_rs_struct(
   env: &Env,
-  params_type_object: IndexMap<String, RsArgsValue>,
+  params_type_object: &IndexMap<String, RsArgsValue>,
   params_value_object: &JsObject,
 ) -> Result<IndexMap<String, RsArgsValue>> {
   let mut index_map = IndexMap::new();
@@ -450,7 +459,11 @@ pub unsafe fn get_params_value_rs_struct(
     params_type_object
       .into_iter()
       .try_for_each(|(field, field_type)| {
-        match field_type {
+        if field == FFI_TAG_FIELD {
+          return Ok(());
+        }
+        let field = field.clone();
+        match field_type.clone() {
           RsArgsValue::I32(data_type_number) => {
             let data_type: DataType = number_to_data_type(data_type_number);
             let val = match data_type {
@@ -569,7 +582,7 @@ pub unsafe fn get_params_value_rs_struct(
               params_type_rs_value.insert(ARRAY_VALUE_TAG.to_string(), array_value);
               index_map.insert(field, RsArgsValue::Object(params_type_rs_value));
             } else {
-              let map = get_params_value_rs_struct(env, params_type_rs_value, &params_value);
+              let map = get_params_value_rs_struct(env, &params_type_rs_value, &params_value);
               index_map.insert(field, RsArgsValue::Object(map?));
             }
           }
