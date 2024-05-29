@@ -1,3 +1,12 @@
+## [1.0.78](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.77...v1.0.78) (2024-05-29)
+
+
+### Features
+
+* support stack struct ([#41](https://github.com/zhangyuang/node-ffi-rs/issues/41)) ([28cb2d4](https://github.com/zhangyuang/node-ffi-rs/commit/28cb2d492bf3b638b4301347f4878da94a4ddcc3))
+
+
+
 ## [1.0.77](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.77-alpha.1...v1.0.77) (2024-05-21)
 
 
