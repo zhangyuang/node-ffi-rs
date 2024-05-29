@@ -36,6 +36,8 @@ export const enum DataType {
   U64 = 12,
   FloatArray = 13,
   Float = 14,
+
+  StackStruct = 999 // reserve keyword
 }
 
 type DataTypeToType<T extends DataType> = T extends DataType.String

@@ -15,6 +15,7 @@ import {
   PointerType
 } from "./index"
 
+
 const platform = process.platform;
 const dynamicLib = platform === "win32" ? "./sum.dll" : "./libsum.so";
 const logGreen = (text) => {
@@ -255,6 +256,9 @@ const parent = {
   boolTrue: true,
   boolFalse: false,
   longVal: 5294967296,
+  stackStruct: {
+    age: 22,
+  },
   byte: 66,
   byteArray: Buffer.from([103, 104]),
 };
@@ -270,6 +274,9 @@ const person = {
   boolTrue: true,
   boolFalse: false,
   longVal: 4294967296,
+  stackStruct: {
+    age: 16
+  },
   byte: 65,
   byteArray: Buffer.from([101, 102]),
 };
@@ -298,6 +305,10 @@ const parentType = {
   boolTrue: DataType.Boolean,
   boolFalse: DataType.Boolean,
   longVal: DataType.I64,
+  stackStruct: {
+    age: DataType.I32,
+    ffiTypeTag: DataType.StackStruct,
+  },
   byte: DataType.U8,
   byteArray: arrayConstructor({
     type: DataType.U8Array,
@@ -329,6 +340,10 @@ const personType = {
   boolTrue: DataType.Boolean,
   boolFalse: DataType.Boolean,
   longVal: DataType.I64,
+  stackStruct: {
+    ffiTypeTag: DataType.StackStruct,
+    age: DataType.I32,
+  },
   byte: DataType.U8,
   byteArray: arrayConstructor({
     type: DataType.U8Array,

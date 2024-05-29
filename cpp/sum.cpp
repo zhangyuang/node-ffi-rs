@@ -60,6 +60,10 @@ extern "C" char **createArrayString(char **arr, int size) {
 }
 extern "C" bool return_opposite(bool input) { return !input; }
 
+typedef struct stackStruct {
+    int age;
+} stackStruct;
+
 typedef struct Person {
   int age;
   double *doubleArray;
@@ -72,11 +76,14 @@ typedef struct Person {
   bool boolTrue;
   bool boolFalse;
   int64_t longVal;
+  struct stackStruct stackStruct;
   char byte;
   char *byteArray;
 } Person;
 
-extern "C" Person *getStruct(Person *person) { return person; }
+extern "C" Person *getStruct(Person *person) {
+    return person;
+}
 
 extern "C" Person *createPerson() {
   Person *person = (Person *)malloc(sizeof(Person));
@@ -101,7 +108,7 @@ extern "C" Person *createPerson() {
   char *stringArray[] = {strdup("tom")};
   person->stringArray = (char **)malloc(sizeof(stringArray));
   memcpy(person->stringArray, stringArray, sizeof(stringArray));
-
+  person->stackStruct.age = 16;
   // Allocate and initialize byteArray
   char initByteArray[] = {101, 102};
   person->byteArray = (char *)malloc(sizeof(initByteArray));
@@ -117,6 +124,7 @@ extern "C" Person *createPerson() {
 
   // Allocate and initialize parent
   person->parent = (Person *)malloc(sizeof(Person));
+  person->parent->stackStruct.age = 22;
   double parentDoubleArray[] = {1.1, 2.2, 3.3};
   person->parent->doubleArray = (double *)malloc(sizeof(parentDoubleArray));
   memcpy(person->parent->doubleArray, parentDoubleArray,
