@@ -105,7 +105,7 @@ unsafe fn free_pointer(env: Env, params: FreePointerParams) {
     .collect();
   params_value
     .into_iter()
-    .zip(params_type_rs.into_iter())
+    .zip(params_type_rs.iter())
     .for_each(|(js_external, ptr_desc)| {
       let ptr = get_js_external_wrap_data(&env, js_external).unwrap();
       match pointer_type {
@@ -258,7 +258,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     r_type,
     arg_types.as_mut_ptr(),
   );
-  if run_in_new_thread.is_some() && run_in_new_thread.unwrap() {
+  if run_in_new_thread == Some(true) {
     let r_type_p = Box::into_raw(Box::new(r_type));
     let arg_types_p = Box::into_raw(Box::new(arg_types));
     use napi::Task;
@@ -299,13 +299,13 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
         unsafe {
           let call_result = get_js_unknown_from_pointer(&env, &ret_type_rs, output.0);
           if *free_result_memory {
-            free_c_pointer_memory(output.0, ret_type_rs.clone(), false);
+            free_c_pointer_memory(output.0, ret_type_rs, false);
           }
           arg_values_c_void
             .into_iter()
             .zip(params_type_rs.iter())
             .for_each(|(ptr, ptr_desc)| {
-              free_rs_pointer_memory(*ptr, ptr_desc.clone(), false);
+              free_rs_pointer_memory(*ptr, ptr_desc, false);
             });
           let _ = Box::from_raw(*cif);
           let _ = Box::from_raw(*r_type_p);
@@ -337,13 +337,13 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     ffi_call(&mut cif, Some(func), result, arg_values_c_void.as_mut_ptr());
     let call_result = get_js_unknown_from_pointer(&env, &ret_type_rs, result);
     if free_result_memory {
-      free_c_pointer_memory(result, ret_type_rs, false);
+      free_c_pointer_memory(result, &ret_type_rs, false);
     }
     arg_values_c_void
       .into_iter()
       .zip(params_type_rs.iter())
       .for_each(|(ptr, ptr_desc)| {
-        free_rs_pointer_memory(ptr, ptr_desc.clone(), false);
+        free_rs_pointer_memory(ptr, ptr_desc, false);
       });
     if errno.is_some() && errno.unwrap() {
       add_errno(&env, call_result?)

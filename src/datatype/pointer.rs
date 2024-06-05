@@ -45,7 +45,7 @@ where
 
 unsafe fn free_struct_memory(
   ptr: *mut c_void,
-  struct_desc: IndexMap<String, RsArgsValue>,
+  struct_desc: &IndexMap<String, RsArgsValue>,
   ptr_type: PointerType,
 ) {
   let mut field_ptr = ptr;
@@ -56,7 +56,7 @@ unsafe fn free_struct_memory(
       continue;
     }
     if let RsArgsValue::I32(number) = val {
-      let data_type = number_to_basic_data_type(number);
+      let data_type = number_to_basic_data_type(*number);
       match data_type {
         BasicDataType::U8 => {
           let (size, align) = get_size_align::<c_uchar>();
@@ -265,12 +265,12 @@ unsafe fn free_struct_memory(
 }
 pub unsafe fn free_rs_pointer_memory(
   ptr: *mut c_void,
-  ptr_desc: RsArgsValue,
+  ptr_desc: &RsArgsValue,
   need_free_external: bool,
 ) {
   match ptr_desc {
     RsArgsValue::I32(number) => {
-      let basic_data_type = number_to_basic_data_type(number);
+      let basic_data_type = number_to_basic_data_type(*number);
       match basic_data_type {
         BasicDataType::String => {
           let _ = CString::from_raw(*(ptr as *mut *mut c_char));
@@ -365,12 +365,12 @@ unsafe fn free_closure(ptr: *mut c_void) {
 }
 pub unsafe fn free_c_pointer_memory(
   ptr: *mut c_void,
-  ptr_desc: RsArgsValue,
+  ptr_desc: &RsArgsValue,
   need_free_external: bool,
 ) {
   match ptr_desc {
     RsArgsValue::I32(number) => {
-      let basic_data_type = number_to_basic_data_type(number);
+      let basic_data_type = number_to_basic_data_type(*number);
       match basic_data_type {
         BasicDataType::String => {
           free(*(ptr as *mut *mut i8) as *mut c_void);

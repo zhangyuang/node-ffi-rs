@@ -401,7 +401,7 @@ pub unsafe fn get_value_pointer(
                 let param = get_rs_value_from_pointer(env, arg_type, c_param, true);
                 if let RsArgsValue::Boolean(value) = free_c_params_memory {
                   if value {
-                    free_c_pointer_memory(c_param, arg_type.clone(), false);
+                    free_c_pointer_memory(c_param, arg_type, false);
                   }
                 }
                 param
