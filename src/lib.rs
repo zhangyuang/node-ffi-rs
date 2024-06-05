@@ -222,7 +222,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
   let ret_type_rs = type_define_to_rs_args(&env, ret_type)?;
   let r_type: *mut ffi_type = match ret_type_rs {
     RsArgsValue::I32(number) => {
-      let ret_data_type = number_to_basic_data_type(number);
+      let ret_data_type = number.to_basic_data_type();
       match ret_data_type {
         BasicDataType::U8 => &mut ffi_type_uint8 as *mut ffi_type,
         BasicDataType::I32 => &mut ffi_type_sint32 as *mut ffi_type,

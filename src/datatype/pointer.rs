@@ -56,7 +56,7 @@ unsafe fn free_struct_memory(
       continue;
     }
     if let RsArgsValue::I32(number) = val {
-      let data_type = number_to_basic_data_type(*number);
+      let data_type = number.to_basic_data_type();
       match data_type {
         BasicDataType::U8 => {
           let (size, align) = get_size_align::<c_uchar>();
@@ -270,7 +270,7 @@ pub unsafe fn free_rs_pointer_memory(
 ) {
   match ptr_desc {
     RsArgsValue::I32(number) => {
-      let basic_data_type = number_to_basic_data_type(*number);
+      let basic_data_type = number.to_basic_data_type();
       match basic_data_type {
         BasicDataType::String => {
           let _ = CString::from_raw(*(ptr as *mut *mut c_char));
@@ -370,7 +370,7 @@ pub unsafe fn free_c_pointer_memory(
 ) {
   match ptr_desc {
     RsArgsValue::I32(number) => {
-      let basic_data_type = number_to_basic_data_type(*number);
+      let basic_data_type = number.to_basic_data_type();
       match basic_data_type {
         BasicDataType::String => {
           free(*(ptr as *mut *mut i8) as *mut c_void);

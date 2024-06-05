@@ -139,80 +139,95 @@ pub enum RefDataType {
   FloatArray = 13,
 }
 
-pub fn number_to_data_type(value: i32) -> DataType {
-  match value {
-    0 => DataType::String,
-    1 => DataType::I32,
-    2 => DataType::Double,
-    3 => DataType::I32Array,
-    4 => DataType::StringArray,
-    5 => DataType::DoubleArray,
-    6 => DataType::Boolean,
-    7 => DataType::Void,
-    8 => DataType::I64,
-    9 => DataType::U8,
-    10 => DataType::U8Array,
-    11 => DataType::External,
-    12 => DataType::U64,
-    13 => DataType::FloatArray,
-    14 => DataType::Float,
-    _ => panic!("unknow DataType"),
+pub trait ToDataType {
+  fn to_data_type(self) -> DataType;
+  fn to_basic_data_type(self) -> BasicDataType;
+  fn to_ref_data_type(self) -> RefDataType;
+}
+impl ToDataType for i32 {
+  fn to_data_type(self) -> DataType {
+    match self {
+      0 => DataType::String,
+      1 => DataType::I32,
+      2 => DataType::Double,
+      3 => DataType::I32Array,
+      4 => DataType::StringArray,
+      5 => DataType::DoubleArray,
+      6 => DataType::Boolean,
+      7 => DataType::Void,
+      8 => DataType::I64,
+      9 => DataType::U8,
+      10 => DataType::U8Array,
+      11 => DataType::External,
+      12 => DataType::U64,
+      13 => DataType::FloatArray,
+      14 => DataType::Float,
+      _ => panic!("unknow DataType"),
+    }
+  }
+  fn to_basic_data_type(self) -> BasicDataType {
+    if is_array_type(&self) {
+      panic!(
+        "In the latest ffi-rs version, please use ffi-rs.arrayConstrutor to describe array type"
+      )
+    }
+    match self {
+      0 => BasicDataType::String,
+      1 => BasicDataType::I32,
+      2 => BasicDataType::Double,
+      6 => BasicDataType::Boolean,
+      7 => BasicDataType::Void,
+      8 => BasicDataType::I64,
+      9 => BasicDataType::U8,
+      11 => BasicDataType::External,
+      12 => BasicDataType::U64,
+      14 => BasicDataType::Float,
+      _ => panic!("unknow DataType"),
+    }
+  }
+  fn to_ref_data_type(self) -> RefDataType {
+    match self {
+      3 => RefDataType::I32Array,
+      4 => RefDataType::StringArray,
+      5 => RefDataType::DoubleArray,
+      10 => RefDataType::U8Array,
+      13 => RefDataType::FloatArray,
+      _ => panic!("unknow DataType"),
+    }
   }
 }
 use libffi::middle::Type;
-pub fn rs_value_to_ffi_type(value: &RsArgsValue) -> Type {
-  match value {
-    RsArgsValue::I32(number) => {
-      let data_type = number_to_basic_data_type(*number);
-      match data_type {
-        BasicDataType::String => Type::pointer(),
-        BasicDataType::U8 | BasicDataType::Boolean => Type::u8(),
-        BasicDataType::I32 => Type::i32(),
-        BasicDataType::I64 => Type::i64(),
-        BasicDataType::U64 => Type::u64(),
-        BasicDataType::Float => Type::f32(),
-        BasicDataType::Double => Type::f64(),
-        BasicDataType::Void => Type::void(),
-        BasicDataType::External => Type::pointer(),
+
+pub trait RsArgsTrait {
+  fn to_ffi_type(&self) -> Type;
+}
+impl RsArgsTrait for RsArgsValue {
+  fn to_ffi_type(&self) -> Type {
+    match self {
+      RsArgsValue::I32(number) => {
+        let data_type = number.to_basic_data_type();
+        match data_type {
+          BasicDataType::String => Type::pointer(),
+          BasicDataType::U8 | BasicDataType::Boolean => Type::u8(),
+          BasicDataType::I32 => Type::i32(),
+          BasicDataType::I64 => Type::i64(),
+          BasicDataType::U64 => Type::u64(),
+          BasicDataType::Float => Type::f32(),
+          BasicDataType::Double => Type::f64(),
+          BasicDataType::Void => Type::void(),
+          BasicDataType::External => Type::pointer(),
+        }
       }
+      RsArgsValue::Object(_) => Type::pointer(),
+      _ => panic!("parse function params type err {:?}", self),
     }
-    RsArgsValue::Object(_) => Type::pointer(),
-    _ => panic!("parse function params type err {:?}", value),
   }
 }
 
-pub fn number_to_basic_data_type(value: i32) -> BasicDataType {
-  if is_array_type(&value) {
-    panic!("In the latest ffi-rs version, please use ffi-rs.arrayConstrutor to describe array type")
-  }
-  match value {
-    0 => BasicDataType::String,
-    1 => BasicDataType::I32,
-    2 => BasicDataType::Double,
-    6 => BasicDataType::Boolean,
-    7 => BasicDataType::Void,
-    8 => BasicDataType::I64,
-    9 => BasicDataType::U8,
-    11 => BasicDataType::External,
-    12 => BasicDataType::U64,
-    14 => BasicDataType::Float,
-    _ => panic!("unknow DataType"),
-  }
-}
 pub fn is_array_type(value: &i32) -> bool {
   match value {
     3 | 4 | 5 | 10 | 13 => true,
     _ => false,
-  }
-}
-pub fn number_to_ref_data_type(value: i32) -> RefDataType {
-  match value {
-    3 => RefDataType::I32Array,
-    4 => RefDataType::StringArray,
-    5 => RefDataType::DoubleArray,
-    10 => RefDataType::U8Array,
-    13 => RefDataType::FloatArray,
-    _ => panic!("unknow DataType"),
   }
 }
 

@@ -38,8 +38,7 @@ pub fn calculate_struct_size(struct_type: &IndexMap<String, RsArgsValue>) -> (us
         return (size, align, offset);
       }
       if let RsArgsValue::I32(number) = field_type {
-        let data_type = number_to_basic_data_type(*number);
-        return match data_type {
+        return match number.to_basic_data_type() {
           BasicDataType::U8 => calculate_u8(size, align, offset),
           BasicDataType::I32 => calculate_i32(size, align, offset),
           BasicDataType::I64 | BasicDataType::U64 => calculate_i64(size, align, offset),

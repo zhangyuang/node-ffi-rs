@@ -63,7 +63,7 @@ pub fn get_array_desc(obj: &IndexMap<String, RsArgsValue>) -> FFIARRARYDESC {
   if let RsArgsValue::Boolean(val) = obj.get(ARRAY_DYNAMIC_TAG).unwrap() {
     array_dynamic = *val
   }
-  let array_type = number_to_ref_data_type(array_type);
+  let array_type = array_type.to_ref_data_type();
 
   FFIARRARYDESC {
     array_len,
@@ -106,7 +106,7 @@ pub unsafe fn get_arg_types_values(
     .map(|(param, value)| {
       let res = match param {
         RsArgsValue::I32(number) => {
-          let param_data_type = number_to_basic_data_type(*number);
+          let param_data_type = number.to_basic_data_type();
           match param_data_type {
             BasicDataType::I32 => {
               let arg_type = &mut ffi_type_sint32 as *mut ffi_type;
@@ -389,7 +389,7 @@ pub unsafe fn get_value_pointer(
             func_args_type_rs
               .values()
               .into_iter()
-              .map(|val| rs_value_to_ffi_type(val)),
+              .map(|val| val.to_ffi_type()),
             Type::void(),
           );
           let lambda = move |args: Vec<*mut c_void>| {
@@ -465,7 +465,7 @@ pub unsafe fn get_params_value_rs_struct(
         let field = field.clone();
         match field_type.clone() {
           RsArgsValue::I32(data_type_number) => {
-            let data_type: DataType = number_to_data_type(data_type_number);
+            let data_type: DataType = data_type_number.to_data_type();
             let val = match data_type {
               DataType::String => {
                 let val: JsString = params_value_object.get_named_property(&field)?;
@@ -724,7 +724,7 @@ pub unsafe fn get_js_unknown_from_pointer(
 ) -> Result<JsUnknown> {
   match ret_type_rs {
     RsArgsValue::I32(number) => {
-      let ret_data_type = number_to_basic_data_type(*number);
+      let ret_data_type = number.to_basic_data_type();
       match ret_data_type {
         BasicDataType::String => {
           let ptr_str = CStr::from_ptr(*(ptr as *mut *const c_char))
