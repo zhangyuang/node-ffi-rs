@@ -7,7 +7,7 @@ export interface JsExternal {
 
 export const enum DataType {
   /**
-   UTF-16 String
+   UTF-16 String, equivalent to char*
   */
   String = 0,
   I32 = 1,
@@ -28,6 +28,9 @@ export const enum DataType {
   Void = 7,
   I64 = 8,
   U8 = 9,
+  /**
+    Equivanlent to Buffer
+  */
   U8Array = 10,
   /**
     A type that wrap native pointer
