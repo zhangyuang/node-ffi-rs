@@ -81,6 +81,16 @@ const testString = () => {
       paramsValue: [c, d],
     }),
   );
+  equal(
+    c + d,
+    load({
+      library: "libsum",
+      funcName: "concatenateWideStrings",
+      retType: DataType.WString,
+      paramsType: [DataType.WString, DataType.WString],
+      paramsValue: [c, d],
+    }),
+  );
 }
 const testVoid = () => {
   equal(

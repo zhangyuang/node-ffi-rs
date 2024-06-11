@@ -67,6 +67,7 @@ Currently, ffi-rs only supports these types of parameters and return values. How
 
 ### Basic Type
 - [string](#basic-types)
+- [wideString](#basic-types)
 - [u8](#basic-types)
 - [i32](#basic-types)
 - [i64](#basic-types)

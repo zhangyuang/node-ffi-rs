@@ -10,6 +10,10 @@ export const enum DataType {
    UTF-16 String, equivalent to char*
   */
   String = 0,
+  /**
+   UTF-16 String, equivalent to wchar*
+  */
+  WString = 15,
   I32 = 1,
   Double = 2,
   /**
