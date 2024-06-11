@@ -1,3 +1,14 @@
+## [1.0.79](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.78...v1.0.79) (2024-06-11)
+
+
+### Features
+
+* support wideString ([a9828b2](https://github.com/zhangyuang/node-ffi-rs/commit/a9828b2423d867b7628a3d9b9e2c82fa485bf9de))
+* use ref as params type avoid clone ([b9d37fb](https://github.com/zhangyuang/node-ffi-rs/commit/b9d37fb1875a84a26ffc59c1be77bd776cface4b))
+* use trait to implement feature insteadof separate function ([f2679b9](https://github.com/zhangyuang/node-ffi-rs/commit/f2679b90880dd7b44d3f802b4d1b6ab60e04ab38))
+
+
+
 ## [1.0.78](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.77...v1.0.78) (2024-05-29)
 
 
