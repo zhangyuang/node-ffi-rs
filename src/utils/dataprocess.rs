@@ -387,7 +387,7 @@ pub unsafe fn get_value_pointer(
         let tsfn_ptr = Box::into_raw(Box::new(tsfn));
         unsafe extern "C" fn lambda_callback<F: Fn(Vec<*mut c_void>)>(
           _cif: &low::ffi_cif,
-          result: &mut *mut c_void,
+          result: &mut i32,
           args: *const *const c_void,
           userdata: &F,
         ) {
@@ -395,6 +395,8 @@ pub unsafe fn get_value_pointer(
             .map(|index| *args.offset(index as isize) as *mut c_void)
             .collect();
           userdata(params);
+          // let mut foo = Box::into_raw(Box::new(100));
+          *result = 100
         }
         let (cif, lambda) = if let RsArgsValue::Object(func_args_type_rs) = func_args_type {
           let cif = Cif::new(

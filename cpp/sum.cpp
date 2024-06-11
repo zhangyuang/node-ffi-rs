@@ -164,7 +164,7 @@ extern "C" Person *createPerson() {
 
   return person;
 }
-typedef const void (*FunctionPointer)(int a, bool b, char *c, double d,
+typedef const int (*FunctionPointer)(int a, bool b, char *c, double d,
                                       char **e, int *f, Person *g);
 
 extern "C" void callFunction(FunctionPointer func) {
@@ -184,7 +184,8 @@ extern "C" void callFunction(FunctionPointer func) {
     i32Array[2] = 303;
 
     Person *p = createPerson();
-    func(a, b, c, d, stringArray, i32Array, p);
+   int res= func(a, b, c, d, stringArray, i32Array, p);
+   printf("xx%d\n",res);
 }
 
 // 定义 C++ 类
