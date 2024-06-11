@@ -3,6 +3,7 @@ use crate::define::*;
 use crate::{RefDataType, RsArgsValue, FFIARRARYDESC};
 use indexmap::IndexMap;
 use std::ffi::{c_char, c_double, c_float, c_int, c_longlong, c_uchar, c_void};
+use widestring::WideChar;
 pub fn get_size_align<T: Sized>() -> (usize, usize) {
   (std::mem::size_of::<T>(), std::mem::align_of::<T>())
 }
@@ -28,6 +29,7 @@ calculate_layout_for!(calculate_double, c_double);
 calculate_layout_for!(calculate_boolean, bool);
 calculate_layout_for!(calculate_void, ());
 calculate_layout_for!(calculate_string, *const c_char);
+calculate_layout_for!(calculate_w_string, *const WideChar);
 calculate_layout_for!(calculate_pointer, *const c_void);
 
 pub fn calculate_struct_size(struct_type: &IndexMap<String, RsArgsValue>) -> (usize, usize) {
@@ -45,6 +47,7 @@ pub fn calculate_struct_size(struct_type: &IndexMap<String, RsArgsValue>) -> (us
           BasicDataType::Float => calculate_float(size, align, offset),
           BasicDataType::Double => calculate_double(size, align, offset),
           BasicDataType::String => calculate_string(size, align, offset),
+          BasicDataType::WString => calculate_w_string(size, align, offset),
           BasicDataType::Boolean => calculate_boolean(size, align, offset),
           BasicDataType::Void => calculate_void(size, align, offset),
           BasicDataType::External => calculate_pointer(size, align, offset),

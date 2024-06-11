@@ -1,4 +1,4 @@
-use super::string::string_to_c_string;
+use super::string::{string_to_c_string, string_to_c_w_string};
 use crate::define::*;
 use crate::utils::{
   calculate_struct_size, get_array_desc, get_array_value, get_ffi_tag, get_js_external_wrap_data,
@@ -9,6 +9,7 @@ use indexmap::IndexMap;
 use napi::{Env, Result};
 use std::alloc::{alloc, Layout};
 use std::ffi::{c_char, c_double, c_float, c_int, c_longlong, c_uchar, c_ulonglong, c_void};
+use widestring::WideChar;
 
 pub unsafe fn generate_c_struct(
   env: &Env,
@@ -93,6 +94,16 @@ pub unsafe fn generate_c_struct(
         field_ptr = field_ptr.offset(padding as isize);
         let c_string = string_to_c_string(str);
         (field_ptr as *mut *const c_char).write(c_string.as_ptr());
+        std::mem::forget(c_string);
+        offset += size + padding;
+        size
+      }
+      RsArgsValue::WString(str) => {
+        let (size, align) = get_size_align::<*mut c_void>();
+        let padding = (align - (offset % align)) % align;
+        field_ptr = field_ptr.offset(padding as isize);
+        let c_string = string_to_c_w_string(str);
+        (field_ptr as *mut *const WideChar).write(c_string.as_ptr());
         std::mem::forget(c_string);
         offset += size + padding;
         size

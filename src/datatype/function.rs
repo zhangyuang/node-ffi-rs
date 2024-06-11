@@ -1,12 +1,14 @@
 use super::buffer::*;
 use super::pointer::*;
 use super::restore_struct::create_rs_struct_from_pointer;
+use super::string::{create_c_string_from_ptr, create_c_w_string_from_ptr};
 use crate::define::*;
 use crate::utils::{get_array_desc, get_ffi_tag};
 use libc::c_float;
 use napi::Env;
 use std::ffi::c_void;
-use std::ffi::{c_char, c_double, c_int, c_uchar, CStr};
+use std::ffi::{c_char, c_double, c_int, c_uchar};
+use widestring::WideChar;
 
 pub unsafe fn get_rs_value_from_pointer(
   env: &Env,
@@ -30,11 +32,12 @@ pub unsafe fn get_rs_value_from_pointer(
         } else {
           true
         }),
-        BasicDataType::String => RsArgsValue::String(
-          CStr::from_ptr(*(pointer as *mut *mut c_char))
-            .to_string_lossy()
-            .to_string(),
-        ),
+        BasicDataType::String => {
+          RsArgsValue::String(create_c_string_from_ptr(*(pointer as *mut *mut c_char)))
+        }
+        BasicDataType::WString => {
+          RsArgsValue::WString(create_c_w_string_from_ptr(*(pointer as *mut *mut WideChar)))
+        }
         BasicDataType::External => {
           RsArgsValue::External(env.create_external(pointer, None).unwrap())
         }

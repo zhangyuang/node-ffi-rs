@@ -4,6 +4,7 @@ use crate::utils::{
 use indexmap::IndexMap;
 use libc::{c_double, c_float, c_int, c_void, free};
 use std::ffi::{c_char, c_longlong, c_uchar, c_ulonglong, CStr, CString};
+use widestring::{WideCString, WideChar};
 
 use crate::define::*;
 pub trait ArrayPointer {
@@ -123,6 +124,20 @@ unsafe fn free_struct_memory(
             PointerType::CPointer => free((*type_field_ptr) as *mut c_void),
             PointerType::RsPointer => {
               let _ = CString::from_raw(*(type_field_ptr as *mut *mut c_char));
+            }
+          }
+          offset += size + padding;
+          field_size = size
+        }
+        BasicDataType::WString => {
+          let (size, align) = get_size_align::<*const c_void>();
+          let padding = (align - (offset % align)) % align;
+          field_ptr = field_ptr.offset(padding as isize);
+          let type_field_ptr = field_ptr as *mut *mut WideChar;
+          match ptr_type {
+            PointerType::CPointer => free((*type_field_ptr) as *mut c_void),
+            PointerType::RsPointer => {
+              let _ = WideCString::from_raw(*(type_field_ptr as *mut *mut WideChar));
             }
           }
           offset += size + padding;
@@ -274,6 +289,9 @@ pub unsafe fn free_rs_pointer_memory(
       match basic_data_type {
         BasicDataType::String => {
           let _ = CString::from_raw(*(ptr as *mut *mut c_char));
+        }
+        BasicDataType::WString => {
+          let _ = WideCString::from_raw(*(ptr as *mut *mut WideChar));
         }
         BasicDataType::U8 => {
           let _ = Box::from_raw(ptr);

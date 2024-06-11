@@ -104,6 +104,7 @@ pub enum DataType {
   U64 = 12,
   FloatArray = 13,
   Float = 14,
+  WString = 15,
 }
 
 pub enum ReserveDataType {
@@ -128,6 +129,7 @@ pub enum BasicDataType {
   External = 11,
   U64 = 12,
   Float = 14,
+  WString = 15,
 }
 
 #[derive(Debug)]
@@ -162,6 +164,7 @@ impl ToDataType for i32 {
       12 => DataType::U64,
       13 => DataType::FloatArray,
       14 => DataType::Float,
+      15 => DataType::WString,
       _ => panic!("unknow DataType"),
     }
   }
@@ -182,6 +185,7 @@ impl ToDataType for i32 {
       11 => BasicDataType::External,
       12 => BasicDataType::U64,
       14 => BasicDataType::Float,
+      15 => BasicDataType::WString,
       _ => panic!("unknow DataType"),
     }
   }
@@ -208,6 +212,7 @@ impl RsArgsTrait for RsArgsValue {
         let data_type = number.to_basic_data_type();
         match data_type {
           BasicDataType::String => Type::pointer(),
+          BasicDataType::WString => Type::pointer(),
           BasicDataType::U8 | BasicDataType::Boolean => Type::u8(),
           BasicDataType::I32 => Type::i32(),
           BasicDataType::I64 => Type::i64(),
@@ -233,6 +238,7 @@ pub fn is_array_type(value: &i32) -> bool {
 
 pub enum RsArgsValue {
   String(String),
+  WString(String),
   U8(u8),
   I32(i32),
   I64(i64),
@@ -254,6 +260,7 @@ impl Clone for RsArgsValue {
   fn clone(&self) -> Self {
     match self {
       RsArgsValue::String(s) => RsArgsValue::String(s.clone()),
+      RsArgsValue::WString(s) => RsArgsValue::WString(s.clone()),
       RsArgsValue::U8(u) => RsArgsValue::U8(*u),
       RsArgsValue::I32(i) => RsArgsValue::I32(*i),
       RsArgsValue::I64(i) => RsArgsValue::I64(*i),
@@ -279,6 +286,7 @@ impl PartialEq for RsArgsValue {
   fn eq(&self, other: &Self) -> bool {
     match (self, other) {
       (RsArgsValue::String(a), RsArgsValue::String(b)) => a == b,
+      (RsArgsValue::WString(a), RsArgsValue::WString(b)) => a == b,
       (RsArgsValue::U8(a), RsArgsValue::U8(b)) => a == b,
       (RsArgsValue::I32(a), RsArgsValue::I32(b)) => a == b,
       (RsArgsValue::I64(a), RsArgsValue::I64(b)) => a == b,
@@ -308,6 +316,7 @@ impl std::fmt::Debug for RsArgsValue {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
       RsArgsValue::String(s) => write!(f, "String({})", s),
+      RsArgsValue::WString(s) => write!(f, "WString({})", s),
       RsArgsValue::U8(i) => write!(f, "U8({})", i),
       RsArgsValue::I32(i) => write!(f, "I32({})", i),
       RsArgsValue::I64(i) => write!(f, "I64({})", i),

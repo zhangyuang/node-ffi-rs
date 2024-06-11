@@ -5,7 +5,7 @@ use crate::datatype::create_struct::generate_c_struct;
 use crate::datatype::function::get_rs_value_from_pointer;
 use crate::datatype::pointer::*;
 use crate::datatype::restore_struct::{create_rs_struct_from_pointer, rs_value_to_js_unknown};
-use crate::datatype::string::{js_string_to_string, string_to_c_string};
+use crate::datatype::string::{js_string_to_string, string_to_c_string, string_to_c_w_string};
 use crate::define::*;
 use indexmap::IndexMap;
 use libc::{c_char, c_double, c_float, c_int, c_uchar, c_void};
@@ -21,6 +21,7 @@ use napi::{
 use std::collections::HashMap;
 use std::ffi::CStr;
 use std::rc::Rc;
+use widestring::{WideCString, WideChar};
 
 pub unsafe fn get_js_external_wrap_data(env: &Env, js_external: JsExternal) -> Result<*mut c_void> {
   use std::any::TypeId;
@@ -142,8 +143,13 @@ pub unsafe fn get_arg_types_values(
               let arg_type = &mut ffi_type_pointer as *mut ffi_type;
               let arg_val: String =
                 js_string_to_string(create_js_value_unchecked::<JsString>(env, value))?;
-
               (arg_type, RsArgsValue::String(arg_val))
+            }
+            BasicDataType::WString => {
+              let arg_type = &mut ffi_type_pointer as *mut ffi_type;
+              let arg_val: String =
+                js_string_to_string(create_js_value_unchecked::<JsString>(env, value))?;
+              (arg_type, RsArgsValue::WString(arg_val))
             }
             BasicDataType::Boolean => {
               let arg_type = &mut ffi_type_uint8 as *mut ffi_type;
@@ -297,6 +303,12 @@ pub unsafe fn get_value_pointer(
         let c_string = string_to_c_string(val);
         let ptr = c_string.as_ptr();
         std::mem::forget(c_string);
+        Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
+      }
+      RsArgsValue::WString(val) => {
+        let c_w_string = string_to_c_w_string(val);
+        let ptr = c_w_string.as_ptr();
+        std::mem::forget(c_w_string);
         Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
       }
       RsArgsValue::Float(val) => {
@@ -471,6 +483,11 @@ pub unsafe fn get_params_value_rs_struct(
                 let val: JsString = params_value_object.get_named_property(&field)?;
                 let val: String = js_string_to_string(val)?;
                 RsArgsValue::String(val)
+              }
+              DataType::WString => {
+                let val: JsString = params_value_object.get_named_property(&field)?;
+                let val: String = js_string_to_string(val)?;
+                RsArgsValue::WString(val)
               }
               DataType::U8 => {
                 let val: JsNumber = params_value_object.get_named_property(&field)?;
@@ -731,6 +748,12 @@ pub unsafe fn get_js_unknown_from_pointer(
             .to_string_lossy()
             .to_string();
           rs_value_to_js_unknown(&env, RsArgsValue::String(ptr_str))
+        }
+        BasicDataType::WString => {
+          let ptr_str = WideCString::from_ptr_str(*(ptr as *mut *const WideChar))
+            .to_string_lossy()
+            .to_string();
+          rs_value_to_js_unknown(&env, RsArgsValue::WString(ptr_str))
         }
         BasicDataType::U8 => rs_value_to_js_unknown(env, RsArgsValue::U8(*(ptr as *mut u8))),
         BasicDataType::I32 => rs_value_to_js_unknown(env, RsArgsValue::I32(*(ptr as *mut i32))),

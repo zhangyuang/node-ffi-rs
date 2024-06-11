@@ -1,6 +1,7 @@
 use super::array::*;
 use super::buffer::*;
 use super::pointer::*;
+use super::string::{create_c_string_from_ptr, create_c_w_string_from_ptr};
 use crate::define::*;
 use crate::utils::*;
 use indexmap::IndexMap;
@@ -8,6 +9,7 @@ use libc::c_float;
 use napi::{Env, JsObject, JsUnknown, Result};
 use std::ffi::c_void;
 use std::ffi::{c_char, c_double, c_int, c_longlong, c_uchar, c_ulonglong, CStr};
+use widestring::WideChar;
 
 pub unsafe fn create_rs_struct_from_pointer(
   env: &Env,
@@ -102,10 +104,18 @@ pub unsafe fn create_rs_struct_from_pointer(
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           let type_field_ptr = field_ptr as *mut *mut c_char;
-          let js_string = CStr::from_ptr(*type_field_ptr)
-            .to_string_lossy()
-            .to_string();
+          let js_string = create_c_string_from_ptr(*type_field_ptr);
           rs_struct.insert(field, RsArgsValue::String(js_string));
+          offset += size + padding;
+          field_size = size
+        }
+        BasicDataType::WString => {
+          let (size, align) = get_size_align::<*const c_void>();
+          let padding = (align - (offset % align)) % align;
+          field_ptr = field_ptr.offset(padding as isize);
+          let type_field_ptr = field_ptr as *mut *mut WideChar;
+          let js_string = create_c_w_string_from_ptr(*type_field_ptr);
+          rs_struct.insert(field, RsArgsValue::WString(js_string));
           offset += size + padding;
           field_size = size
         }
@@ -291,7 +301,7 @@ pub fn rs_value_to_js_unknown(env: &Env, data: RsArgsValue) -> Result<JsUnknown>
     RsArgsValue::I64(number) => env.create_int64(number)?.into_unknown(),
     RsArgsValue::U64(number) => env.create_int64(number as i64)?.into_unknown(),
     RsArgsValue::Boolean(val) => env.get_boolean(val)?.into_unknown(),
-    RsArgsValue::String(val) => env.create_string(&val)?.into_unknown(),
+    RsArgsValue::String(val) | RsArgsValue::WString(val) => env.create_string(&val)?.into_unknown(),
     RsArgsValue::Double(val) => env.create_double(val)?.into_unknown(),
     RsArgsValue::U8Array(buffer, arr) => {
       if buffer.is_some() {

@@ -17,6 +17,13 @@ extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
   return cstr;
 }
 
+extern "C" const wchar_t* concatenateWideStrings(const wchar_t* str1, const wchar_t* str2) {
+    std::wstring result = std::wstring(str1) + std::wstring(str2);
+    wchar_t* wcstr = new wchar_t[result.length() + 1];
+    wcscpy(wcstr, result.c_str());
+    return wcstr;
+}
+
 extern "C" char *getStringFromPtr(void *ptr) { return (char *)ptr; };
 
 extern "C" int getValueFromDoublePointer(int **ptr) { return *ptr[0]; };
