@@ -373,6 +373,7 @@ pub unsafe fn get_value_pointer(
         use libffi::low;
         use libffi::middle::*;
         let func_args_type = func_desc.get("paramsType").unwrap().clone();
+        let func_ret_type = func_desc.get("retType").unwrap().clone();
         let free_c_params_memory = func_desc.get("freeCFuncParamsMemory").unwrap().clone();
         let tsfn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal> = (&js_function)
           .create_threadsafe_function(0, |ctx| {
@@ -381,30 +382,34 @@ pub unsafe fn get_value_pointer(
               .into_iter()
               .map(|rs_args| rs_value_to_js_unknown(&ctx.env, rs_args))
               .collect::<Result<Vec<JsUnknown>, _>>()?;
-
             Ok(js_call_params)
           })?;
         let tsfn_ptr = Box::into_raw(Box::new(tsfn));
-        unsafe extern "C" fn lambda_callback<F: Fn(Vec<*mut c_void>)>(
+        unsafe extern "C" fn lambda_callback<F: Fn(Vec<*mut c_void>) -> i32>(
           _cif: &low::ffi_cif,
-          result: &mut i32,
+          result: &mut c_void,
           args: *const *const c_void,
           userdata: &F,
         ) {
           let params: Vec<*mut c_void> = (0.._cif.nargs)
             .map(|index| *args.offset(index as isize) as *mut c_void)
             .collect();
-          userdata(params);
-          // let mut foo = Box::into_raw(Box::new(100));
-          *result = 100
+
+          let foo = userdata(params);
+          // let r = result as *mut c_void as *mut i32;
+          // *r = 101
         }
+        use std::sync::{mpsc, Arc, Mutex};
+        let (tx, rx) = mpsc::channel::<JsUnknown>();
+        let tx_ptr = Box::into_raw(Box::new(tx));
+        let rx_ptr = Box::into_raw(Box::new(rx));
         let (cif, lambda) = if let RsArgsValue::Object(func_args_type_rs) = func_args_type {
           let cif = Cif::new(
             func_args_type_rs
               .values()
               .into_iter()
               .map(|val| val.to_ffi_type()),
-            Type::void(),
+            func_ret_type.to_ffi_type(),
           );
           let lambda = move |args: Vec<*mut c_void>| {
             let value: Vec<RsArgsValue> = args
@@ -421,7 +426,19 @@ pub unsafe fn get_value_pointer(
                 param
               })
               .collect();
-            (*tsfn_ptr).call(value, ThreadsafeFunctionCallMode::Blocking);
+            (*tsfn_ptr).call_with_return_value(
+              value,
+              ThreadsafeFunctionCallMode::NonBlocking,
+              |result: JsUnknown| {
+                println!("xxx");
+                // // 将结果发送到通道
+                // (*tx_ptr).send(result).unwrap();
+                Ok(())
+              },
+            );
+
+            // let result = (*rx_ptr).recv().unwrap();
+            // result
           };
           (cif, lambda)
         } else {

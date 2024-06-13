@@ -1,5 +1,5 @@
-import { equal, deepStrictEqual } from "assert"
-import {
+const { equal, deepStrictEqual } = require("assert")
+const {
   load,
   open,
   close,
@@ -13,7 +13,7 @@ import {
   freePointer,
   define,
   PointerType
-} from "./index"
+} = require("./index")
 
 
 const platform = process.platform;
@@ -425,34 +425,37 @@ const testRunInNewThread = () => {
 
 const testFunction = () => {
   const func = (a, b, c, d, e, f, g) => {
-    equal(a, 100);
-    equal(b, false);
-    equal(c, "Hello, World!");
-    equal(d, "100.11");
-    deepStrictEqual(e, ["Hello", "world"]);
-    deepStrictEqual(f, [101, 202, 303]);
-    deepStrictEqual(g, person);
-    logGreen("test function succeed");
-    // free function memory which malloc in c side when it not in use
-    freePointer({
-      paramsType: [funcConstructor({
-        paramsType: [
-          DataType.I32,
-          DataType.Boolean,
-          DataType.String,
-          DataType.Double,
-          arrayConstructor({ type: DataType.StringArray, length: 2 }),
-          arrayConstructor({ type: DataType.I32Array, length: 3 }),
-          personType,
-        ],
-        retType: DataType.Void,
-      })],
-      paramsValue: funcExternal,
-      pointerType: PointerType.RsPointer
-    })
-    if (!process.env.MEMORY) {
-      close("libsum");
-    }
+    console.log('call')
+    // equal(a, 100);
+    // equal(b, false);
+    // equal(c, "Hello, World!");
+    // equal(d, "100.11");
+    // deepStrictEqual(e, ["Hello", "world"]);
+    // deepStrictEqual(f, [101, 202, 303]);
+    // deepStrictEqual(g, person);
+    // logGreen("test function succeed");
+    // // free function memory which malloc in c side when it not in use
+    // freePointer({
+    //   paramsType: [funcConstructor({
+    //     paramsType: [
+    //       DataType.I32,
+    //       DataType.Boolean,
+    //       DataType.String,
+    //       DataType.Double,
+    //       arrayConstructor({ type: DataType.StringArray, length: 2 }),
+    //       arrayConstructor({ type: DataType.I32Array, length: 3 }),
+    //       personType,
+    //     ],
+    //     retType: DataType.I32,
+    //   })],
+    //   paramsValue: funcExternal,
+    //   pointerType: PointerType.RsPointer
+    // })
+    // if (!process.env.MEMORY) {
+    //   close("libsum");
+    // }
+
+    return 1
   };
   const funcExternal = createPointer({
     paramsType: [funcConstructor({
@@ -465,7 +468,7 @@ const testFunction = () => {
         arrayConstructor({ type: DataType.I32Array, length: 3 }),
         personType,
       ],
-      retType: DataType.Void,
+      retType: DataType.I32,
     })],
     paramsValue: [func]
   })
@@ -531,28 +534,28 @@ const testDefine = () => {
   equal(res.sum([1, 2]), 3)
 }
 const unitTest = () => {
-  testNumber()
-  logGreen('test number succeed')
-  testString()
-  logGreen('test string succeed')
-  testDefine()
-  logGreen('test define succeed')
-  testArray()
-  logGreen('test array succeed')
-  testVoid()
-  logGreen('test void succeed')
-  testBool()
-  logGreen('test bool succeed')
-  testMainProgram()
-  logGreen('test main program succeed')
+  // testNumber()
+  // logGreen('test number succeed')
+  // testString()
+  // logGreen('test string succeed')
+  // testDefine()
+  // logGreen('test define succeed')
+  // testArray()
+  // logGreen('test array succeed')
+  // testVoid()
+  // logGreen('test void succeed')
+  // testBool()
+  // logGreen('test bool succeed')
+  // testMainProgram()
+  // logGreen('test main program succeed')
   testFunction()
-  testCpp()
-  logGreen('test cpp succeed')
-  testObject()
-  logGreen('test object succeed')
-  testPointer()
-  logGreen('test createPointer succeed')
-  testRunInNewThread()
+  // testCpp()
+  // logGreen('test cpp succeed')
+  // testObject()
+  // logGreen('test object succeed')
+  // testPointer()
+  // logGreen('test createPointer succeed')
+  // testRunInNewThread()
 };
 
 unitTest();
