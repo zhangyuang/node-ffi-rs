@@ -1,3 +1,12 @@
+## [1.0.80](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.79...v1.0.80) (2024-06-13)
+
+
+### Features
+
+* set freeResultMemory as false at default ([ddcf108](https://github.com/zhangyuang/node-ffi-rs/commit/ddcf108a0b9d2beb4c9ffc3ba928a78429bf3e20))
+
+
+
 ## [1.0.79](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.78...v1.0.79) (2024-06-11)
 
 
