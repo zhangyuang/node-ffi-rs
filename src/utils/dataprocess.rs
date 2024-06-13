@@ -385,7 +385,7 @@ pub unsafe fn get_value_pointer(
             Ok(js_call_params)
           })?;
         let tsfn_ptr = Box::into_raw(Box::new(tsfn));
-        unsafe extern "C" fn lambda_callback<F: Fn(Vec<*mut c_void>) -> i32>(
+        unsafe extern "C" fn lambda_callback<F: Fn(Vec<*mut c_void>)>(
           _cif: &low::ffi_cif,
           result: &mut c_void,
           args: *const *const c_void,
