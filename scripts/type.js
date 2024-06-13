@@ -346,7 +346,7 @@ const setFreePointerTag = (params) => {
 
 const wrapLoad = (params) => {
   if (params.freeResultMemory === undefined) {
-    params.freeResultMemory = true
+    params.freeResultMemory = false
   }
   return load(processParamsTypeForArray(params))
 }
@@ -360,7 +360,7 @@ exports.arrayConstructor = arrayConstructor
 exports.funcConstructor = (options) => ({
   ffiTypeTag: 'function',
   needFree: false,
-  freeCFuncParamsMemory: true,
+  freeCFuncParamsMemory: false,
   ...options,
 })
 exports.define = (obj) => {
