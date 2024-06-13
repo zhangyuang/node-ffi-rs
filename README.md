@@ -720,13 +720,13 @@ What kinds of data memory are allocated in this?
 - call parameters in Rust environment which are allocated in the heap like `String`
 - return value which in C environment which are allocated in the heap like `char*`
 
-At default, `ffi-rs` will free all of memory both call parameters and return value(except functionConstructor).
+At default, `ffi-rs` will free call parameters memory which are allocated in Rust.
 
-In some cases, the called c function also free memory has been allocated after ffi-call will cause repeated release error.
+But not free the return value from c side since some c dynamic library will manage their memory automatically(when ffi-rs >= 1.0.79)
 
-For avoid this error, there are two ways to prevent `ffi-rs` free memory automatically
+There are two ways to prevent `ffi-rs` release memory
 
-- set `freeResultMemory: false` when call `load` method
+- set `freeResultMemory: false` when call `load` method, the default value is false
 
 If you set freeResultMemory to false, `ffi-rs` will not release the return result memory which was allocated in c environment
 
