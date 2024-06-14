@@ -1,3 +1,12 @@
+## [1.0.81](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.80...v1.0.81) (2024-06-14)
+
+
+### Features
+
+* support DataType.BigInt ([cf05fab](https://github.com/zhangyuang/node-ffi-rs/commit/cf05fab803527174d29e96371d3a0a3bf9d55389))
+
+
+
 ## [1.0.80](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.79...v1.0.80) (2024-06-13)
 
 
