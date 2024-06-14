@@ -47,6 +47,15 @@ const testNumber = () => {
     }),
     a + b,
   );
+  const foo = load({
+    library: "libsum",
+    funcName: "testbigint",
+    retType: DataType.BigInt,
+    paramsType: [DataType.BigInt],
+    paramsValue: [36028797018963968n],
+  })
+  equal(typeof foo, "bigint")
+  equal(foo.toString(), "36028797018963968")
   equal(
     1.1 + 2.2,
     load({

@@ -58,14 +58,17 @@ $ npm i ffi-rs
 目前支持下列类型作为出参入参类型。根据实际使用场景后续会支持更多的类型。
 
 ### 基本类型
-- [string](#基本类型)
-- [wideString](#基本类型)
-- [u8](#基本类型)
-- [i32](#基本类型)
-- [i64](#基本类型)
-- [void](#基本类型)(undefined)
-- [double](#基本类型)
-- [boolean](#基本类型)
+- [string](#basic-types)
+- [wideString](#basic-types)
+- [u8](#basic-types)
+- [i32](#basic-types)
+- [i64](#basic-types)
+- [bigInt](#basic-types)
+- [u64](#basic-types)
+- [void](#basic-types)(like js undefined)
+- [float](#basic-types)(can only be used as paramsType instead of retType)
+- [double](#basic-types)
+- [boolean](#basic-types)
 
 ### 引用类型
 
