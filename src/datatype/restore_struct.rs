@@ -46,7 +46,7 @@ pub unsafe fn create_rs_struct_from_pointer(
           offset += size + padding;
           field_size = size
         }
-        BasicDataType::I64 => {
+        BasicDataType::I64 | BasicDataType::BigInt => {
           let (size, align) = get_size_align::<c_longlong>();
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
@@ -300,6 +300,7 @@ pub fn rs_value_to_js_unknown(env: &Env, data: RsArgsValue) -> Result<JsUnknown>
     RsArgsValue::I32(number) => env.create_int32(number)?.into_unknown(),
     RsArgsValue::I64(number) => env.create_int64(number)?.into_unknown(),
     RsArgsValue::U64(number) => env.create_int64(number as i64)?.into_unknown(),
+    RsArgsValue::BigInt(number) => return env.create_bigint_from_i64(number)?.into_unknown(),
     RsArgsValue::Boolean(val) => env.get_boolean(val)?.into_unknown(),
     RsArgsValue::String(val) | RsArgsValue::WString(val) => env.create_string(&val)?.into_unknown(),
     RsArgsValue::Double(val) => env.create_double(val)?.into_unknown(),

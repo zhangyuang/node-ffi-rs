@@ -43,7 +43,10 @@ export const enum DataType {
   U64 = 12,
   FloatArray = 13,
   Float = 14,
-
+  /**
+   As params will be transformed to i64, as return value will be created from i64
+  */
+  BigInt = 16,
   StackStruct = 999 // reserve keyword
 }
 
@@ -55,6 +58,8 @@ type DataTypeToType<T extends DataType> = T extends DataType.String
   ? number
   : T extends DataType.I64
   ? number
+  : T extends DataType.BigInt
+  ? BigInt
   : T extends DataType.U64
   ? number
   : T extends DataType.Double

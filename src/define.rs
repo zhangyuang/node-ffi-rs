@@ -105,6 +105,7 @@ pub enum DataType {
   FloatArray = 13,
   Float = 14,
   WString = 15,
+  BigInt = 16,
 }
 
 pub enum ReserveDataType {
@@ -130,6 +131,7 @@ pub enum BasicDataType {
   U64 = 12,
   Float = 14,
   WString = 15,
+  BigInt = 16,
 }
 
 #[derive(Debug)]
@@ -165,6 +167,7 @@ impl ToDataType for i32 {
       13 => DataType::FloatArray,
       14 => DataType::Float,
       15 => DataType::WString,
+      16 => DataType::BigInt,
       _ => panic!("unknow DataType"),
     }
   }
@@ -186,6 +189,7 @@ impl ToDataType for i32 {
       12 => BasicDataType::U64,
       14 => BasicDataType::Float,
       15 => BasicDataType::WString,
+      16 => BasicDataType::BigInt,
       _ => panic!("unknow DataType"),
     }
   }
@@ -215,7 +219,7 @@ impl RsArgsTrait for RsArgsValue {
           BasicDataType::WString => Type::pointer(),
           BasicDataType::U8 | BasicDataType::Boolean => Type::u8(),
           BasicDataType::I32 => Type::i32(),
-          BasicDataType::I64 => Type::i64(),
+          BasicDataType::I64 | BasicDataType::BigInt => Type::i64(),
           BasicDataType::U64 => Type::u64(),
           BasicDataType::Float => Type::f32(),
           BasicDataType::Double => Type::f64(),
@@ -242,6 +246,7 @@ pub enum RsArgsValue {
   U8(u8),
   I32(i32),
   I64(i64),
+  BigInt(i64),
   U64(u64),
   Float(f32),
   Double(f64),
@@ -264,6 +269,7 @@ impl Clone for RsArgsValue {
       RsArgsValue::U8(u) => RsArgsValue::U8(*u),
       RsArgsValue::I32(i) => RsArgsValue::I32(*i),
       RsArgsValue::I64(i) => RsArgsValue::I64(*i),
+      RsArgsValue::BigInt(u) => RsArgsValue::BigInt(*u),
       RsArgsValue::U64(u) => RsArgsValue::U64(*u),
       RsArgsValue::Float(f) => RsArgsValue::Float(*f),
       RsArgsValue::Double(d) => RsArgsValue::Double(*d),
@@ -291,6 +297,7 @@ impl PartialEq for RsArgsValue {
       (RsArgsValue::I32(a), RsArgsValue::I32(b)) => a == b,
       (RsArgsValue::I64(a), RsArgsValue::I64(b)) => a == b,
       (RsArgsValue::U64(a), RsArgsValue::U64(b)) => a == b,
+      (RsArgsValue::BigInt(a), RsArgsValue::BigInt(b)) => a == b,
       (RsArgsValue::Float(a), RsArgsValue::Float(b)) => a == b,
       (RsArgsValue::Double(a), RsArgsValue::Double(b)) => a == b,
       (RsArgsValue::I32Array(a), RsArgsValue::I32Array(b)) => a == b,
@@ -321,6 +328,7 @@ impl std::fmt::Debug for RsArgsValue {
       RsArgsValue::I32(i) => write!(f, "I32({})", i),
       RsArgsValue::I64(i) => write!(f, "I64({})", i),
       RsArgsValue::U64(i) => write!(f, "U64({})", i),
+      RsArgsValue::BigInt(i) => write!(f, "BigInt({})", i),
       RsArgsValue::Float(d) => write!(f, "Float({})", d),
       RsArgsValue::Double(d) => write!(f, "Double({})", d),
       RsArgsValue::U8Array(buffer, v) => {

@@ -71,6 +71,7 @@ Currently, ffi-rs only supports these types of parameters and return values. How
 - [u8](#basic-types)
 - [i32](#basic-types)
 - [i64](#basic-types)
+- [bigInt](#basic-types)
 - [u64](#basic-types)
 - [void](#basic-types)(like js undefined)
 - [float](#basic-types)(can only be used as paramsType instead of retType)

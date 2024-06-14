@@ -24,6 +24,7 @@ pub unsafe fn get_rs_value_from_pointer(
           return RsArgsValue::I32(*(pointer as *mut i32));
         }
         BasicDataType::I64 => RsArgsValue::I64(*(pointer as *mut i64)),
+        BasicDataType::BigInt => RsArgsValue::BigInt(*(pointer as *mut i64)),
         BasicDataType::U64 => RsArgsValue::U64(*(pointer as *mut u64)),
         BasicDataType::Float => RsArgsValue::Float(*(pointer as *mut f32)),
         BasicDataType::Double => RsArgsValue::Double(*(pointer as *mut f64)),
