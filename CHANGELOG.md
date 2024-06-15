@@ -1,3 +1,12 @@
+## [1.0.82](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.81...v1.0.82) (2024-06-15)
+
+
+### Bug Fixes
+
+* No need to free jsBuffer memory in rust call params ([2e39791](https://github.com/zhangyuang/node-ffi-rs/commit/2e39791948a7634ec5dff493df5915bf575a9414))
+
+
+
 ## [1.0.81](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.80...v1.0.81) (2024-06-14)
 
 
