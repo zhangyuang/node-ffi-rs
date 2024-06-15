@@ -335,7 +335,7 @@ pub unsafe fn free_rs_pointer_memory(
           ..
         } = array_desc;
         match array_type {
-          RefDataType::U8Array => free_dynamic_u8_array(ptr, array_len),
+          RefDataType::U8Array => {}
           RefDataType::I32Array => free_dynamic_i32_array(ptr, array_len),
           RefDataType::DoubleArray => free_dynamic_double_array(ptr, array_len),
           RefDataType::FloatArray => free_dynamic_float_array(ptr, array_len),
