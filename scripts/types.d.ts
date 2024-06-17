@@ -52,6 +52,8 @@ export const enum DataType {
 
 type DataTypeToType<T extends DataType> = T extends DataType.String
   ? string
+  : T extends DataType.WString
+  ? string
   : T extends DataType.U8
   ? number
   : T extends DataType.I32
