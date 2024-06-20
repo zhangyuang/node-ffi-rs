@@ -176,7 +176,7 @@ const r = load({
   retType: DataType.I32, // the return value type
   paramsType: [DataType.I32, DataType.I32], // the parameter types
   paramsValue: [a, b] // the actual parameter values
-  // freeResultMemory: true, // whether or not need to free the result of return value memory automatically, default is true
+  // freeResultMemory: true, // whether or not need to free the result of return value memory automatically, default is false
 })
 equal(r, a + b)
 // release library memory when you're not using it.
