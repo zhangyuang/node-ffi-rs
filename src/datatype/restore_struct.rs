@@ -46,12 +46,21 @@ pub unsafe fn create_rs_struct_from_pointer(
           offset += size + padding;
           field_size = size
         }
-        BasicDataType::I64 | BasicDataType::BigInt => {
+        BasicDataType::I64 => {
           let (size, align) = get_size_align::<c_longlong>();
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           let type_field_ptr = field_ptr as *mut c_longlong;
           rs_struct.insert(field, RsArgsValue::I64(*type_field_ptr));
+          offset += size + padding;
+          field_size = size
+        }
+        BasicDataType::BigInt => {
+          let (size, align) = get_size_align::<c_longlong>();
+          let padding = (align - (offset % align)) % align;
+          field_ptr = field_ptr.offset(padding as isize);
+          let type_field_ptr = field_ptr as *mut c_longlong;
+          rs_struct.insert(field, RsArgsValue::BigInt(*type_field_ptr));
           offset += size + padding;
           field_size = size
         }
