@@ -1,3 +1,17 @@
+## [1.0.83](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.82...v1.0.83) (2024-06-20)
+
+
+### Bug Fixes
+
+* return bigInt when use struct field ([0be42a7](https://github.com/zhangyuang/node-ffi-rs/commit/0be42a78005449f9f40783e73779ca8e85dfcb1b))
+
+
+### Features
+
+* update d.ts ([7aeeb20](https://github.com/zhangyuang/node-ffi-rs/commit/7aeeb20b63815627d17a9b87e2e104d14e483826))
+
+
+
 ## [1.0.82](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.81...v1.0.82) (2024-06-15)
 
 
