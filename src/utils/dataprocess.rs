@@ -394,15 +394,9 @@ pub unsafe fn get_value_pointer(
           let params: Vec<*mut c_void> = (0.._cif.nargs)
             .map(|index| *args.offset(index as isize) as *mut c_void)
             .collect();
-
-          let foo = userdata(params);
-          // let r = result as *mut c_void as *mut i32;
-          // *r = 101
+          userdata(params);
         }
-        use std::sync::{mpsc, Arc, Mutex};
-        let (tx, rx) = mpsc::channel::<JsUnknown>();
-        let tx_ptr = Box::into_raw(Box::new(tx));
-        let rx_ptr = Box::into_raw(Box::new(rx));
+        use std::sync::mpsc;
         let (cif, lambda) = if let RsArgsValue::Object(func_args_type_rs) = func_args_type {
           let cif = Cif::new(
             func_args_type_rs
@@ -412,6 +406,8 @@ pub unsafe fn get_value_pointer(
             func_ret_type.to_ffi_type(),
           );
           let lambda = move |args: Vec<*mut c_void>| {
+            let (tx, rx) = tokio::sync::oneshot::channel::<i32>();
+
             let value: Vec<RsArgsValue> = args
               .into_iter()
               .enumerate()
@@ -429,16 +425,11 @@ pub unsafe fn get_value_pointer(
             (*tsfn_ptr).call_with_return_value(
               value,
               ThreadsafeFunctionCallMode::NonBlocking,
-              |result: JsUnknown| {
-                println!("xxx");
-                // // 将结果发送到通道
-                // (*tx_ptr).send(result).unwrap();
+              move |result: JsUnknown| {
+                tx.send(1).unwrap();
                 Ok(())
               },
             );
-
-            // let result = (*rx_ptr).recv().unwrap();
-            // result
           };
           (cif, lambda)
         } else {
