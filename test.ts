@@ -424,6 +424,9 @@ const testRunInNewThread = () => {
 }
 
 const testFunction = () => {
+  setInterval(() => {
+    console.log('time')
+  }, 10)
   const func = (a, b, c, d, e, f, g) => {
     console.log('call')
     // equal(a, 100);

@@ -384,7 +384,9 @@ pub unsafe fn get_value_pointer(
               .collect::<Result<Vec<JsUnknown>, _>>()?;
             Ok(js_call_params)
           })?;
+
         let tsfn_ptr = Box::into_raw(Box::new(tsfn));
+
         unsafe extern "C" fn lambda_callback<F: Fn(Vec<*mut c_void>)>(
           _cif: &low::ffi_cif,
           result: &mut c_void,
@@ -394,9 +396,15 @@ pub unsafe fn get_value_pointer(
           let params: Vec<*mut c_void> = (0.._cif.nargs)
             .map(|index| *args.offset(index as isize) as *mut c_void)
             .collect();
+          std::thread::spawn(|| {
+            *(result as &mut _ as &mut i32) = 101;
+          });
           userdata(params);
         }
-        use std::sync::mpsc;
+        use std::sync::mpsc::{channel, Sender};
+        use tokio::runtime::*;
+        let (sender, receiver) = channel::<i32>();
+        use tokio::sync::oneshot;
         let (cif, lambda) = if let RsArgsValue::Object(func_args_type_rs) = func_args_type {
           let cif = Cif::new(
             func_args_type_rs
@@ -406,8 +414,6 @@ pub unsafe fn get_value_pointer(
             func_ret_type.to_ffi_type(),
           );
           let lambda = move |args: Vec<*mut c_void>| {
-            let (tx, rx) = tokio::sync::oneshot::channel::<i32>();
-
             let value: Vec<RsArgsValue> = args
               .into_iter()
               .enumerate()
@@ -422,14 +428,19 @@ pub unsafe fn get_value_pointer(
                 param
               })
               .collect();
-            (*tsfn_ptr).call_with_return_value(
-              value,
-              ThreadsafeFunctionCallMode::NonBlocking,
-              move |result: JsUnknown| {
-                tx.send(1).unwrap();
-                Ok(())
-              },
-            );
+            // let (sender, receiver) = oneshot::channel();
+            // (*tsfn_ptr).call_with_return_value(
+            //   value,
+            //   ThreadsafeFunctionCallMode::NonBlocking,
+            //   move |a: JsUnknown| {
+            //     println!("call_with_return_value");
+            //     sender.send(1).unwrap();
+            //     Ok(())
+            //   },
+            // );
+            // receiver
+
+            // let foo = runtime.handle().block_on(async { receiver.await.unwrap() });
           };
           (cif, lambda)
         } else {
