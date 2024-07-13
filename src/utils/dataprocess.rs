@@ -372,9 +372,9 @@ pub unsafe fn get_value_pointer(
       RsArgsValue::Function(func_desc, js_function) => {
         use libffi::low;
         use libffi::middle::*;
-        let func_args_type = func_desc.get("paramsType").unwrap().clone();
-        let func_ret_type = func_desc.get("retType").unwrap().clone();
-        let free_c_params_memory = func_desc.get("freeCFuncParamsMemory").unwrap().clone();
+        let func_args_type = func_desc.get(PARAMS_TYPE).unwrap().clone();
+        let func_ret_type = func_desc.get(RET_TYPE).unwrap().clone();
+        let free_c_params_memory = func_desc.get(FREE_FUNCTION_TAG).unwrap().clone();
         let tsfn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal> = (&js_function)
           .create_threadsafe_function(0, |ctx| {
             let value: Vec<RsArgsValue> = ctx.value;
@@ -396,15 +396,10 @@ pub unsafe fn get_value_pointer(
           let params: Vec<*mut c_void> = (0.._cif.nargs)
             .map(|index| *args.offset(index as isize) as *mut c_void)
             .collect();
-          std::thread::spawn(|| {
-            *(result as &mut _ as &mut i32) = 101;
-          });
-          userdata(params);
+          println!("xx{:?}", _cif);
+          let foo = userdata(params);
         }
-        use std::sync::mpsc::{channel, Sender};
-        use tokio::runtime::*;
-        let (sender, receiver) = channel::<i32>();
-        use tokio::sync::oneshot;
+
         let (cif, lambda) = if let RsArgsValue::Object(func_args_type_rs) = func_args_type {
           let cif = Cif::new(
             func_args_type_rs
@@ -428,19 +423,20 @@ pub unsafe fn get_value_pointer(
                 param
               })
               .collect();
-            // let (sender, receiver) = oneshot::channel();
-            // (*tsfn_ptr).call_with_return_value(
-            //   value,
-            //   ThreadsafeFunctionCallMode::NonBlocking,
-            //   move |a: JsUnknown| {
-            //     println!("call_with_return_value");
-            //     sender.send(1).unwrap();
-            //     Ok(())
-            //   },
-            // );
-            // receiver
-
-            // let foo = runtime.handle().block_on(async { receiver.await.unwrap() });
+            let (se, re) = std::sync::mpsc::channel();
+            (*tsfn_ptr).call_with_return_value(
+              value,
+              ThreadsafeFunctionCallMode::NonBlocking,
+              move |ret: JsUnknown| {
+                se.send(ret).unwrap();
+                Ok(())
+              },
+            );
+            let ret = re.recv().unwrap();
+            let rs_ret =
+              &get_arg_types_values(env, Rc::new(vec![func_ret_type.clone()]), vec![ret])
+                .unwrap()
+                .1[0];
           };
           (cif, lambda)
         } else {

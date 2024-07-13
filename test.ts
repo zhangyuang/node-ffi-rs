@@ -12,8 +12,9 @@ const {
   wrapPointer,
   freePointer,
   define,
-  PointerType
+  PointerType,
 } = require("./index")
+
 
 
 const platform = process.platform;
@@ -424,9 +425,6 @@ const testRunInNewThread = () => {
 }
 
 const testFunction = () => {
-  setInterval(() => {
-    console.log('time')
-  }, 10)
   const func = (a, b, c, d, e, f, g) => {
     console.log('call')
     // equal(a, 100);
@@ -476,6 +474,7 @@ const testFunction = () => {
     paramsValue: [func]
   })
   load({
+    runInNewThread: true,
     library: "libsum",
     funcName: "callFunction",
     retType: DataType.Void,
