@@ -3,7 +3,6 @@
 #include <cstring>
 #include <iostream>
 #include <string>
-#include <thread>
 
 extern "C" int sum(int a, int b) { return a + b; }
 
@@ -166,10 +165,7 @@ extern "C" Person *createPerson() {
 }
 typedef const int (*FunctionPointer)(int a, bool b, char *c, double d, char **e,
                                      int *f, Person *g);
-void threadFunc(FunctionPointer func, int a, bool b, char* c, double d, char** stringArray, int* i32Array, Person* p) {
-    int res = func(a, b, c, d, stringArray, i32Array, p);
-    std::cout << "xx" << res << std::endl;
-}
+
 extern "C" void callFunction(FunctionPointer func) {
   int a = 100;
   bool b = false;
@@ -187,10 +183,8 @@ extern "C" void callFunction(FunctionPointer func) {
   i32Array[2] = 303;
 
   Person *p = createPerson();
-  std::thread t(threadFunc, func, a, b, c, d, stringArray, i32Array, p);
-t.join();
-  // int res = func(a, b, c, d, stringArray, i32Array, p);
-  // printf("xx%d\n", res);
+  int res = func(a, b, c, d, stringArray, i32Array, p);
+  printf("xx%d\n", res);
 }
 
 // 定义 C++ 类
