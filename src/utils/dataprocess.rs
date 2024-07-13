@@ -89,7 +89,6 @@ pub fn js_number_to_i32(js_number: JsNumber) -> i32 {
   js_number.try_into().unwrap()
 }
 pub unsafe fn get_arg_types_values(
-  env: &Env,
   params_type: Rc<Vec<RsArgsValue>>,
   params_value: Vec<JsUnknown>,
 ) -> Result<(Vec<*mut ffi_type>, Vec<RsArgsValue>)> {
@@ -238,8 +237,7 @@ pub unsafe fn get_arg_types_values(
             )
           } else {
             let params_value_object = create_js_value_unchecked::<JsObject>(value)?;
-            let index_map =
-              get_params_value_rs_struct(&env, params_type_object_rs, &params_value_object);
+            let index_map = get_params_value_rs_struct(params_type_object_rs, &params_value_object);
             (arg_type, RsArgsValue::Object(index_map.unwrap()))
           }
         }
@@ -437,7 +435,7 @@ pub unsafe fn get_value_pointer(
 
             println!(
               "xx{:?}",
-              &get_arg_types_values(env, Rc::new(vec![func_ret_type.clone()]), vec![js_ret])
+              &get_arg_types_values(Rc::new(vec![func_ret_type.clone()]), vec![js_ret])
             );
             // let rs_ret =
             //   &get_arg_types_values(env, Rc::new(vec![func_ret_type.clone()]), vec![js_ret])
@@ -489,7 +487,6 @@ pub unsafe fn get_value_pointer(
 }
 
 pub unsafe fn get_params_value_rs_struct(
-  env: &Env,
   params_type_object: &IndexMap<String, RsArgsValue>,
   params_value_object: &JsObject,
 ) -> Result<IndexMap<String, RsArgsValue>> {
@@ -626,7 +623,7 @@ pub unsafe fn get_params_value_rs_struct(
               params_type_rs_value.insert(ARRAY_VALUE_TAG.to_string(), array_value);
               index_map.insert(field, RsArgsValue::Object(params_type_rs_value));
             } else {
-              let map = get_params_value_rs_struct(env, &params_type_rs_value, &params_value);
+              let map = get_params_value_rs_struct(&params_type_rs_value, &params_value);
               index_map.insert(field, RsArgsValue::Object(map?));
             }
           }

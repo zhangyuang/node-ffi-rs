@@ -43,7 +43,7 @@ unsafe fn create_pointer(env: Env, params: CreatePointerParams) -> Result<Vec<Js
       .map(|param| type_define_to_rs_args(&env, param).unwrap())
       .collect(),
   );
-  let (_, arg_values) = get_arg_types_values(&env, Rc::clone(&params_type_rs), params_value)?;
+  let (_, arg_values) = get_arg_types_values(Rc::clone(&params_type_rs), params_value)?;
   let arg_values_c_void = get_value_pointer(&env, Rc::clone(&params_type_rs), arg_values)?;
 
   arg_values_c_void
@@ -215,8 +215,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
       .collect(),
   );
 
-  let (mut arg_types, arg_values) =
-    get_arg_types_values(&env, Rc::clone(&params_type_rs), params_value)?;
+  let (mut arg_types, arg_values) = get_arg_types_values(Rc::clone(&params_type_rs), params_value)?;
   let mut arg_values_c_void = get_value_pointer(&env, Rc::clone(&params_type_rs), arg_values)?;
   let ret_type_rs = type_define_to_rs_args(&env, ret_type)?;
   let r_type: *mut ffi_type = match ret_type_rs {
