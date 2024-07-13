@@ -3,6 +3,7 @@
 #include <cstring>
 #include <iostream>
 #include <string>
+#include <thread>
 
 extern "C" int sum(int a, int b) { return a + b; }
 
@@ -17,11 +18,12 @@ extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
   return cstr;
 }
 
-extern "C" const wchar_t* concatenateWideStrings(const wchar_t* str1, const wchar_t* str2) {
-    std::wstring result = std::wstring(str1) + std::wstring(str2);
-    wchar_t* wcstr = new wchar_t[result.length() + 1];
-    wcscpy(wcstr, result.c_str());
-    return wcstr;
+extern "C" const wchar_t *concatenateWideStrings(const wchar_t *str1,
+                                                 const wchar_t *str2) {
+  std::wstring result = std::wstring(str1) + std::wstring(str2);
+  wchar_t *wcstr = new wchar_t[result.length() + 1];
+  wcscpy(wcstr, result.c_str());
+  return wcstr;
 }
 
 extern "C" char *getStringFromPtr(void *ptr) { return (char *)ptr; };
@@ -68,7 +70,7 @@ extern "C" char **createArrayString(char **arr, int size) {
 extern "C" bool return_opposite(bool input) { return !input; }
 
 typedef struct stackStruct {
-    int age;
+  int age;
 } stackStruct;
 
 typedef struct Person {
@@ -88,9 +90,7 @@ typedef struct Person {
   char *byteArray;
 } Person;
 
-extern "C" Person *getStruct(Person *person) {
-    return person;
-}
+extern "C" Person *getStruct(Person *person) { return person; }
 
 extern "C" Person *createPerson() {
   Person *person = (Person *)malloc(sizeof(Person));
@@ -164,28 +164,33 @@ extern "C" Person *createPerson() {
 
   return person;
 }
-typedef const int (*FunctionPointer)(int a, bool b, char *c, double d,
-                                      char **e, int *f, Person *g);
-
+typedef const int (*FunctionPointer)(int a, bool b, char *c, double d, char **e,
+                                     int *f, Person *g);
+void threadFunc(FunctionPointer func, int a, bool b, char* c, double d, char** stringArray, int* i32Array, Person* p) {
+    int res = func(a, b, c, d, stringArray, i32Array, p);
+    std::cout << "xx" << res << std::endl;
+}
 extern "C" void callFunction(FunctionPointer func) {
-    int a = 100;
-    bool b = false;
-    double d = 100.11;
-    char *c = (char *)malloc(14 * sizeof(char));
-    strcpy(c, "Hello, World!");
+  int a = 100;
+  bool b = false;
+  double d = 100.11;
+  char *c = (char *)malloc(14 * sizeof(char));
+  strcpy(c, "Hello, World!");
 
-    char **stringArray = (char **)malloc(sizeof(char *) * 2);
-    stringArray[0] = strdup("Hello");
-    stringArray[1] = strdup("world");
+  char **stringArray = (char **)malloc(sizeof(char *) * 2);
+  stringArray[0] = strdup("Hello");
+  stringArray[1] = strdup("world");
 
-    int *i32Array = (int *)malloc(sizeof(int) * 3);
-    i32Array[0] = 101;
-    i32Array[1] = 202;
-    i32Array[2] = 303;
+  int *i32Array = (int *)malloc(sizeof(int) * 3);
+  i32Array[0] = 101;
+  i32Array[1] = 202;
+  i32Array[2] = 303;
 
-    Person *p = createPerson();
-   int res= func(a, b, c, d, stringArray, i32Array, p);
-   printf("xx%d\n",res);
+  Person *p = createPerson();
+  std::thread t(threadFunc, func, a, b, c, d, stringArray, i32Array, p);
+t.join();
+  // int res = func(a, b, c, d, stringArray, i32Array, p);
+  // printf("xx%d\n", res);
 }
 
 // 定义 C++ 类

@@ -406,6 +406,7 @@ pub unsafe fn get_value_pointer(
               .map(|val| val.to_ffi_type()),
             func_ret_type.to_ffi_type(),
           );
+          let main_thread_id = std::thread::current().id();
           let lambda = move |args: Vec<*mut c_void>| {
             let (args, result) = (&args[0..args.len() - 1], args[args.len() - 1]);
             let value: Vec<RsArgsValue> = args
@@ -422,29 +423,28 @@ pub unsafe fn get_value_pointer(
                 param
               })
               .collect();
-            let (se, re) = std::sync::mpsc::channel();
-            (*tsfn_ptr).call_with_return_value(
-              value,
-              ThreadsafeFunctionCallMode::NonBlocking,
-              move |js_ret: JsUnknown| {
-                se.send(js_ret).unwrap();
-                Ok(())
-              },
-            );
-            let js_ret = re.recv().unwrap();
-
-            println!(
-              "xx{:?}",
-              &get_arg_types_values(Rc::new(vec![func_ret_type.clone()]), vec![js_ret])
-            );
-            // let rs_ret =
-            //   &get_arg_types_values(env, Rc::new(vec![func_ret_type.clone()]), vec![js_ret])
-            //     .unwrap()
-            //     .1[0];
-            // match rs_ret {
-            //   RsArgsValue::I32(val) => *(result as *mut i32) = *val,
-            //   _ => (),
-            // }
+            if std::thread::current().id() != main_thread_id {
+              let (se, re) = std::sync::mpsc::channel();
+              (*tsfn_ptr).call_with_return_value(
+                value,
+                ThreadsafeFunctionCallMode::Blocking,
+                move |js_ret: JsUnknown| {
+                  se.send(js_ret).unwrap();
+                  Ok(())
+                },
+              );
+              let js_ret = re.recv().unwrap();
+              println!(
+                "xx{:?}",
+                &get_arg_types_values(Rc::new(vec![func_ret_type.clone()]), vec![js_ret])
+              );
+            } else {
+              println!(
+                "\x1b[33m{}\x1b[0m",
+                "warning: call js function in main thread can't get return value in c environment"
+              );
+              (*tsfn_ptr).call(value, ThreadsafeFunctionCallMode::Blocking);
+            }
           };
           (cif, lambda)
         } else {

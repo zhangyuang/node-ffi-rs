@@ -474,7 +474,6 @@ const testFunction = () => {
     paramsValue: [func]
   })
   load({
-    runInNewThread: true,
     library: "libsum",
     funcName: "callFunction",
     retType: DataType.Void,
