@@ -111,49 +111,49 @@ pub unsafe fn get_arg_types_values(
           match param_data_type {
             BasicDataType::I32 => {
               let arg_type = &mut ffi_type_sint32 as *mut ffi_type;
-              let arg_val: i32 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
+              let arg_val: i32 = create_js_value_unchecked::<JsNumber>(value)?.try_into()?;
               (arg_type, RsArgsValue::I32(arg_val))
             }
             BasicDataType::U8 => {
               let arg_type = &mut ffi_type_sint32 as *mut ffi_type;
-              let arg_val: u32 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
+              let arg_val: u32 = create_js_value_unchecked::<JsNumber>(value)?.try_into()?;
               (arg_type, RsArgsValue::U8(arg_val as u8))
             }
             BasicDataType::I64 => {
               let arg_type = &mut ffi_type_sint64 as *mut ffi_type;
-              let arg_val: i64 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
+              let arg_val: i64 = create_js_value_unchecked::<JsNumber>(value)?.try_into()?;
               (arg_type, RsArgsValue::I64(arg_val))
             }
             BasicDataType::U64 => {
               let arg_type = &mut ffi_type_uint64 as *mut ffi_type;
-              let arg_val: i64 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
+              let arg_val: i64 = create_js_value_unchecked::<JsNumber>(value)?.try_into()?;
               (arg_type, RsArgsValue::U64(arg_val as u64))
             }
             BasicDataType::Float => {
               let arg_type = &mut ffi_type_float as *mut ffi_type;
-              let arg_val: f64 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
+              let arg_val: f64 = create_js_value_unchecked::<JsNumber>(value)?.try_into()?;
               (arg_type, RsArgsValue::Float(arg_val as f32))
             }
             BasicDataType::Double => {
               let arg_type = &mut ffi_type_double as *mut ffi_type;
-              let arg_val: f64 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
+              let arg_val: f64 = create_js_value_unchecked::<JsNumber>(value)?.try_into()?;
               (arg_type, RsArgsValue::Double(arg_val))
             }
             BasicDataType::String => {
               let arg_type = &mut ffi_type_pointer as *mut ffi_type;
               let arg_val: String =
-                js_string_to_string(create_js_value_unchecked::<JsString>(env, value))?;
+                js_string_to_string(create_js_value_unchecked::<JsString>(value)?)?;
               (arg_type, RsArgsValue::String(arg_val))
             }
             BasicDataType::WString => {
               let arg_type = &mut ffi_type_pointer as *mut ffi_type;
               let arg_val: String =
-                js_string_to_string(create_js_value_unchecked::<JsString>(env, value))?;
+                js_string_to_string(create_js_value_unchecked::<JsString>(value)?)?;
               (arg_type, RsArgsValue::WString(arg_val))
             }
             BasicDataType::Boolean => {
               let arg_type = &mut ffi_type_uint8 as *mut ffi_type;
-              let arg_val: bool = create_js_value_unchecked::<JsBoolean>(env, value).get_value()?;
+              let arg_val: bool = create_js_value_unchecked::<JsBoolean>(value)?.get_value()?;
               (arg_type, RsArgsValue::Boolean(arg_val))
             }
             BasicDataType::Void => {
@@ -183,7 +183,7 @@ pub unsafe fn get_arg_types_values(
               }
               RefDataType::I32Array => {
                 let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-                let js_object = create_js_value_unchecked::<JsObject>(env, value);
+                let js_object = create_js_value_unchecked::<JsObject>(value)?;
                 let arg_val = vec![0; js_object.get_array_length()? as usize]
                   .iter()
                   .enumerate()
@@ -197,7 +197,7 @@ pub unsafe fn get_arg_types_values(
 
               RefDataType::FloatArray => {
                 let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-                let js_object = create_js_value_unchecked::<JsObject>(env, value);
+                let js_object = create_js_value_unchecked::<JsObject>(value)?;
                 let arg_val = vec![0; js_object.get_array_length()? as usize]
                   .iter()
                   .enumerate()
@@ -210,7 +210,7 @@ pub unsafe fn get_arg_types_values(
               }
               RefDataType::DoubleArray => {
                 let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-                let js_object = create_js_value_unchecked::<JsObject>(env, value);
+                let js_object = create_js_value_unchecked::<JsObject>(value)?;
                 let arg_val = vec![0; js_object.get_array_length()? as usize]
                   .iter()
                   .enumerate()
@@ -224,7 +224,7 @@ pub unsafe fn get_arg_types_values(
               }
               RefDataType::StringArray => {
                 let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-                let js_object = create_js_value_unchecked::<JsObject>(env, value);
+                let js_object = create_js_value_unchecked::<JsObject>(value)?;
                 let arg_val = js_object.to_rs_array()?;
                 (arg_type, RsArgsValue::StringArray(arg_val))
               }
@@ -237,7 +237,7 @@ pub unsafe fn get_arg_types_values(
               RsArgsValue::Function(params_type_object_rs.clone(), params_val_function),
             )
           } else {
-            let params_value_object = create_js_value_unchecked::<JsObject>(env, value);
+            let params_value_object = create_js_value_unchecked::<JsObject>(value)?;
             let index_map =
               get_params_value_rs_struct(&env, params_type_object_rs, &params_value_object);
             (arg_type, RsArgsValue::Object(index_map.unwrap()))
@@ -393,11 +393,11 @@ pub unsafe fn get_value_pointer(
           args: *const *const c_void,
           userdata: &F,
         ) {
-          let params: Vec<*mut c_void> = (0.._cif.nargs)
+          let mut params: Vec<*mut c_void> = (0.._cif.nargs)
             .map(|index| *args.offset(index as isize) as *mut c_void)
             .collect();
-          println!("xx{:?}", _cif);
-          let foo = userdata(params);
+          params.push(result);
+          userdata(params);
         }
 
         let (cif, lambda) = if let RsArgsValue::Object(func_args_type_rs) = func_args_type {
@@ -409,15 +409,16 @@ pub unsafe fn get_value_pointer(
             func_ret_type.to_ffi_type(),
           );
           let lambda = move |args: Vec<*mut c_void>| {
+            let (args, result) = (&args[0..args.len() - 1], args[args.len() - 1]);
             let value: Vec<RsArgsValue> = args
               .into_iter()
               .enumerate()
               .map(|(index, c_param)| {
                 let arg_type = func_args_type_rs.get(&index.to_string()).unwrap();
-                let param = get_rs_value_from_pointer(env, arg_type, c_param, true);
+                let param = get_rs_value_from_pointer(env, arg_type, *c_param, true);
                 if let RsArgsValue::Boolean(value) = free_c_params_memory {
                   if value {
-                    free_c_pointer_memory(c_param, arg_type, false);
+                    free_c_pointer_memory(*c_param, arg_type, false);
                   }
                 }
                 param
@@ -427,16 +428,25 @@ pub unsafe fn get_value_pointer(
             (*tsfn_ptr).call_with_return_value(
               value,
               ThreadsafeFunctionCallMode::NonBlocking,
-              move |ret: JsUnknown| {
-                se.send(ret).unwrap();
+              move |js_ret: JsUnknown| {
+                se.send(js_ret).unwrap();
                 Ok(())
               },
             );
-            let ret = re.recv().unwrap();
-            let rs_ret =
-              &get_arg_types_values(env, Rc::new(vec![func_ret_type.clone()]), vec![ret])
-                .unwrap()
-                .1[0];
+            let js_ret = re.recv().unwrap();
+
+            println!(
+              "xx{:?}",
+              &get_arg_types_values(env, Rc::new(vec![func_ret_type.clone()]), vec![js_ret])
+            );
+            // let rs_ret =
+            //   &get_arg_types_values(env, Rc::new(vec![func_ret_type.clone()]), vec![js_ret])
+            //     .unwrap()
+            //     .1[0];
+            // match rs_ret {
+            //   RsArgsValue::I32(val) => *(result as *mut i32) = *val,
+            //   _ => (),
+            // }
           };
           (cif, lambda)
         } else {
@@ -659,7 +669,7 @@ pub unsafe fn type_object_to_rs_struct(
         }
         ValueType::Object => {
           // maybe jsobject or jsarray
-          let args_type = create_js_value_unchecked::<JsObject>(env, field_type);
+          let args_type = create_js_value_unchecked::<JsObject>(field_type)?;
           let map = type_object_to_rs_struct(env, &args_type)?;
           index_map.insert(field, RsArgsValue::Object(map));
         }
@@ -703,7 +713,7 @@ pub unsafe fn type_object_to_rs_vector(
         }
         ValueType::Object => {
           // maybe jsobject or jsarray
-          let args_type = create_js_value_unchecked::<JsObject>(&env, field_type);
+          let args_type = create_js_value_unchecked::<JsObject>(field_type)?;
           let map = type_object_to_rs_struct(env, &args_type)?;
           RsArgsValue::Object(map)
         }
@@ -731,12 +741,11 @@ pub unsafe fn type_define_to_rs_args(env: &Env, type_define: JsUnknown) -> Resul
   let params_type_value_type = type_define.get_type()?;
   let ret_value = match params_type_value_type {
     ValueType::Number => RsArgsValue::I32(js_number_to_i32(create_js_value_unchecked::<JsNumber>(
-      env,
       type_define,
-    ))),
+    )?)),
     ValueType::Object => RsArgsValue::Object(type_object_to_rs_struct(
       env,
-      &create_js_value_unchecked::<JsObject>(env, type_define),
+      &create_js_value_unchecked::<JsObject>(type_define)?,
     )?),
     _ => {
       return Err(

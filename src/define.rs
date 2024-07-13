@@ -420,8 +420,8 @@ pub const ARRAY_FFI_TAG: &str = "array";
 pub const FUNCTION_FFI_TAG: &str = "function";
 pub const FUNCTION_FREE_TAG: &str = "needFree";
 
-pub const PARAMS_TYPE: &str = "params_type";
-pub const RET_TYPE: &str = "ret_type";
+pub const PARAMS_TYPE: &str = "paramsType";
+pub const RET_TYPE: &str = "retType";
 pub const FREE_FUNCTION_TAG: &str = "freeCFuncParamsMemory";
 
 pub static mut CLOSURE_MAP: Option<HashMap<*mut c_void, Vec<*mut c_void>>> = None;
