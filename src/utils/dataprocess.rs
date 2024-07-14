@@ -378,7 +378,11 @@ pub unsafe fn get_value_pointer(
         use libffi::low;
         use libffi::middle::*;
         let func_args_type = func_desc.get(PARAMS_TYPE).unwrap().clone();
-        let func_ret_type = func_desc.get(RET_TYPE).unwrap().clone();
+        let func_ret_type = if func_desc.get(RET_TYPE).is_some() {
+            func_desc.get(RET_TYPE).unwrap().clone()
+        }  else {
+            RsArgsValue::Void(())
+        };
         let free_c_params_memory = func_desc.get(FREE_FUNCTION_TAG).unwrap().clone();
         let tsfn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal> = (&js_function)
           .create_threadsafe_function(0, |ctx| {
