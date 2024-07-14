@@ -434,10 +434,10 @@ pub unsafe fn get_value_pointer(
                 },
               );
               let js_ret = re.recv().unwrap();
-              println!(
-                "xx{:?}",
-                &get_arg_types_values(Rc::new(vec![func_ret_type.clone()]), vec![js_ret])
-              );
+              let func_ret_type_clone = func_ret_type.clone();
+              let js_ret_rs = get_arg_types_values(Rc::new(vec![func_ret_type.clone()]), vec![js_ret]).unwrap().1;
+              let js_ret_rs_ptr = get_value_pointer(&env,Rc::new(vec![func_ret_type.clone()]), js_ret_rs).unwrap()[0];
+              write_rs_ptr_to_c(&func_ret_type_clone, js_ret_rs_ptr, result);
             } else {
               println!(
                 "\x1b[33m{}\x1b[0m",
@@ -834,5 +834,52 @@ pub unsafe fn get_js_unknown_from_pointer(
       }
     }
     _ => Err(FFIError::Panic(format!("ret_type err {:?}", ret_type_rs)).into()),
+  }
+}
+
+unsafe fn write_rs_ptr_to_c(ret_type: &RsArgsValue, src: *mut c_void, dst: *mut c_void) {
+  match &ret_type {
+    RsArgsValue::I32(number) => {
+      let ret_data_type = number.to_basic_data_type();
+      match ret_data_type {
+        BasicDataType::U8 => std::ptr::copy(src, dst, std::mem::size_of::<u8>()),
+        BasicDataType::I32 => std::ptr::copy(src, dst, std::mem::size_of::<i32>()),
+        BasicDataType::I64 => std::ptr::copy(src, dst, std::mem::size_of::<i64>()),
+        BasicDataType::U64 => std::ptr::copy(src, dst, std::mem::size_of::<u64>()),
+        BasicDataType::Float => std::ptr::copy(src, dst, std::mem::size_of::<f32>()),
+        BasicDataType::Double => std::ptr::copy(src, dst, std::mem::size_of::<f64>()),
+        BasicDataType::Boolean => std::ptr::copy(src, dst, std::mem::size_of::<bool>()),
+        BasicDataType::String => std::ptr::copy(src, dst, std::mem::size_of::<*const c_char>()),
+        BasicDataType::WString => std::ptr::copy(src, dst, std::mem::size_of::<*const WideChar>()),
+        BasicDataType::External => std::ptr::copy(src, dst, std::mem::size_of::<*mut c_void>()),
+        BasicDataType::Void => {}
+      }
+      match ret_data_type {
+        BasicDataType::U8 => {
+          let _ = Box::from_raw(src);
+        }
+        BasicDataType::I32 => {
+          let _ = Box::from_raw(src);
+        }
+        BasicDataType::I64 => {
+          let _ = Box::from_raw(src);
+        }
+        BasicDataType::U64 => {
+          let _ = Box::from_raw(src);
+        }
+        BasicDataType::Float => {
+          let _ = Box::from_raw(src);
+        }
+        BasicDataType::Double => {
+          let _ = Box::from_raw(src);
+        }
+        BasicDataType::Boolean => {
+          let _ = Box::from_raw(src);
+        }
+        _ => {}
+      };
+    }
+    RsArgsValue::Object(_) => std::ptr::copy(src, dst, std::mem::size_of::<*const *const c_void>()),
+    _ => {}
   }
 }

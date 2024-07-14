@@ -1,5 +1,5 @@
-const { equal, deepStrictEqual } = require("assert")
-const {
+import { equal, deepStrictEqual } from "assert"
+import {
   load,
   open,
   close,
@@ -12,9 +12,8 @@ const {
   wrapPointer,
   freePointer,
   define,
-  PointerType,
-} = require("./index")
-
+  PointerType
+} from "./index"
 
 
 const platform = process.platform;
@@ -48,6 +47,15 @@ const testNumber = () => {
     }),
     a + b,
   );
+  const foo = load({
+    library: "libsum",
+    funcName: "testbigint",
+    retType: DataType.BigInt,
+    paramsType: [DataType.BigInt],
+    paramsValue: [36028797018963968n],
+  })
+  equal(typeof foo, "bigint")
+  equal(foo.toString(), "36028797018963968")
   equal(
     1.1 + 2.2,
     load({
@@ -426,37 +434,34 @@ const testRunInNewThread = () => {
 
 const testFunction = () => {
   const func = (a, b, c, d, e, f, g) => {
-    console.log('call')
-    // equal(a, 100);
-    // equal(b, false);
-    // equal(c, "Hello, World!");
-    // equal(d, "100.11");
-    // deepStrictEqual(e, ["Hello", "world"]);
-    // deepStrictEqual(f, [101, 202, 303]);
-    // deepStrictEqual(g, person);
-    // logGreen("test function succeed");
-    // // free function memory which malloc in c side when it not in use
-    // freePointer({
-    //   paramsType: [funcConstructor({
-    //     paramsType: [
-    //       DataType.I32,
-    //       DataType.Boolean,
-    //       DataType.String,
-    //       DataType.Double,
-    //       arrayConstructor({ type: DataType.StringArray, length: 2 }),
-    //       arrayConstructor({ type: DataType.I32Array, length: 3 }),
-    //       personType,
-    //     ],
-    //     retType: DataType.I32,
-    //   })],
-    //   paramsValue: funcExternal,
-    //   pointerType: PointerType.RsPointer
-    // })
-    // if (!process.env.MEMORY) {
-    //   close("libsum");
-    // }
-
-    return 1
+    equal(a, 100);
+    equal(b, false);
+    equal(c, "Hello, World!");
+    equal(d, "100.11");
+    deepStrictEqual(e, ["Hello", "world"]);
+    deepStrictEqual(f, [101, 202, 303]);
+    deepStrictEqual(g, person);
+    logGreen("test function succeed");
+    // free function memory which malloc in c side when it not in use
+    freePointer({
+      paramsType: [funcConstructor({
+        paramsType: [
+          DataType.I32,
+          DataType.Boolean,
+          DataType.String,
+          DataType.Double,
+          arrayConstructor({ type: DataType.StringArray, length: 2 }),
+          arrayConstructor({ type: DataType.I32Array, length: 3 }),
+          personType,
+        ],
+        retType: DataType.Void,
+      })],
+      paramsValue: funcExternal,
+      pointerType: PointerType.RsPointer
+    })
+    if (!process.env.MEMORY) {
+      close("libsum");
+    }
   };
   const funcExternal = createPointer({
     paramsType: [funcConstructor({
@@ -469,7 +474,7 @@ const testFunction = () => {
         arrayConstructor({ type: DataType.I32Array, length: 3 }),
         personType,
       ],
-      retType: DataType.I32,
+      retType: DataType.Void,
     })],
     paramsValue: [func]
   })
@@ -535,28 +540,28 @@ const testDefine = () => {
   equal(res.sum([1, 2]), 3)
 }
 const unitTest = () => {
-  // testNumber()
-  // logGreen('test number succeed')
-  // testString()
-  // logGreen('test string succeed')
-  // testDefine()
-  // logGreen('test define succeed')
-  // testArray()
-  // logGreen('test array succeed')
-  // testVoid()
-  // logGreen('test void succeed')
-  // testBool()
-  // logGreen('test bool succeed')
-  // testMainProgram()
-  // logGreen('test main program succeed')
+  testNumber()
+  logGreen('test number succeed')
+  testString()
+  logGreen('test string succeed')
+  testDefine()
+  logGreen('test define succeed')
+  testArray()
+  logGreen('test array succeed')
+  testVoid()
+  logGreen('test void succeed')
+  testBool()
+  logGreen('test bool succeed')
+  testMainProgram()
+  logGreen('test main program succeed')
   testFunction()
-  // testCpp()
-  // logGreen('test cpp succeed')
-  // testObject()
-  // logGreen('test object succeed')
-  // testPointer()
-  // logGreen('test createPointer succeed')
-  // testRunInNewThread()
+  testCpp()
+  logGreen('test cpp succeed')
+  testObject()
+  logGreen('test object succeed')
+  testPointer()
+  logGreen('test createPointer succeed')
+  testRunInNewThread()
 };
 
 unitTest();

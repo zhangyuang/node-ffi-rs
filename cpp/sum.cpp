@@ -184,7 +184,7 @@ extern "C" void callFunction(FunctionPointer func) {
 
   Person *p = createPerson();
   int res = func(a, b, c, d, stringArray, i32Array, p);
-  printf("xx%d\n", res);
+  printf("%d\n", res);
 }
 
 // 定义 C++ 类
