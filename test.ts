@@ -459,9 +459,7 @@ const testFunction = () => {
       paramsValue: funcExternal,
       pointerType: PointerType.RsPointer
     })
-    if (!process.env.MEMORY) {
-      close("libsum");
-    }
+    return 100
   };
   const funcExternal = createPointer({
     paramsType: [funcConstructor({
@@ -474,13 +472,14 @@ const testFunction = () => {
         arrayConstructor({ type: DataType.I32Array, length: 3 }),
         personType,
       ],
-      retType: DataType.Void,
+      retType: DataType.I32,
     })],
     paramsValue: [func]
   })
   load({
     library: "libsum",
     funcName: "callFunction",
+    runInNewThread: true,
     retType: DataType.Void,
     paramsType: [
       DataType.External,
