@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <string>
@@ -188,7 +189,7 @@ extern "C" void callFunction(FunctionPointer func) {
 
   Person *p = createPerson();
   int res = func(a, b, c, d, stringArray, i32Array, p);
-  printf("%d\n", res);
+  printf("function ret %d\n", res);
 }
 
 // 定义 C++ 类

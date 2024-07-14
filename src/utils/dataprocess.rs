@@ -448,7 +448,7 @@ pub unsafe fn get_value_pointer(
             } else {
               println!(
                 "\x1b[33m{}\x1b[0m",
-                "warning: Without runInNewThread: true will  call js function in main thread will not get the return value in c environment"
+                "warning: Without runInNewThread: true will call js function in main thread will not get the return value in c environment"
               );
               (*tsfn_ptr).call(value, ThreadsafeFunctionCallMode::Blocking);
             }

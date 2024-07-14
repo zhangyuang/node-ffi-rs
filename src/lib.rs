@@ -271,7 +271,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
           ..
         } = &mut self.data;
         unsafe {
-          let result = &mut () as *mut _ as *mut c_void;
+          let result = libc::malloc(std::mem::size_of::<*mut c_void>());
           ffi_call(
             *cif,
             Some(*fn_pointer),
@@ -308,6 +308,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
           let _ = Box::from_raw(*cif);
           let _ = Box::from_raw(*r_type_p);
           let _ = Box::from_raw(*arg_types_p);
+          libc::free(output.0);
           if errno.is_some() && errno.unwrap() {
             add_errno(&env, call_result?)
           } else {
