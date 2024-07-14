@@ -448,6 +448,12 @@ pub unsafe fn get_value_pointer(
               let func_ret_type_clone = func_ret_type.clone();
               let js_ret_rs = get_arg_types_values(Rc::new(vec![func_ret_type.clone()]), vec![js_ret]).unwrap().1;
               let js_ret_rs_ptr = get_value_pointer(&env,Rc::new(vec![func_ret_type.clone()]), js_ret_rs).unwrap()[0];
+              match &func_ret_type_clone {
+                RsArgsValue::Object(_) => {
+                  panic!("ffi-rs hasn't support send js Object/Array to c environment")
+                }
+                _ => {}
+              }
               write_rs_ptr_to_c(&func_ret_type_clone, js_ret_rs_ptr, result);
             } else {
               println!(
@@ -889,10 +895,7 @@ unsafe fn write_rs_ptr_to_c(ret_type: &RsArgsValue, src: *mut c_void, dst: *mut 
         _ => {}
       };
     }
-    RsArgsValue::Object(_) => {
-      panic!("ffi-rs hasn't support send js Object/Array to c environment")
-      // std::ptr::copy(src, dst, std::mem::size_of::<*const *const c_void>())
-    }
+    RsArgsValue::Object(_) => std::ptr::copy(src, dst, std::mem::size_of::<*const *const c_void>()),
     _ => {}
   }
 }
