@@ -224,7 +224,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
       match ret_data_type {
         BasicDataType::U8 => &mut ffi_type_uint8 as *mut ffi_type,
         BasicDataType::I32 => &mut ffi_type_sint32 as *mut ffi_type,
-        BasicDataType::I64 => &mut ffi_type_sint64 as *mut ffi_type,
+        BasicDataType::I64 | BasicDataType::BigInt => &mut ffi_type_sint64 as *mut ffi_type,
         BasicDataType::U64 => &mut ffi_type_uint64 as *mut ffi_type,
         BasicDataType::String | BasicDataType::WString => &mut ffi_type_pointer as *mut ffi_type,
         BasicDataType::Void => &mut ffi_type_void as *mut ffi_type,

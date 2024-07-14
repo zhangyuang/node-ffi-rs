@@ -43,7 +43,9 @@ pub fn calculate_struct_size(struct_type: &IndexMap<String, RsArgsValue>) -> (us
         return match number.to_basic_data_type() {
           BasicDataType::U8 => calculate_u8(size, align, offset),
           BasicDataType::I32 => calculate_i32(size, align, offset),
-          BasicDataType::I64 | BasicDataType::U64 => calculate_i64(size, align, offset),
+          BasicDataType::I64 | BasicDataType::U64 | BasicDataType::BigInt => {
+            calculate_i64(size, align, offset)
+          }
           BasicDataType::Float => calculate_float(size, align, offset),
           BasicDataType::Double => calculate_double(size, align, offset),
           BasicDataType::String => calculate_string(size, align, offset),

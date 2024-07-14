@@ -73,7 +73,7 @@ unsafe fn free_struct_memory(
           offset += size + padding;
           field_size = size
         }
-        BasicDataType::I64 => {
+        BasicDataType::I64 | BasicDataType::BigInt => {
           let (size, align) = get_size_align::<c_longlong>();
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
@@ -299,7 +299,7 @@ pub unsafe fn free_rs_pointer_memory(
         BasicDataType::I32 => {
           let _ = Box::from_raw(ptr);
         }
-        BasicDataType::I64 => {
+        BasicDataType::I64 | BasicDataType::BigInt => {
           let _ = Box::from_raw(ptr);
         }
         BasicDataType::U64 => {
@@ -335,7 +335,7 @@ pub unsafe fn free_rs_pointer_memory(
           ..
         } = array_desc;
         match array_type {
-          RefDataType::U8Array => free_dynamic_u8_array(ptr, array_len),
+          RefDataType::U8Array => {}
           RefDataType::I32Array => free_dynamic_i32_array(ptr, array_len),
           RefDataType::DoubleArray => free_dynamic_double_array(ptr, array_len),
           RefDataType::FloatArray => free_dynamic_float_array(ptr, array_len),

@@ -1,3 +1,35 @@
+## [1.0.83](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.82...v1.0.83) (2024-06-20)
+
+
+### Bug Fixes
+
+* return bigInt when use struct field ([0be42a7](https://github.com/zhangyuang/node-ffi-rs/commit/0be42a78005449f9f40783e73779ca8e85dfcb1b))
+
+
+### Features
+
+* update d.ts ([7aeeb20](https://github.com/zhangyuang/node-ffi-rs/commit/7aeeb20b63815627d17a9b87e2e104d14e483826))
+
+
+
+## [1.0.82](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.81...v1.0.82) (2024-06-15)
+
+
+### Bug Fixes
+
+* No need to free jsBuffer memory in rust call params ([2e39791](https://github.com/zhangyuang/node-ffi-rs/commit/2e39791948a7634ec5dff493df5915bf575a9414))
+
+
+
+## [1.0.81](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.80...v1.0.81) (2024-06-14)
+
+
+### Features
+
+* support DataType.BigInt ([cf05fab](https://github.com/zhangyuang/node-ffi-rs/commit/cf05fab803527174d29e96371d3a0a3bf9d55389))
+
+
+
 ## [1.0.80](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.79...v1.0.80) (2024-06-13)
 
 

@@ -15,7 +15,7 @@ use libffi_sys::{
 };
 use napi::threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi::{
-  bindgen_prelude::*, Env, JsBoolean, JsBuffer, JsExternal, JsNumber, JsObject, JsString,
+  bindgen_prelude::*, Env, JsBigInt, JsBoolean, JsBuffer, JsExternal, JsNumber, JsObject, JsString,
   JsUnknown, NapiRaw,
 };
 use std::collections::HashMap;
@@ -121,6 +121,11 @@ pub unsafe fn get_arg_types_values(
             BasicDataType::I64 => {
               let arg_type = &mut ffi_type_sint64 as *mut ffi_type;
               let arg_val: i64 = create_js_value_unchecked::<JsNumber>(value)?.try_into()?;
+              (arg_type, RsArgsValue::I64(arg_val))
+            }
+            BasicDataType::BigInt => {
+              let arg_type = &mut ffi_type_sint64 as *mut ffi_type;
+              let arg_val: i64 = create_js_value_unchecked::<JsBigInt>(value)?.try_into()?;
               (arg_type, RsArgsValue::I64(arg_val))
             }
             BasicDataType::U64 => {
@@ -295,7 +300,9 @@ pub unsafe fn get_value_pointer(
       }
       RsArgsValue::U8(val) => Ok(Box::into_raw(Box::new(val)) as *mut c_void),
       RsArgsValue::I32(val) => Ok(Box::into_raw(Box::new(val)) as *mut c_void),
-      RsArgsValue::I64(val) => Ok(Box::into_raw(Box::new(val)) as *mut c_void),
+      RsArgsValue::I64(val) | RsArgsValue::BigInt(val) => {
+        Ok(Box::into_raw(Box::new(val)) as *mut c_void)
+      }
       RsArgsValue::U64(val) => Ok(Box::into_raw(Box::new(val)) as *mut c_void),
       RsArgsValue::String(val) => {
         let c_string = string_to_c_string(val);
@@ -527,6 +534,11 @@ pub unsafe fn get_params_value_rs_struct(
                 let val: JsNumber = params_value_object.get_named_property(&field)?;
                 let val: i64 = val.try_into()?;
                 RsArgsValue::I64(val)
+              }
+              DataType::BigInt => {
+                let val: JsNumber = params_value_object.get_named_property(&field)?;
+                let val: i64 = val.try_into()?;
+                RsArgsValue::BigInt(val)
               }
               DataType::U64 => {
                 let val: JsNumber = params_value_object.get_named_property(&field)?;
@@ -782,6 +794,9 @@ pub unsafe fn get_js_unknown_from_pointer(
         BasicDataType::I32 => rs_value_to_js_unknown(env, RsArgsValue::I32(*(ptr as *mut i32))),
         BasicDataType::I64 => rs_value_to_js_unknown(env, RsArgsValue::I64(*(ptr as *mut i64))),
         BasicDataType::U64 => rs_value_to_js_unknown(env, RsArgsValue::U64(*(ptr as *mut u64))),
+        BasicDataType::BigInt => {
+          rs_value_to_js_unknown(env, RsArgsValue::BigInt(*(ptr as *mut i64)))
+        }
         BasicDataType::Void => rs_value_to_js_unknown(env, RsArgsValue::Void(())),
         BasicDataType::Float => rs_value_to_js_unknown(env, RsArgsValue::Float(*(ptr as *mut f32))),
         BasicDataType::Double => {
@@ -844,7 +859,9 @@ unsafe fn write_rs_ptr_to_c(ret_type: &RsArgsValue, src: *mut c_void, dst: *mut 
       match ret_data_type {
         BasicDataType::U8 => std::ptr::copy(src, dst, std::mem::size_of::<u8>()),
         BasicDataType::I32 => std::ptr::copy(src, dst, std::mem::size_of::<i32>()),
-        BasicDataType::I64 => std::ptr::copy(src, dst, std::mem::size_of::<i64>()),
+        BasicDataType::I64 | BasicDataType::BigInt => {
+          std::ptr::copy(src, dst, std::mem::size_of::<i64>())
+        }
         BasicDataType::U64 => std::ptr::copy(src, dst, std::mem::size_of::<u64>()),
         BasicDataType::Float => std::ptr::copy(src, dst, std::mem::size_of::<f32>()),
         BasicDataType::Double => std::ptr::copy(src, dst, std::mem::size_of::<f64>()),
@@ -855,25 +872,14 @@ unsafe fn write_rs_ptr_to_c(ret_type: &RsArgsValue, src: *mut c_void, dst: *mut 
         BasicDataType::Void => {}
       }
       match ret_data_type {
-        BasicDataType::U8 => {
-          let _ = Box::from_raw(src);
-        }
-        BasicDataType::I32 => {
-          let _ = Box::from_raw(src);
-        }
-        BasicDataType::I64 => {
-          let _ = Box::from_raw(src);
-        }
-        BasicDataType::U64 => {
-          let _ = Box::from_raw(src);
-        }
-        BasicDataType::Float => {
-          let _ = Box::from_raw(src);
-        }
-        BasicDataType::Double => {
-          let _ = Box::from_raw(src);
-        }
-        BasicDataType::Boolean => {
+        BasicDataType::U8
+        | BasicDataType::I32
+        | BasicDataType::I64
+        | BasicDataType::BigInt
+        | BasicDataType::U64
+        | BasicDataType::Float
+        | BasicDataType::Double
+        | BasicDataType::Boolean => {
           let _ = Box::from_raw(src);
         }
         _ => {}

@@ -10,6 +10,10 @@ extern "C" double doubleSum(double a, double b) { return a + b; }
 
 extern "C" double floatSum(float a, float b) { return a + b; }
 
+extern "C" int64_t testbigint(int64_t a) {
+   return a;
+}
+
 extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
   std::string result = std::string(str1) + std::string(str2);
   char *cstr = new char[result.length() + 1];
