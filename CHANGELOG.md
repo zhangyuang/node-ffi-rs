@@ -1,3 +1,12 @@
+## [1.0.86](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.85...v1.0.86) (2024-07-14)
+
+
+### Bug Fixes
+
+* call_with_return_value error tips ([43b0125](https://github.com/zhangyuang/node-ffi-rs/commit/43b0125fe99d7236690d2babcbad23a9cdd99851))
+
+
+
 ## [1.0.85](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.84...v1.0.85) (2024-07-14)
 
 
