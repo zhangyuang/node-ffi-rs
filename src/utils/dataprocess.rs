@@ -89,7 +89,6 @@ pub fn js_number_to_i32(js_number: JsNumber) -> i32 {
   js_number.try_into().unwrap()
 }
 pub unsafe fn get_arg_types_values(
-  env: &Env,
   params_type: Rc<Vec<RsArgsValue>>,
   params_value: Vec<JsUnknown>,
 ) -> Result<(Vec<*mut ffi_type>, Vec<RsArgsValue>)> {
@@ -111,54 +110,54 @@ pub unsafe fn get_arg_types_values(
           match param_data_type {
             BasicDataType::I32 => {
               let arg_type = &mut ffi_type_sint32 as *mut ffi_type;
-              let arg_val: i32 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
+              let arg_val: i32 = create_js_value_unchecked::<JsNumber>(value)?.try_into()?;
               (arg_type, RsArgsValue::I32(arg_val))
             }
             BasicDataType::U8 => {
               let arg_type = &mut ffi_type_sint32 as *mut ffi_type;
-              let arg_val: u32 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
+              let arg_val: u32 = create_js_value_unchecked::<JsNumber>(value)?.try_into()?;
               (arg_type, RsArgsValue::U8(arg_val as u8))
             }
             BasicDataType::I64 => {
               let arg_type = &mut ffi_type_sint64 as *mut ffi_type;
-              let arg_val: i64 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
+              let arg_val: i64 = create_js_value_unchecked::<JsNumber>(value)?.try_into()?;
               (arg_type, RsArgsValue::I64(arg_val))
             }
             BasicDataType::BigInt => {
               let arg_type = &mut ffi_type_sint64 as *mut ffi_type;
-              let arg_val: i64 = create_js_value_unchecked::<JsBigInt>(env, value).try_into()?;
+              let arg_val: i64 = create_js_value_unchecked::<JsBigInt>(value)?.try_into()?;
               (arg_type, RsArgsValue::I64(arg_val))
             }
             BasicDataType::U64 => {
               let arg_type = &mut ffi_type_uint64 as *mut ffi_type;
-              let arg_val: i64 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
+              let arg_val: i64 = create_js_value_unchecked::<JsNumber>(value)?.try_into()?;
               (arg_type, RsArgsValue::U64(arg_val as u64))
             }
             BasicDataType::Float => {
               let arg_type = &mut ffi_type_float as *mut ffi_type;
-              let arg_val: f64 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
+              let arg_val: f64 = create_js_value_unchecked::<JsNumber>(value)?.try_into()?;
               (arg_type, RsArgsValue::Float(arg_val as f32))
             }
             BasicDataType::Double => {
               let arg_type = &mut ffi_type_double as *mut ffi_type;
-              let arg_val: f64 = create_js_value_unchecked::<JsNumber>(env, value).try_into()?;
+              let arg_val: f64 = create_js_value_unchecked::<JsNumber>(value)?.try_into()?;
               (arg_type, RsArgsValue::Double(arg_val))
             }
             BasicDataType::String => {
               let arg_type = &mut ffi_type_pointer as *mut ffi_type;
               let arg_val: String =
-                js_string_to_string(create_js_value_unchecked::<JsString>(env, value))?;
+                js_string_to_string(create_js_value_unchecked::<JsString>(value)?)?;
               (arg_type, RsArgsValue::String(arg_val))
             }
             BasicDataType::WString => {
               let arg_type = &mut ffi_type_pointer as *mut ffi_type;
               let arg_val: String =
-                js_string_to_string(create_js_value_unchecked::<JsString>(env, value))?;
+                js_string_to_string(create_js_value_unchecked::<JsString>(value)?)?;
               (arg_type, RsArgsValue::WString(arg_val))
             }
             BasicDataType::Boolean => {
               let arg_type = &mut ffi_type_uint8 as *mut ffi_type;
-              let arg_val: bool = create_js_value_unchecked::<JsBoolean>(env, value).get_value()?;
+              let arg_val: bool = create_js_value_unchecked::<JsBoolean>(value)?.get_value()?;
               (arg_type, RsArgsValue::Boolean(arg_val))
             }
             BasicDataType::Void => {
@@ -188,7 +187,7 @@ pub unsafe fn get_arg_types_values(
               }
               RefDataType::I32Array => {
                 let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-                let js_object = create_js_value_unchecked::<JsObject>(env, value);
+                let js_object = create_js_value_unchecked::<JsObject>(value)?;
                 let arg_val = vec![0; js_object.get_array_length()? as usize]
                   .iter()
                   .enumerate()
@@ -202,7 +201,7 @@ pub unsafe fn get_arg_types_values(
 
               RefDataType::FloatArray => {
                 let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-                let js_object = create_js_value_unchecked::<JsObject>(env, value);
+                let js_object = create_js_value_unchecked::<JsObject>(value)?;
                 let arg_val = vec![0; js_object.get_array_length()? as usize]
                   .iter()
                   .enumerate()
@@ -215,7 +214,7 @@ pub unsafe fn get_arg_types_values(
               }
               RefDataType::DoubleArray => {
                 let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-                let js_object = create_js_value_unchecked::<JsObject>(env, value);
+                let js_object = create_js_value_unchecked::<JsObject>(value)?;
                 let arg_val = vec![0; js_object.get_array_length()? as usize]
                   .iter()
                   .enumerate()
@@ -229,7 +228,7 @@ pub unsafe fn get_arg_types_values(
               }
               RefDataType::StringArray => {
                 let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-                let js_object = create_js_value_unchecked::<JsObject>(env, value);
+                let js_object = create_js_value_unchecked::<JsObject>(value)?;
                 let arg_val = js_object.to_rs_array()?;
                 (arg_type, RsArgsValue::StringArray(arg_val))
               }
@@ -242,9 +241,8 @@ pub unsafe fn get_arg_types_values(
               RsArgsValue::Function(params_type_object_rs.clone(), params_val_function),
             )
           } else {
-            let params_value_object = create_js_value_unchecked::<JsObject>(env, value);
-            let index_map =
-              get_params_value_rs_struct(&env, params_type_object_rs, &params_value_object);
+            let params_value_object = create_js_value_unchecked::<JsObject>(value)?;
+            let index_map = get_params_value_rs_struct(params_type_object_rs, &params_value_object);
             (arg_type, RsArgsValue::Object(index_map.unwrap()))
           }
         }
@@ -379,8 +377,13 @@ pub unsafe fn get_value_pointer(
       RsArgsValue::Function(func_desc, js_function) => {
         use libffi::low;
         use libffi::middle::*;
-        let func_args_type = func_desc.get("paramsType").unwrap().clone();
-        let free_c_params_memory = func_desc.get("freeCFuncParamsMemory").unwrap().clone();
+        let func_args_type = func_desc.get(PARAMS_TYPE).unwrap().clone();
+        let func_ret_type = if func_desc.get(RET_TYPE).is_some() {
+            func_desc.get(RET_TYPE).unwrap().clone()
+        }  else {
+            RsArgsValue::Void(())
+        };
+        let free_c_params_memory = func_desc.get(FREE_FUNCTION_TAG).unwrap().clone();
         let tsfn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal> = (&js_function)
           .create_threadsafe_function(0, |ctx| {
             let value: Vec<RsArgsValue> = ctx.value;
@@ -388,45 +391,71 @@ pub unsafe fn get_value_pointer(
               .into_iter()
               .map(|rs_args| rs_value_to_js_unknown(&ctx.env, rs_args))
               .collect::<Result<Vec<JsUnknown>, _>>()?;
-
             Ok(js_call_params)
           })?;
+
         let tsfn_ptr = Box::into_raw(Box::new(tsfn));
+
         unsafe extern "C" fn lambda_callback<F: Fn(Vec<*mut c_void>)>(
           _cif: &low::ffi_cif,
-          result: &mut *mut c_void,
+          result: &mut c_void,
           args: *const *const c_void,
           userdata: &F,
         ) {
-          let params: Vec<*mut c_void> = (0.._cif.nargs)
+          let mut params: Vec<*mut c_void> = (0.._cif.nargs)
             .map(|index| *args.offset(index as isize) as *mut c_void)
             .collect();
+          params.push(result);
           userdata(params);
         }
+
         let (cif, lambda) = if let RsArgsValue::Object(func_args_type_rs) = func_args_type {
           let cif = Cif::new(
             func_args_type_rs
               .values()
               .into_iter()
               .map(|val| val.to_ffi_type()),
-            Type::void(),
+            func_ret_type.to_ffi_type(),
           );
+          let main_thread_id = std::thread::current().id();
           let lambda = move |args: Vec<*mut c_void>| {
+            let (args, result) = (&args[0..args.len() - 1], args[args.len() - 1]);
             let value: Vec<RsArgsValue> = args
               .into_iter()
               .enumerate()
               .map(|(index, c_param)| {
                 let arg_type = func_args_type_rs.get(&index.to_string()).unwrap();
-                let param = get_rs_value_from_pointer(env, arg_type, c_param, true);
+                let param = get_rs_value_from_pointer(env, arg_type, *c_param, true);
                 if let RsArgsValue::Boolean(value) = free_c_params_memory {
                   if value {
-                    free_c_pointer_memory(c_param, arg_type, false);
+                    free_c_pointer_memory(*c_param, arg_type, false);
                   }
                 }
                 param
               })
               .collect();
-            (*tsfn_ptr).call(value, ThreadsafeFunctionCallMode::Blocking);
+            if std::thread::current().id() != main_thread_id {
+              let (se, re) = std::sync::mpsc::channel();
+              (*tsfn_ptr).call_with_return_value(
+                value,
+                ThreadsafeFunctionCallMode::Blocking,
+                move |js_ret: JsUnknown| {
+                  se.send(js_ret).unwrap();
+                  Ok(())
+                },
+              );
+              let js_ret = re.recv().unwrap();
+              let func_ret_type_clone = func_ret_type.clone();
+              let js_ret_rs = get_arg_types_values(Rc::new(vec![func_ret_type.clone()]), vec![js_ret]).unwrap().1;
+              let js_ret_rs_ptr = get_value_pointer(&env,Rc::new(vec![func_ret_type.clone()]), js_ret_rs).unwrap()[0];
+              write_rs_ptr_to_c(&func_ret_type_clone, js_ret_rs_ptr, result);
+            } else {
+              println!(
+                "\x1b[33m{}\x1b[0m",
+                "warning: Without runInNewThread: true will call js function in main thread will not get the return value in c environment"
+              );
+              (*tsfn_ptr).call(value, ThreadsafeFunctionCallMode::Blocking);
+            }
           };
           (cif, lambda)
         } else {
@@ -469,7 +498,6 @@ pub unsafe fn get_value_pointer(
 }
 
 pub unsafe fn get_params_value_rs_struct(
-  env: &Env,
   params_type_object: &IndexMap<String, RsArgsValue>,
   params_value_object: &JsObject,
 ) -> Result<IndexMap<String, RsArgsValue>> {
@@ -611,7 +639,7 @@ pub unsafe fn get_params_value_rs_struct(
               params_type_rs_value.insert(ARRAY_VALUE_TAG.to_string(), array_value);
               index_map.insert(field, RsArgsValue::Object(params_type_rs_value));
             } else {
-              let map = get_params_value_rs_struct(env, &params_type_rs_value, &params_value);
+              let map = get_params_value_rs_struct(&params_type_rs_value, &params_value);
               index_map.insert(field, RsArgsValue::Object(map?));
             }
           }
@@ -654,7 +682,7 @@ pub unsafe fn type_object_to_rs_struct(
         }
         ValueType::Object => {
           // maybe jsobject or jsarray
-          let args_type = create_js_value_unchecked::<JsObject>(env, field_type);
+          let args_type = create_js_value_unchecked::<JsObject>(field_type)?;
           let map = type_object_to_rs_struct(env, &args_type)?;
           index_map.insert(field, RsArgsValue::Object(map));
         }
@@ -698,7 +726,7 @@ pub unsafe fn type_object_to_rs_vector(
         }
         ValueType::Object => {
           // maybe jsobject or jsarray
-          let args_type = create_js_value_unchecked::<JsObject>(&env, field_type);
+          let args_type = create_js_value_unchecked::<JsObject>(field_type)?;
           let map = type_object_to_rs_struct(env, &args_type)?;
           RsArgsValue::Object(map)
         }
@@ -726,12 +754,11 @@ pub unsafe fn type_define_to_rs_args(env: &Env, type_define: JsUnknown) -> Resul
   let params_type_value_type = type_define.get_type()?;
   let ret_value = match params_type_value_type {
     ValueType::Number => RsArgsValue::I32(js_number_to_i32(create_js_value_unchecked::<JsNumber>(
-      env,
       type_define,
-    ))),
+    )?)),
     ValueType::Object => RsArgsValue::Object(type_object_to_rs_struct(
       env,
-      &create_js_value_unchecked::<JsObject>(env, type_define),
+      &create_js_value_unchecked::<JsObject>(type_define)?,
     )?),
     _ => {
       return Err(
@@ -826,5 +853,43 @@ pub unsafe fn get_js_unknown_from_pointer(
       }
     }
     _ => Err(FFIError::Panic(format!("ret_type err {:?}", ret_type_rs)).into()),
+  }
+}
+
+unsafe fn write_rs_ptr_to_c(ret_type: &RsArgsValue, src: *mut c_void, dst: *mut c_void) {
+  match &ret_type {
+    RsArgsValue::I32(number) => {
+      let ret_data_type = number.to_basic_data_type();
+      match ret_data_type {
+        BasicDataType::U8 => std::ptr::copy(src, dst, std::mem::size_of::<u8>()),
+        BasicDataType::I32 => std::ptr::copy(src, dst, std::mem::size_of::<i32>()),
+        BasicDataType::I64 | BasicDataType::BigInt => {
+          std::ptr::copy(src, dst, std::mem::size_of::<i64>())
+        }
+        BasicDataType::U64 => std::ptr::copy(src, dst, std::mem::size_of::<u64>()),
+        BasicDataType::Float => std::ptr::copy(src, dst, std::mem::size_of::<f32>()),
+        BasicDataType::Double => std::ptr::copy(src, dst, std::mem::size_of::<f64>()),
+        BasicDataType::Boolean => std::ptr::copy(src, dst, std::mem::size_of::<bool>()),
+        BasicDataType::String => std::ptr::copy(src, dst, std::mem::size_of::<*const c_char>()),
+        BasicDataType::WString => std::ptr::copy(src, dst, std::mem::size_of::<*const WideChar>()),
+        BasicDataType::External => std::ptr::copy(src, dst, std::mem::size_of::<*mut c_void>()),
+        BasicDataType::Void => {}
+      }
+      match ret_data_type {
+        BasicDataType::U8
+        | BasicDataType::I32
+        | BasicDataType::I64
+        | BasicDataType::BigInt
+        | BasicDataType::U64
+        | BasicDataType::Float
+        | BasicDataType::Double
+        | BasicDataType::Boolean => {
+          let _ = Box::from_raw(src);
+        }
+        _ => {}
+      };
+    }
+    RsArgsValue::Object(_) => std::ptr::copy(src, dst, std::mem::size_of::<*const *const c_void>()),
+    _ => {}
   }
 }

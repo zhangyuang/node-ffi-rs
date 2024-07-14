@@ -7,7 +7,6 @@ mod utils;
 use datatype::pointer::{free_c_pointer_memory, free_rs_pointer_memory};
 use define::*;
 use dlopen::symbor::{Library, Symbol};
-use libc::{free, malloc};
 use libffi_sys::{
   ffi_abi_FFI_DEFAULT_ABI, ffi_call, ffi_cif, ffi_prep_cif, ffi_type, ffi_type_double,
   ffi_type_float, ffi_type_pointer, ffi_type_sint32, ffi_type_sint64, ffi_type_uint64,
@@ -44,7 +43,7 @@ unsafe fn create_pointer(env: Env, params: CreatePointerParams) -> Result<Vec<Js
       .map(|param| type_define_to_rs_args(&env, param).unwrap())
       .collect(),
   );
-  let (_, arg_values) = get_arg_types_values(&env, Rc::clone(&params_type_rs), params_value)?;
+  let (_, arg_values) = get_arg_types_values(Rc::clone(&params_type_rs), params_value)?;
   let arg_values_c_void = get_value_pointer(&env, Rc::clone(&params_type_rs), arg_values)?;
 
   arg_values_c_void
@@ -216,8 +215,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
       .collect(),
   );
 
-  let (mut arg_types, arg_values) =
-    get_arg_types_values(&env, Rc::clone(&params_type_rs), params_value)?;
+  let (mut arg_types, arg_values) = get_arg_types_values(Rc::clone(&params_type_rs), params_value)?;
   let mut arg_values_c_void = get_value_pointer(&env, Rc::clone(&params_type_rs), arg_values)?;
   let ret_type_rs = type_define_to_rs_args(&env, ret_type)?;
   let r_type: *mut ffi_type = match ret_type_rs {
@@ -273,7 +271,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
           ..
         } = &mut self.data;
         unsafe {
-          let result = malloc(std::mem::size_of::<*mut c_void>());
+          let result = libc::malloc(std::mem::size_of::<*mut c_void>());
           ffi_call(
             *cif,
             Some(*fn_pointer),
@@ -310,7 +308,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
           let _ = Box::from_raw(*cif);
           let _ = Box::from_raw(*r_type_p);
           let _ = Box::from_raw(*arg_types_p);
-          free(output.0);
+          libc::free(output.0);
           if errno.is_some() && errno.unwrap() {
             add_errno(&env, call_result?)
           } else {
