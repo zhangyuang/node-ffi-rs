@@ -1,3 +1,12 @@
+## [1.0.85](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.84...v1.0.85) (2024-07-14)
+
+
+### Features
+
+* add tips for jsobject/array when used in new thread ([41da725](https://github.com/zhangyuang/node-ffi-rs/commit/41da725e600365fcc59788cf98d636767d87cbcb))
+
+
+
 ## [1.0.84](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.83...v1.0.84) (2024-07-14)
 
 
