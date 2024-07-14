@@ -1,3 +1,12 @@
+## [1.0.84](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.83...v1.0.84) (2024-07-14)
+
+
+### Features
+
+* support pass jsFunction return value to c ([#60](https://github.com/zhangyuang/node-ffi-rs/issues/60)) ([44c19be](https://github.com/zhangyuang/node-ffi-rs/commit/44c19be94234a6dc5724d08cf379b76fc8daa25f))
+
+
+
 ## [1.0.83](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.82...v1.0.83) (2024-06-20)
 
 
