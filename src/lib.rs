@@ -265,16 +265,18 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
       type JsValue = JsUnknown;
       fn compute(&mut self) -> Result<BarePointerWrap> {
         let FFICALLPARAMS {
-          cif,
-          fn_pointer,
-          arg_values_c_void,
-          ..
+          cif, fn_pointer, ..
+        } = self.data;
+
+        let FFICALLPARAMS {
+          arg_values_c_void, ..
         } = &mut self.data;
+
         unsafe {
           let result = libc::malloc(std::mem::size_of::<*mut c_void>());
           ffi_call(
-            *cif,
-            Some(*fn_pointer),
+            cif,
+            Some(fn_pointer),
             result,
             arg_values_c_void.as_mut_ptr(),
           );
