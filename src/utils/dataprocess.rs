@@ -42,10 +42,10 @@ pub fn get_ffi_tag(obj: &IndexMap<String, RsArgsValue>) -> FFITag {
     return FFITag::Unknown;
   }
   if let RsArgsValue::String(ffitypetag) = obj.get(FFI_TAG_FIELD).unwrap() {
-    if ffitypetag == &ARRAY_FFI_TAG {
+    if ffitypetag.starts_with(&ARRAY_FFI_TAG) {
       return FFITag::Array;
     }
-    if ffitypetag == &FUNCTION_FFI_TAG {
+    if ffitypetag.starts_with(&FUNCTION_FFI_TAG) {
       return FFITag::Function;
     }
     FFITag::Unknown
