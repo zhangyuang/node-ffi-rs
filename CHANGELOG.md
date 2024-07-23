@@ -1,3 +1,12 @@
+## [1.0.87](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.86...v1.0.87) (2024-07-23)
+
+
+### Features
+
+* update FFICALLPARAMS implemention ([a09c44d](https://github.com/zhangyuang/node-ffi-rs/commit/a09c44de99b7c5c30a386221e18facb113d5fbf9))
+
+
+
 ## [1.0.86](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.85...v1.0.86) (2024-07-14)
 
 
