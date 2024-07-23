@@ -257,15 +257,15 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     arg_types.as_mut_ptr(),
   );
   if run_in_new_thread == Some(true) {
-    let r_type_p = Box::into_raw(Box::new(r_type));
-    let arg_types_p = Box::into_raw(Box::new(arg_types));
     use napi::Task;
     impl Task for FFICALL {
       type Output = BarePointerWrap;
       type JsValue = JsUnknown;
       fn compute(&mut self) -> Result<BarePointerWrap> {
         let FFICALLPARAMS {
-          cif, fn_pointer, ..
+          mut cif,
+          fn_pointer,
+          ..
         } = self.data;
 
         let FFICALLPARAMS {
@@ -275,7 +275,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
         unsafe {
           let result = libc::malloc(std::mem::size_of::<*mut c_void>());
           ffi_call(
-            cif,
+            &mut cif,
             Some(fn_pointer),
             result,
             arg_values_c_void.as_mut_ptr(),
@@ -291,9 +291,6 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
           arg_values_c_void,
           free_result_memory,
           params_type_rs,
-          cif,
-          r_type_p,
-          arg_types_p,
           ..
         } = &mut self.data;
         unsafe {
@@ -307,11 +304,8 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
             .for_each(|(ptr, ptr_desc)| {
               free_rs_pointer_memory(*ptr, ptr_desc, false);
             });
-          let _ = Box::from_raw(*cif);
-          let _ = Box::from_raw(*r_type_p);
-          let _ = Box::from_raw(*arg_types_p);
           libc::free(output.0);
-          if errno.is_some() && errno.unwrap() {
+          if let Some(true) = errno {
             add_errno(&env, call_result?)
           } else {
             call_result
@@ -320,15 +314,15 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
       }
     }
     let task = FFICALL::new(FFICALLPARAMS {
-      cif: Box::into_raw(Box::new(cif)),
+      cif,
       arg_values_c_void,
       ret_type_rs,
       fn_pointer: func,
       errno,
       free_result_memory,
       params_type_rs,
-      r_type_p,
-      arg_types_p,
+      r_type,
+      arg_types,
     });
     let async_work_promise = env.spawn(task)?;
     Ok(async_work_promise.promise_object().into_unknown())
@@ -345,7 +339,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
       .for_each(|(ptr, ptr_desc)| {
         free_rs_pointer_memory(ptr, ptr_desc, false);
       });
-    if errno.is_some() && errno.unwrap() {
+    if let Some(true) = errno {
       add_errno(&env, call_result?)
     } else {
       call_result
