@@ -434,7 +434,7 @@ pub unsafe fn get_value_pointer(
                 param
               })
               .collect();
-            if std::thread::current().id() != main_thread_id {
+            if std::thread::current().id() != main_thread_id  && func_ret_type != RsArgsValue::Void(())  {
               let (se, re) = std::sync::mpsc::channel();
               (*tsfn_ptr).call_with_return_value(
                 value,
