@@ -381,7 +381,7 @@ pub unsafe fn get_value_pointer(
         let func_ret_type = if func_desc.get(RET_TYPE).is_some() {
             func_desc.get(RET_TYPE).unwrap().clone()
         }  else {
-            RsArgsValue::Void(())
+            RsArgsValue::I32(7)
         };
         let free_c_params_memory = func_desc.get(FREE_FUNCTION_TAG).unwrap().clone();
         let tsfn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal> = (&js_function)
@@ -434,7 +434,7 @@ pub unsafe fn get_value_pointer(
                 param
               })
               .collect();
-            if std::thread::current().id() != main_thread_id  && func_ret_type != RsArgsValue::Void(())  {
+            if std::thread::current().id() != main_thread_id  && func_ret_type != RsArgsValue::I32(7)  {
               let (se, re) = std::sync::mpsc::channel();
               (*tsfn_ptr).call_with_return_value(
                 value,
