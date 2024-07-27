@@ -1,3 +1,27 @@
+## [1.0.88](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.88-alpha.0...v1.0.88) (2024-07-27)
+
+
+### Bug Fixes
+
+* judge func_ret_type is void condition ([6b96974](https://github.com/zhangyuang/node-ffi-rs/commit/6b9697416d26c007b97e07bc72befc9d5cee1898))
+
+
+### Features
+
+* visit jsValue in main thread prevent thread error ([9eb78b1](https://github.com/zhangyuang/node-ffi-rs/commit/9eb78b1c66887b1477d643412297218e42fbc4cf))
+
+
+
+## [1.0.88-alpha.0](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.87...v1.0.88-alpha.0) (2024-07-24)
+
+
+### Features
+
+* update string judge compatible with bun ([6103692](https://github.com/zhangyuang/node-ffi-rs/commit/6103692f918ca21b79fedcf313af7c6eb59bfcde))
+* use call_with_return_value when retType is not void-n ([2448c5d](https://github.com/zhangyuang/node-ffi-rs/commit/2448c5da9faabde3973883ac719cee5eef34424c))
+
+
+
 ## [1.0.87](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.86...v1.0.87) (2024-07-23)
 
 
