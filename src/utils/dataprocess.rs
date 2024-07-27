@@ -434,27 +434,23 @@ pub unsafe fn get_value_pointer(
                 param
               })
               .collect();
+            let func_ret_type_clone = (&func_ret_type).clone();
+            let env_clone = env.clone();
             if std::thread::current().id() != main_thread_id  && func_ret_type != RsArgsValue::I32(7)  {
               let (se, re) = std::sync::mpsc::channel();
               (*tsfn_ptr).call_with_return_value(
                 value,
                 ThreadsafeFunctionCallMode::Blocking,
                 move |js_ret: JsUnknown| {
-                  se.send(js_ret).unwrap();
-                  Ok(())
+                    let js_ret_rs = get_arg_types_values(Rc::new(vec![func_ret_type_clone.clone()]), vec![js_ret]).unwrap().1;
+                    let js_ret_rs_ptr = get_value_pointer(&env_clone,Rc::new(vec![func_ret_type_clone.clone()]), js_ret_rs).unwrap()[0];
+                    write_rs_ptr_to_c(&func_ret_type_clone, js_ret_rs_ptr, result);
+                    se.send(()).unwrap();
+                    Ok(())
                 },
               );
-              let js_ret = re.recv().unwrap();
-              let func_ret_type_clone = func_ret_type.clone();
-              let js_ret_rs = get_arg_types_values(Rc::new(vec![func_ret_type.clone()]), vec![js_ret]).unwrap().1;
-              let js_ret_rs_ptr = get_value_pointer(&env,Rc::new(vec![func_ret_type.clone()]), js_ret_rs).unwrap()[0];
-              match &func_ret_type_clone {
-                RsArgsValue::Object(_) => {
-                  panic!("ffi-rs hasn't support send js Object/Array to c environment")
-                }
-                _ => {}
-              }
-              write_rs_ptr_to_c(&func_ret_type_clone, js_ret_rs_ptr, result);
+               re.recv().unwrap();
+
             } else {
               println!(
                 "\x1b[33m{}\x1b[0m",
