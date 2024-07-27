@@ -1,5 +1,5 @@
 use crate::define::*;
-use napi::{Env, JsBuffer, JsBufferValue};
+use napi::{Env, JsBufferValue};
 
 pub fn create_buffer_val(env: &Env, data: Vec<u8>) -> JsBufferValue {
   env.create_buffer_with_data(data).unwrap()

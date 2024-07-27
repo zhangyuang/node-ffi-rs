@@ -307,7 +307,7 @@ impl PartialEq for RsArgsValue {
       (RsArgsValue::Object(a), RsArgsValue::Object(b)) => a == b,
       (RsArgsValue::Boolean(a), RsArgsValue::Boolean(b)) => a == b,
       (RsArgsValue::Void(a), RsArgsValue::Void(b)) => a == b,
-      (RsArgsValue::U8Array(a1, a2), RsArgsValue::U8Array(b1, b2)) => false,
+      (RsArgsValue::U8Array(_, _), RsArgsValue::U8Array(_, _)) => false,
       (RsArgsValue::Function(..), _) | (_, RsArgsValue::Function(..)) => false,
       (RsArgsValue::External(..), _) | (_, RsArgsValue::External(..)) => false,
       _ => false,

@@ -711,46 +711,6 @@ pub unsafe fn type_object_to_rs_struct(
   }
 }
 
-pub unsafe fn type_object_to_rs_vector(
-  env: &Env,
-  params_type: &JsObject,
-) -> Result<Vec<RsArgsValue>> {
-  JsObject::keys(params_type)
-    .unwrap()
-    .into_iter()
-    .map(|field| {
-      let field_type: JsUnknown = params_type.get_named_property(&field)?;
-      Ok(match field_type.get_type().unwrap() {
-        ValueType::Number => {
-          let number: JsNumber = field_type.try_into()?;
-          let val: i32 = number.try_into()?;
-          RsArgsValue::I32(val)
-        }
-        ValueType::Object => {
-          // maybe jsobject or jsarray
-          let args_type = create_js_value_unchecked::<JsObject>(field_type)?;
-          let map = type_object_to_rs_struct(env, &args_type)?;
-          RsArgsValue::Object(map)
-        }
-        ValueType::String => {
-          let str: JsString = field_type.try_into()?;
-          let str = js_string_to_string(str)?;
-          RsArgsValue::String(str)
-        }
-        _ => {
-          return Err(
-            FFIError::UnsupportedValueType(format!(
-              "Receive {:?} but params type can only be number or object ",
-              field_type.get_type().unwrap()
-            ))
-            .into(),
-          )
-        }
-      })
-    })
-    .collect()
-}
-
 // describe paramsType or retType, field can only be number or object
 pub unsafe fn type_define_to_rs_args(env: &Env, type_define: JsUnknown) -> Result<RsArgsValue> {
   let params_type_value_type = type_define.get_type()?;

@@ -8,7 +8,7 @@ use indexmap::IndexMap;
 use libc::c_float;
 use napi::{Env, JsObject, JsUnknown, Result};
 use std::ffi::c_void;
-use std::ffi::{c_char, c_double, c_int, c_longlong, c_uchar, c_ulonglong, CStr};
+use std::ffi::{c_char, c_double, c_int, c_longlong, c_uchar, c_ulonglong};
 use widestring::WideChar;
 
 pub unsafe fn create_rs_struct_from_pointer(
