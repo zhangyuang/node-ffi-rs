@@ -286,17 +286,20 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
 
       fn resolve(&mut self, env: Env, output: Self::Output) -> Result<JsUnknown> {
         let FFICALLPARAMS {
-          ret_type_rs,
           errno,
-          arg_values_c_void,
           free_result_memory,
+          ..
+        } = self.data;
+        let FFICALLPARAMS {
+          ret_type_rs,
+          arg_values_c_void,
           params_type_rs,
           ..
         } = &mut self.data;
         unsafe {
           let call_result = get_js_unknown_from_pointer(&env, &ret_type_rs, output.0);
-          if *free_result_memory {
-            free_c_pointer_memory(output.0, ret_type_rs, false);
+          if free_result_memory {
+            free_c_pointer_memory(output.0, &ret_type_rs, false);
           }
           arg_values_c_void
             .into_iter()
