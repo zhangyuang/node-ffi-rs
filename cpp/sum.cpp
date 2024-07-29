@@ -188,6 +188,8 @@ extern "C" void callFunction(FunctionPointer func) {
   i32Array[2] = 303;
 
   Person *p = createPerson();
+  // To get the return value, use ffi-rs.runInNewThread or spawn a new thread like
+  // std::thread t(threadFunction, func); t.detach();
   int res = func(a, b, c, d, stringArray, i32Array, p);
   printf("function ret %d\n", res);
 }

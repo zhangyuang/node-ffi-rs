@@ -479,6 +479,9 @@ const testFunction = () => {
   load({
     library: "libsum",
     funcName: "callFunction",
+    // set runInNewThread to true, if you want to get the function return value in c
+    // or spawn a new thread in c like
+    // std::thread t(threadFunction, func); t.detach();
     runInNewThread: true,
     retType: DataType.Void,
     paramsType: [
