@@ -394,7 +394,6 @@ pub unsafe fn get_value_pointer(
             Ok(js_call_params)
           })?;
 
-        let tsfn_ptr = Box::into_raw(Box::new(tsfn));
 
         unsafe extern "C" fn lambda_callback<F: Fn(Vec<*mut c_void>)>(
           _cif: &low::ffi_cif,
@@ -409,6 +408,13 @@ pub unsafe fn get_value_pointer(
           userdata(params);
         }
 
+        let tsfn_call_context = TsFnCallContext {
+            tsfn,
+            lambda: None,
+            closure: None
+        };
+        let tsfn_call_context_ptr = Box::into_raw(Box::new(tsfn_call_context));
+
         let (cif, lambda) = if let RsArgsValue::Object(func_args_type_rs) = func_args_type {
           let cif = Cif::new(
             func_args_type_rs
@@ -418,6 +424,7 @@ pub unsafe fn get_value_pointer(
             func_ret_type.to_ffi_type(),
           );
           let main_thread_id = std::thread::current().id();
+
           let lambda = move |mut args: Vec<*mut c_void>| {
             let result = args.split_off(args.len()-1)[0];
             let value: Vec<RsArgsValue> = args
@@ -438,7 +445,7 @@ pub unsafe fn get_value_pointer(
             let env_clone = env.clone();
             if std::thread::current().id() != main_thread_id  && func_ret_type != RsArgsValue::I32(7)  {
               let (se, re) = std::sync::mpsc::channel();
-              (*tsfn_ptr).call_with_return_value(
+              (*tsfn_call_context_ptr).tsfn.call_with_return_value(
                 value,
                 ThreadsafeFunctionCallMode::Blocking,
                 move |js_ret: JsUnknown| {
@@ -456,26 +463,23 @@ pub unsafe fn get_value_pointer(
                 "\x1b[33m{}\x1b[0m",
                 "warning: Without runInNewThread: true will call js function in main thread will not get the return value in c environment"
               );
-              (*tsfn_ptr).call(value, ThreadsafeFunctionCallMode::Blocking);
+               (*tsfn_call_context_ptr).tsfn.call(value, ThreadsafeFunctionCallMode::Blocking);
             }
           };
           (cif, lambda)
         } else {
           return Err(FFIError::Panic(format!("generate cif error")).into());
         };
-        let lambda_ptr = Box::into_raw(Box::new(lambda));
-        let closure = Box::into_raw(Box::new(Closure::new(cif, lambda_callback, &*lambda_ptr)));
+        (*tsfn_call_context_ptr).lambda = Some(Box::new(lambda));
+        let closure = Closure::new(cif, lambda_callback, (*tsfn_call_context_ptr).lambda.as_ref().unwrap());
+        (*tsfn_call_context_ptr).closure = Some(closure);
         if CLOSURE_MAP.is_none() {
           CLOSURE_MAP = Some(HashMap::new())
         }
-        let code_ptr = std::mem::transmute((*closure).code_ptr());
+        let code_ptr = std::mem::transmute((*tsfn_call_context_ptr).closure.as_ref().unwrap().code_ptr());
         CLOSURE_MAP.as_mut().unwrap().insert(
           code_ptr,
-          vec![
-            tsfn_ptr as *mut c_void,
-            closure as *mut c_void,
-            lambda_ptr as *mut c_void,
-          ],
+          tsfn_call_context_ptr as *mut c_void
         );
         Ok(code_ptr)
 

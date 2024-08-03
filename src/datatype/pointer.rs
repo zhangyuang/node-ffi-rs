@@ -363,23 +363,8 @@ pub unsafe fn free_rs_pointer_memory(
 }
 
 unsafe fn free_closure(ptr: *mut c_void) {
-  CLOSURE_MAP
-    .as_ref()
-    .unwrap()
-    .get(&ptr)
-    .unwrap()
-    .iter()
-    .enumerate()
-    .for_each(|(index, p)| {
-      if index == 0 {
-        use napi::threadsafe_function::{ErrorStrategy, ThreadsafeFunction};
-        let _ =
-          Box::from_raw((*p) as *mut ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal>)
-            .abort();
-      } else {
-        let _ = Box::from_raw(*p);
-      }
-    });
+  let p = CLOSURE_MAP.as_ref().unwrap().get(&ptr).unwrap();
+  let _ = Box::from_raw(*p as *mut TsFnCallContext);
 }
 pub unsafe fn free_c_pointer_memory(
   ptr: *mut c_void,

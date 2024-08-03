@@ -1,7 +1,9 @@
 use indexmap::IndexMap;
 use libc::c_void;
+use libffi::middle::Closure;
 use libffi_sys::{ffi_cif, ffi_type};
 use napi::bindgen_prelude::{Error, Result, Status as NapiStatus};
+use napi::threadsafe_function::{ErrorStrategy, ThreadsafeFunction};
 use napi::{bindgen_prelude::*, JsBufferValue};
 use napi::{Env, JsExternal, JsObject, JsUnknown};
 use std::collections::HashMap;
@@ -31,6 +33,12 @@ impl From<FFIError> for Error {
   fn from(err: FFIError) -> Self {
     Error::new(napi::Status::Unknown, format!("{}", err.as_ref()))
   }
+}
+
+pub struct TsFnCallContext<'a> {
+  pub tsfn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal>,
+  pub lambda: Option<Box<dyn Fn(Vec<*mut c_void>) + 'a>>,
+  pub closure: Option<Closure<'a>>,
 }
 
 #[derive(Clone)]
@@ -432,7 +440,7 @@ pub const PARAMS_TYPE: &str = "paramsType";
 pub const RET_TYPE: &str = "retType";
 pub const FREE_FUNCTION_TAG: &str = "freeCFuncParamsMemory";
 
-pub static mut CLOSURE_MAP: Option<HashMap<*mut c_void, Vec<*mut c_void>>> = None;
+pub static mut CLOSURE_MAP: Option<HashMap<*mut c_void, *mut c_void>> = None;
 
 #[derive(Debug)]
 pub enum FFITag {
