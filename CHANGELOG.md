@@ -1,3 +1,12 @@
+## [1.0.89](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.88...v1.0.89) (2024-08-03)
+
+
+### Features
+
+* add TsFnCallContext ([84df186](https://github.com/zhangyuang/node-ffi-rs/commit/84df1865c5bb2262a54b8fcfa63552fae640a893))
+
+
+
 ## [1.0.88](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.88-alpha.0...v1.0.88) (2024-07-27)
 
 
