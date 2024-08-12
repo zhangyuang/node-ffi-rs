@@ -1,3 +1,13 @@
+## [1.0.90](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.89...v1.0.90) (2024-08-12)
+
+
+### Features
+
+* add license close [#66](https://github.com/zhangyuang/node-ffi-rs/issues/66) ([137c306](https://github.com/zhangyuang/node-ffi-rs/commit/137c30691775c0083a1a8530cade60fb03da77c6))
+* update get_symbol about use Result as return type ([a24ebba](https://github.com/zhangyuang/node-ffi-rs/commit/a24ebba8444d00d79784757db9c7a5e232033840))
+
+
+
 ## [1.0.89](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.88...v1.0.89) (2024-08-03)
 
 
