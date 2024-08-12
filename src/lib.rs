@@ -190,9 +190,8 @@ unsafe fn get_symbol<'a>(
         })
     })
     .as_ref()
-    .unwrap();
-  let func = **func;
-  Ok(func)
+    .map_err(|e| e.clone())?;
+  Ok(**func)
 }
 #[napi]
 unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
