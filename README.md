@@ -7,7 +7,7 @@
 A module written in Rust and N-API provides interface (FFI) features for Node.js
 
 <div align="">
-<a href="https://github.com/zhangyuang/node-ffi-rs/actions" target="_blank"><img src="https://github.com/zhangyuang/ssr/workflows/CI/badge.svg" alt="githubActions" />
+<a href="https://github.com/zhangyuang/node-ffi-rs/actions" target="_blank"><img src="https://github.com/zhangyuang/ssr/workflows/CI/badge.svg" alt="githubActions" /></a>
 </div>
 
 ## Description
@@ -21,14 +21,14 @@ This module aims to provide similar functionality to the node-ffi module but wit
 - High performance ✨
 - Better type hints 🧐
 - Simpler data description and API interface 💗
-- Support more different data types between `Node.js` and `c` 😊
-- Support modify data in place 🥸
+- Support more different data types between `Node.js` and `C` 😊
+- Support modifying data in place 🥸
 - Provide many ways to handle pointer type directly 🐮
-- Support run ffi task [in a new thread](#runInNewThread) 🤩️
+- Support running ffi task [in a new thread](#runInNewThread) 🤩️
 - Support output [errno](#errno) info 🤔️
 - No need to use [ref](https://www.npmjs.com/package/ref) to handle pointer 🤫
 
-## benchmark
+## Benchmark
 
 ```bash
 $ node bench/bench.js
@@ -44,28 +44,27 @@ Progress: 100%
 Finished 2 cases!
   Fastest: ffi-rs
   Slowest: ffi-napi
-
 ```
 
 ## Changelog
 
 See [CHANGELOG.md](./CHANGELOG.md)
 
-## ecosystem
+## Ecosystem
 
 [abstract-socket-rs](https://github.com/zhangyuang/abstract-socket-rs)
 
-## install
+## Install
 
-```js
+```bash
 $ npm i ffi-rs
 ```
 
-## Support type
+## Supported Types
 
 Currently, ffi-rs only supports these types of parameters and return values. However, support for more types may be added in the future based on actual usage scenarios.
 
-### Basic Type
+### Basic Types
 - [string](#basic-types)
 - [wideString](#basic-types)
 - [u8](#basic-types)
@@ -73,27 +72,27 @@ Currently, ffi-rs only supports these types of parameters and return values. How
 - [i64](#basic-types)
 - [bigInt](#basic-types)
 - [u64](#basic-types)
-- [void](#basic-types)(like js undefined)
-- [float](#basic-types)(can only be used as paramsType instead of retType)
+- [void](#basic-types) (like js undefined)
+- [float](#basic-types) (can only be used as paramsType instead of retType)
 - [double](#basic-types)
 - [boolean](#basic-types)
 
-### Reference Type
+### Reference Types
 
 - [pointer](#pointer)
-- [u8Array](#buffer)(buffer)
+- [u8Array](#buffer) (buffer)
 - [i32Array](#array)
 - [stringArray](#array)
 - [doubleArray](#array)
-- [floatArray](#array)(can only be used as paramsType instead of retType)
-- [object](#struct)(Nested object is also supported at the latest version)
+- [floatArray](#array) (can only be used as paramsType instead of retType)
+- [object](#struct) (Nested object is also supported in the latest version)
 - [function](#function)
 
 ### C++ Class
 
-If you want to call C++ function whose argument type is class, you can use `pointer` type, see [tutorial](#C++)
+If you want to call a C++ function whose argument type is a class, you can use the `pointer` type. See [tutorial](#C++)
 
-## Support Platform
+## Supported Platforms
 
 Note: You need to make sure that the compilation environment of the dynamic library is the same as the installation and runtime environment of the `ffi-rs` call.
 
@@ -109,15 +108,15 @@ Note: You need to make sure that the compilation environment of the dynamic libr
 
 ## Usage
 
-View [test.ts](./test.ts) get the latest usage
+View [test.ts](./test.ts) for the latest usage
 
 Here is an example of how to use ffi-rs:
 
 For the following C++ code, we compile this file into a dynamic library
 
-### write foreign function code
+### Write Foreign Function Code
 
-Note: The return value type of a function must be of type c
+Note: The return value type of a function must be of type C
 
 ```cpp
 #include <cstdio>
@@ -138,25 +137,23 @@ extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
 
 extern "C" void noRet() { printf("%s", "hello world"); }
 extern "C" bool return_opposite(bool input) { return !input; }
-
-
 ```
 
-### compile C code into a dynamic library
+### Compile C Code into a Dynamic Library
 
 ```bash
-$ g++ -dynamiclib -o libsum.so cpp/sum.cpp # macos
-$ g++ -shared -o libsum.so cpp/sum.cpp # linux
-$ g++ -shared -o sum.dll cpp/sum.cpp # win
+$ g++ -dynamiclib -o libsum.so cpp/sum.cpp # macOS
+$ g++ -shared -o libsum.so cpp/sum.cpp # Linux
+$ g++ -shared -o sum.dll cpp/sum.cpp # Windows
 ```
 
-### call dynamic library by ffi-rs
+### Call Dynamic Library Using ffi-rs
 
 Then you can use `ffi-rs` to invoke the dynamic library file that contains functions.
 
 ### Initialization
 
-Suggested develop with typescript to get type hints
+It's suggested to develop with TypeScript to get type hints
 
 ```js
 const { equal } = require('assert')
@@ -164,7 +161,7 @@ const { load, DataType, open, close, arrayConstructor, define } = require('ffi-r
 const a = 1
 const b = 100
 const dynamicLib = platform === 'win32' ? './sum.dll' : "./libsum.so"
-// first open dynamic library with key for close
+// First open dynamic library with key for close
 // It only needs to be opened once.
 open({
   library: 'libsum', // key
@@ -179,10 +176,10 @@ const r = load({
   // freeResultMemory: true, // whether or not need to free the result of return value memory automatically, default is false
 })
 equal(r, a + b)
-// release library memory when you're not using it.
+// Release library memory when you're not using it.
 close('libsum')
 
-// use define function to define a function signature
+// Use define function to define a function signature
 const res = define({
   sum: {
     library: "libsum",
@@ -200,16 +197,16 @@ equal(res.sum([1, 2]), 3)
 equal(res.atoi(["1000"]), 1000)
 ```
 
-### Load Main Program handle
+### Load Main Program Handle
 
-You can alse pass emptry path string in `open` function like [ffi-napi](https://github.com/node-ffi-napi/node-ffi-napi?tab=readme-ov-file#example) to get the main program handle refer [dlopen](https://man7.org/linux/man-pages/man3/dlopen.3.html)
+You can also pass an empty path string in the `open` function like [ffi-napi](https://github.com/node-ffi-napi/node-ffi-napi?tab=readme-ov-file#example) to get the main program handle. Refer to [dlopen](https://man7.org/linux/man-pages/man3/dlopen.3.html)
 
 ```js
 open({
   library: "libnative",
   path: "",
 });
-// In darwin/linux, you can call atoi function which is included in the basic c library
+// In Darwin/Linux, you can call the atoi function which is included in the basic C library
 equal(
   load({
     library: "libnative",
@@ -245,7 +242,6 @@ equal(undefined, load({
   paramsType: [],
   paramsValue: []
 }))
-
 
 equal(1.1 + 2.2, load({
   library: 'libsum',
@@ -320,7 +316,6 @@ extern "C" char **createArrayString(char **arr, int size) {
   }
   return vec;
 }
-
 ```
 
 ```js
@@ -350,14 +345,13 @@ deepStrictEqual(stringArr, load({
   paramsType: [DataType.StringArray, DataType.I32],
   paramsValue: [stringArr, stringArr.length],
 }))
-
 ```
 
 ### Pointer
 
 In `ffi-rs`, we use [DataType.External](https://nodejs.org/api/n-api.html#napi_create_external) for wrapping the `pointer` which enables it to be passed between `Node.js` and `C`.
 
-`Pointer` is complicated and underlying, `ffi-rs` provide four functions to handle this pointer include `createPointer`, `restorePointer`, `unwrapPointer`, `wrapPointer`, `freePointer` for different scene.
+`Pointer` is complicated and underlying, `ffi-rs` provides four functions to handle this pointer including `createPointer`, `restorePointer`, `unwrapPointer`, `wrapPointer`, `freePointer` for different scenes.
 
 ```cpp
 extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
@@ -369,7 +363,6 @@ extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
 
 extern "C" char *getStringFromPtr(void *ptr) { return (char *)ptr; };
 ```
-
 
 ```js
 // get pointer
@@ -393,11 +386,11 @@ const string = load({
 
 #### createPointer
 
-`createPointer` function is used for create a pointer point to specify type. In order to avoid mistaks, developers have to understand what type this pointer is.
+`createPointer` function is used for creating a pointer pointing to a specified type. In order to avoid mistakes, developers have to understand what type this pointer is.
 
-For numeric type like `i32|u8|i64|f64`, createPointer will create a pointer like `*mut i32` point to there number
+For numeric types like `i32|u8|i64|f64`, createPointer will create a pointer like `*mut i32` pointing to these numbers.
 
-For types that are originally pointer types like `char *` represent `string` type in `c`, createPointer will create a dual pointer like `*mut *mut c_char` point to `*mut c_char`.Developers can use `unwrapPointer` get the interal pointer `*mut c_char`
+For types that are originally pointer types like `char *` representing `string` type in `C`, createPointer will create a dual pointer like `*mut *mut c_char` pointing to `*mut c_char`. Developers can use `unwrapPointer` to get the internal pointer `*mut c_char`.
 
 ```js
 let bigDoubleArr = new Array(5).fill(1.1);
@@ -440,7 +433,7 @@ The two pieces of code above are equivalent
 
 #### restorePointer
 
-Similarly, you can use `restorePointer` to restore data from `pointer` which is wrapped by `createPointer` or as a return value of foreign function
+Similarly, you can use `restorePointer` to restore data from a `pointer` which is wrapped by `createPointer` or as a return value of a foreign function
 
 ```js
 const pointerArr = createPointer({
@@ -459,23 +452,23 @@ deepStrictEqual(restoreData, [[1.1, 2.2]])
 
 #### freePointer
 
-`freePointer` is used to free memory which are not be freed automatically.
+`freePointer` is used to free memory which is not freed automatically.
 
-At default, `ffi-rs` will free data memory for ffi call args and return result prevent memory leak.Except in the following cases.
+By default, `ffi-rs` will free data memory for ffi call args and return result to prevent memory leaks. Except in the following cases:
 
-- set `freeResultMemory: false` when call `load` method
+- set `freeResultMemory: false` when calling `load` method
 
-If you set freeResultMemory to false, `ffi-rs` will not release the return result memory which was malloc in c environment
+If you set freeResultMemory to false, `ffi-rs` will not release the return result memory which was allocated in the C environment
 
 - Use `DataType.External` as paramsType or retType
 
-If developers use `DataType.External` as paramsType or retType, please use `freePointer` to release the memory of pointer. ref [test.ts](./test.ts#170)
+If developers use `DataType.External` as paramsType or retType, please use `freePointer` to release the memory of the pointer. ref [test.ts](./test.ts#170)
 
 #### wrapPointer
 
-`wrapPointer` is used to create multiple pointer.
+`wrapPointer` is used to create multiple pointers.
 
-For example, developers can use `wrapPointer` to create a pointer point to other existing pointer.
+For example, developers can use `wrapPointer` to create a pointer pointing to other existing pointers.
 
 ```js
 const { wrapPointer } = require('ffi-rs')
@@ -490,10 +483,11 @@ const ptr = load({
 
 // wrapPtr type is *mut *mut c_char
 const wrapPtr = wrapPointer([ptr])[0]
+```
 
 #### unwrapPointer
 
-`unwrapPointer` is oppsite to `wrapPointer` which is used to get the internal pointer for multiple pointer
+`unwrapPointer` is opposite to `wrapPointer` which is used to get the internal pointer for multiple pointers
 
 ```js
 const { unwrapPointer, createPointer } = require('ffi-rs')
@@ -509,27 +503,27 @@ const unwrapPtr = unwrapPointer([ptr])[0]
 
 ### Struct
 
-To create a c struct or get a c struct as a return type, you need to define the types of the parameters strictly in the order in which the fields of the c structure are defined.
+To create a C struct or get a C struct as a return type, you need to define the types of the parameters strictly in the order in which the fields of the C structure are defined.
 
-`ffi-rs` provide a c struct named `Person` with many types of field in [sum.cpp](https://github.com/zhangyuang/node-ffi-rs/blob/master/cpp/sum.cpp#L48)
+`ffi-rs` provides a C struct named `Person` with many types of fields in [sum.cpp](https://github.com/zhangyuang/node-ffi-rs/blob/master/cpp/sum.cpp#L48)
 
-The example call method about how to call foreign function to create `Person` struct or use `Person` struct as a return value is [here](https://github.com/zhangyuang/node-ffi-rs/blob/master/test.ts#L289)
+The example call method about how to call a foreign function to create a `Person` struct or use `Person` struct as a return value is [here](https://github.com/zhangyuang/node-ffi-rs/blob/master/test.ts#L289)
 
 #### Use array in struct
 
-There are two types of array in c language like `int* array` and `int array[100]` yhat have some different usages.
+There are two types of arrays in C language like `int* array` and `int array[100]` that have some different usages.
 
-The first type `int* array` is a pointer type store the first address of the array.
+The first type `int* array` is a pointer type storing the first address of the array.
 
-The second type `int array[100]` is a fixed length array and each element in array has continous address.
+The second type `int array[100]` is a fixed-length array and each element in the array has a continuous address.
 
-If you use a array as function parameter, this usually passes an array pointer regardless of which type you define.But if the array type is defined in struct, the two types of array define will cause different size and align of struct.
+If you use an array as a function parameter, this usually passes an array pointer regardless of which type you define. But if the array type is defined in a struct, the two types of array definitions will cause different sizes and alignments of the struct.
 
-So, `ffi-rs` need to distinguish between the two types.
+So, `ffi-rs` needs to distinguish between the two types.
 
-By default, `ffi-rs` use pointer array to calculate struct. If you confirm there should use static array, you can define it in the way
+By default, `ffi-rs` uses pointer arrays to calculate struct. If you confirm there should be a static array, you can define it in this way:
 
-```js
+```c
 typedef struct Person {
   //...
   uint8_t staticBytes[16];
@@ -546,7 +540,7 @@ staticBytes: arrayConstructor({
 
 ## Function
 
-`ffi-rs` supports passing js function pointer to c function, like this.
+`ffi-rs` supports passing JS function pointers to C functions, like this:
 
 ```cpp
 typedef const void (*FunctionPointer)(int a, bool b, char *c, double d,
@@ -577,7 +571,7 @@ extern "C" void callFunction(FunctionPointer func) {
 }
 ```
 
-Corresponds to the code above，you can use `ffi-rs` like
+Corresponding to the code above, you can use `ffi-rs` like this:
 
 ```js
 const testFunction = () => {
@@ -590,7 +584,7 @@ const testFunction = () => {
     deepStrictEqual(f, [101, 202, 303]);
     deepStrictEqual(g, person);
     logGreen("test function succeed");
-    // free function memory when it not in use
+    // free function memory when it is not in use
     freePointer({
       paramsType: [funcConstructor({
         paramsType: [
@@ -610,7 +604,7 @@ const testFunction = () => {
       close("libsum");
     }
   };
-  // suggest use createPointer to create a function pointer for manual memory management
+  // suggest using createPointer to create a function pointer for manual memory management
   const funcExternal = createPointer({
     paramsType: [funcConstructor({
       paramsType: [
@@ -638,20 +632,19 @@ const testFunction = () => {
 }
 ```
 
-The function parameters supports type are all in the example above
+The function parameters support all types in the example above.
 
-Attention，since the vast majority of scenarios developers pass js function to c as a callback, so `ffi-rs` will create [threadsafe_function](https://nodejs.org/api/n-api.html#napi_threadsafe_function) from jsfunction which means the jsfunction will be called asynchronous, and Node.js process will not be exited automatically
-
+Attention: since the vast majority of scenarios developers pass JS functions to C as callbacks, `ffi-rs` will create [threadsafe_function](https://nodejs.org/api/n-api.html#napi_threadsafe_function) from JS functions which means the JS function will be called asynchronously, and the Node.js process will not exit automatically.
 
 ## C++
 
-We'll provide more examples from real-world scenarios, if you have any ideas, please submit an issue
+We'll provide more examples from real-world scenarios. If you have any ideas, please submit an issue.
 
-### class type
+### Class type
 
-In C++ scene, we can use `DataType.External` to get a class type pointer
+In C++ scenarios, we can use `DataType.External` to get a class type pointer.
 
-In the code below, we use C types to wrap C++ types such as convert `char *` to `std::string` and return class pointer
+In the code below, we use C types to wrap C++ types such as converting `char *` to `std::string` and returning a class pointer:
 
 ```cpp
 MyClass *createMyClass(std::string name, int age) {
@@ -665,7 +658,7 @@ extern "C" MyClass *createMyClassFromC(const char *name, int age) {
 extern "C" void printMyClass(MyClass *instance) { instance->print(); }
 ```
 
-And then, it can called by the following code
+And then, it can be called by the following code:
 
 ```js
 const classPointer = load({
@@ -696,7 +689,7 @@ freePointer({
 
 ## errno
 
-By default, `ffi-rs` will not output [errno](https://man7.org/linux/man-pages/man3/errno.3.html) info, developers can get it by pass `errno: true` when call open method like
+By default, `ffi-rs` will not output [errno](https://man7.org/linux/man-pages/man3/errno.3.html) info. Developers can get it by passing `errno: true` when calling the open method like:
 
 ```js
 load({
@@ -708,38 +701,38 @@ load({
    errno: true // set errno as true
 })
 
-// The above code will return a object include three fields include errnoCode, errnoMessage, and the foreign function return value
+// The above code will return an object including three fields: errnoCode, errnoMessage, and the foreign function return value
 // { errnoCode: 22, errnoMessage: 'Invalid argument (os error 22)', value: -1 }
 ```
 
 ## Memory Management
 
-It's important to free the memory allocations during a single ffi call prevent memory leak.
+It's important to free the memory allocations during a single ffi call to prevent memory leaks.
 
 What kinds of data memory are allocated in this?
 
-- call parameters in Rust environment which are allocated in the heap like `String`
-- return value which in C environment which are allocated in the heap like `char*`
+- Call parameters in the Rust environment which are allocated in the heap like `String`
+- Return value which in the C environment which are allocated in the heap like `char*`
 
-At default, `ffi-rs` will free call parameters memory which are allocated in Rust.
+By default, `ffi-rs` will free call parameters memory which are allocated in Rust.
 
-But not free the return value from c side since some c dynamic library will manage their memory automatically(when ffi-rs >= 1.0.79)
+But it will not free the return value from the C side since some C dynamic libraries will manage their memory automatically (when ffi-rs >= 1.0.79)
 
-There are two ways to prevent `ffi-rs` release memory
+There are two ways to prevent `ffi-rs` from releasing memory:
 
-- set `freeResultMemory: false` when call `load` method, the default value is false
+- Set `freeResultMemory: false` when calling `load` method, the default value is false
 
-If you set freeResultMemory to false, `ffi-rs` will not release the return result memory which was allocated in c environment
+If you set freeResultMemory to false, `ffi-rs` will not release the return result memory which was allocated in the C environment
 
 - Use `DataType.External` as paramsType or retType
 
-If developers use `DataType.External` as paramsType or retType, please use `freePointer` to release the memory of pointer when this memory is no longer in use. ref [test.ts](./test.ts#170)
+If developers use `DataType.External` as paramsType or retType, please use `freePointer` to release the memory of the pointer when this memory is no longer in use. ref [test.ts](./test.ts#170)
 
 ## runInNewThread
 
-`ffi-rs` support run ffi task in a new thread without blocking the main thread which is useful for cpu intensive task.
+`ffi-rs` supports running ffi tasks in a new thread without blocking the main thread, which is useful for CPU-intensive tasks.
 
-To use the feature, you can pass `runInNewThread` option to load method
+To use this feature, you can pass the `runInNewThread` option to the load method:
 
 ```js
 const testRunInNewThread = async () => {
