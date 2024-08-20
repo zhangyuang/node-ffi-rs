@@ -4,26 +4,29 @@
 <a href="https://github.com/zhangyuang/node-ffi-rs/blob/master/README.md">English</a> | <a href="https://github.com/zhangyuang/node-ffi-rs/blob/master/README_Zh.md">简体中文</a>
 </div>
 
-A module written in Rust and N-APi provides interface (FFI) features for Node.js
+一个用Rust和N-API编写的模块,为Node.js提供外部函数接口(FFI)功能
 
-为了获取最及时的更新，我们更建议你查看[英文版文档](./README.md)
+<div align="">
+<a href="https://github.com/zhangyuang/node-ffi-rs/actions" target="_blank"><img src="https://github.com/zhangyuang/ssr/workflows/CI/badge.svg" alt="githubActions" />
+</div>
 
-## 简介
+## 描述
 
-[ffi-rs](https://github.com/zhangyuang/node-ffi-rs) 是一个高性能的使用 `Rust` 编写用于在 `Node.js` 中使用 [ffi](https://en.wikipedia.org/wiki/Foreign_function_interface)来调用 `C++/C/Rust` 等语言的能力。
+[ffi-rs](https://github.com/zhangyuang/node-ffi-rs)是一个用Rust和N-API编写的高性能模块,为Node.js提供FFI(外部函数接口)功能。它允许开发者直接从JavaScript调用用其他语言如C++、C和Rust编写的函数,而无需编写任何C++代码。
 
-开发者无需编写 `C++` 代码便可以直接在 `js` 中调用其他语言的能力。此模块在功能上尽量对标[node-ffi](https://github.com/node-ffi/node-ffi)模块，但底层代码已彻底重写。因 `node-ffi` 模块已经多年无人维护处于一个不可用的状态因此开发了`ffi-rs`模块。
+该模块旨在提供类似于node-ffi模块的功能,但底层代码库完全重写。node-ffi模块已经多年未维护,不再可用,所以开发了ffi-rs来填补这个空白。
 
-## 功能
+## 特性
 
-- 更高的性能
-- 更完善的 ts 类型提示
-- 更简洁的调用接口
-- 支持在 `Node.js` 和 `C` 之间传递更多类型的数据
-- 支持原地修改`buffer`数据
-- 提供了更多的方法来操作指针类型的数据
-- 支持在新的线程中运行任务
-- 支持输出 `errno` 信息
+- 高性能 ✨
+- 更好的类型提示 🧐
+- 更简单的数据描述和API接口 💗
+- 支持`Node.js`和`c`之间更多不同的数据类型 😊
+- 支持原地修改数据 🥸
+- 提供多种方式直接处理指针类型 🐮
+- 支持[在新线程中](#runInNewThread)运行ffi任务 🤩️
+- 支持输出[errno](#errno)信息 🤔️
+- 无需使用[ref](https://www.npmjs.com/package/ref)来处理指针 🤫
 
 ## 基准测试
 
@@ -36,57 +39,63 @@ Progress: 100%
     2 028 ops/s, ±4.87%     | slowest, 99.24% slower
 
   ffi-rs:
-    287 523 ops/s, ±0.17%   | fastest
+    318 467 ops/s, ±0.17%   | fastest
 
 Finished 2 cases!
   Fastest: ffi-rs
   Slowest: ffi-napi
 
 ```
+
+## 更新日志
+
+查看[CHANGELOG.md](./CHANGELOG.md)
+
+## 生态系统
+
+[abstract-socket-rs](https://github.com/zhangyuang/abstract-socket-rs)
+
 ## 安装
 
 ```js
 $ npm i ffi-rs
 ```
 
-## 如何使用
+## 支持的类型
 
-查看 [test.ts](./test.ts) 获取最新的用法
-
-## 目前支持的数据类型
-
-目前支持下列类型作为出参入参类型。根据实际使用场景后续会支持更多的类型。
+目前,ffi-rs仅支持这些类型的参数和返回值。然而,根据实际使用场景,未来可能会添加对更多类型的支持。
 
 ### 基本类型
-- [string](#basic-types)
-- [wideString](#basic-types)
-- [u8](#basic-types)
-- [i32](#basic-types)
-- [i64](#basic-types)
-- [bigInt](#basic-types)
-- [u64](#basic-types)
-- [void](#basic-types)(like js undefined)
-- [float](#basic-types)(can only be used as paramsType instead of retType)
-- [double](#basic-types)
-- [boolean](#basic-types)
+- [string](#基本类型)
+- [wideString](#基本类型)
+- [u8](#基本类型)
+- [i32](#基本类型)
+- [i64](#基本类型)
+- [bigInt](#基本类型)
+- [u64](#基本类型)
+- [void](#基本类型)(类似js的undefined)
+- [float](#基本类型)(只能用作paramsType而不能用作retType)
+- [double](#基本类型)
+- [boolean](#基本类型)
 
 ### 引用类型
 
-- [pointer](#pointer)
-- [u8Array](#array)
-- [i32Array](#array)
-- [stringArray](#array)
-- [doubleArray](#array)
-- [object](#struct)(最新版本支持嵌套对象的生成)
-- [function](#function)
+- [pointer](#指针)
+- [u8Array](#缓冲区)(buffer)
+- [i32Array](#数组)
+- [stringArray](#数组)
+- [doubleArray](#数组)
+- [floatArray](#数组)(只能用作paramsType而不能用作retType)
+- [object](#结构体)(最新版本也支持嵌套对象)
+- [function](#函数)
 
-### C++
+### C++类
 
-如果你需要调用c++函数, 请阅读 [tutorial](#c)
+如果你想调用参数类型为类的C++函数,你可以使用`pointer`类型,参见[教程](#C++)
 
-## 支持的系统架构
+## 支持的平台
 
-注意：你需要保证动态链接库的编译环境，与调用 `ffi-rs` 的安装环境和运行环境一致
+注意:你需要确保动态库的编译环境与`ffi-rs`调用的安装和运行环境相同。
 
 - darwin-x64
 - darwin-arm64
@@ -98,10 +107,17 @@ $ npm i ffi-rs
 - linux-arm64-gnu
 - linux-arm64-musl
 
+## 使用方法
 
-### 编写 c/cpp 代码
+查看[test.ts](./test.ts)获取最新用法
 
-注意：返回的数据类型必须是属于 c 类型的而不是 c++ 类型
+以下是如何使用ffi-rs的示例:
+
+对于以下C++代码,我们将此文件编译成动态库
+
+### 编写外部函数代码
+
+注意:函数的返回值类型必须是c类型
 
 ```cpp
 #include <cstdio>
@@ -126,7 +142,7 @@ extern "C" bool return_opposite(bool input) { return !input; }
 
 ```
 
-### 将 c/cpp 代码编译为动态链接库
+### 将C代码编译成动态库
 
 ```bash
 $ g++ -dynamiclib -o libsum.so cpp/sum.cpp # macos
@@ -134,46 +150,66 @@ $ g++ -shared -o libsum.so cpp/sum.cpp # linux
 $ g++ -shared -o sum.dll cpp/sum.cpp # win
 ```
 
-### 使用 ffi-rs 来调用动态链接库
+### 使用ffi-rs调用动态库
 
-Then can use `ffi-rs` invoke the dynamic library file contains functions.
+然后你可以使用`ffi-rs`调用包含函数的动态库文件。
 
 ### 初始化
 
+建议使用typescript开发以获得类型提示
+
 ```js
 const { equal } = require('assert')
-const { load, DataType, open, close, arrayConstructor } = require('ffi-rs')
+const { load, DataType, open, close, arrayConstructor, define } = require('ffi-rs')
 const a = 1
 const b = 100
 const dynamicLib = platform === 'win32' ? './sum.dll' : "./libsum.so"
-// 首先你需要调用 open 来打开一个动态链接库并指定一个key来作为标志符在后续操作里调用
+// 首先用key打开动态库以便关闭
+// 只需打开一次。
 open({
   library: 'libsum', // key
-  path: dynamicLib // path
+  path: dynamicLib // 路径
 })
 const r = load({
-  library: "libsum", // path to the dynamic library file
-  funcName: 'sum', // the name of the function to call
-  retType: DataType.I32, // the return value type
-  paramsType: [DataType.I32, DataType.I32], // the parameter types
-  paramsValue: [a, b] // the actual parameter values
+  library: "libsum", // 动态库文件的路径
+  funcName: 'sum', // 要调用的函数名
+  retType: DataType.I32, // 返回值类型
+  paramsType: [DataType.I32, DataType.I32], // 参数类型
+  paramsValue: [a, b] // 实际参数值
+  // freeResultMemory: true, // 是否需要自动释放返回值的内存,默认为false
 })
 equal(r, a + b)
-// 当你不需要再用到这个动态链接库时，使用close来释放它
+// 当你不再使用库时释放库内存。
 close('libsum')
 
+// 使用define函数定义函数签名
+const res = define({
+  sum: {
+    library: "libsum",
+    retType: DataType.I32,
+    paramsType: [DataType.I32, DataType.I32],
+  },
+  atoi: {
+    library: "libnative",
+    retType: DataType.I32,
+    paramsType: [DataType.String],
+    paramsValue: ["1000"],
+  }
+})
+equal(res.sum([1, 2]), 3)
+equal(res.atoi(["1000"]), 1000)
 ```
 
-### 加载主进程的符号
+### 加载主程序句柄
 
-同样，开发者也可以像 `ffi-napi` 一样，传递一个空的 `path` 字符串给 `open` 方法来加载已经在主进程中加载的`c`基础库中包含的符号，参考[dlopen](https://man7.org/linux/man-pages/man3/dlopen.3.html)
+你也可以在`open`函数中传递空路径字符串,像[ffi-napi](https://github.com/node-ffi-napi/node-ffi-napi?tab=readme-ov-file#example)那样获取主程序句柄,参考[dlopen](https://man7.org/linux/man-pages/man3/dlopen.3.html)
 
 ```js
 open({
   library: "libnative",
   path: "",
 });
-// 在 darwin/linux 上，你可以调用 atoi 这个包含在系统 c 基础库中的方法
+// 在darwin/linux中,你可以调用包含在基本c库中的atoi函数
 equal(
   load({
     library: "libnative",
@@ -188,7 +224,7 @@ equal(
 
 ### 基本类型
 
-`number|string|boolean|double|void` 属于基本类型
+`number|string|boolean|double|void`是基本类型
 
 ```js
 const c = "foo"
@@ -228,20 +264,20 @@ equal(!bool_val, load({
 }))
 ```
 
-### Buffer
+### 缓冲区
 
-In the lateset version, `ffi-rs` support modify data in place.
+在最新版本中,`ffi-rs`支持原地修改数据。
 
-The sample code is as follows
+示例代码如下
 
 ```c
 extern int modifyData(char* buffer) {
-    // modify buffer data in place
+    // 原地修改buffer数据
 }
 ```
 
 ```js
-const arr = Buffer.alloc(200) // create buffer
+const arr = Buffer.alloc(200) // 创建buffer
 const res = load({
   library: "libsum",
   funcName: "modifyData",
@@ -251,12 +287,14 @@ const res = load({
   ],
   paramsValue: [arr]
 })
-console.log(arr) // buffer data can be updated
+console.log(arr) // buffer数据可以被更新
 ```
 
-### Array
+### 数组
 
-使用 `arrayConstructor` 来创建数组的类型描述。指定返回值中数组的长度是非常重要的，如果输入了不争取的长度可能会引发程序异常退出。
+当使用`array`作为`retType`时,你应该使用`arrayConstructor`指定数组类型和合法长度,这很重要。
+
+如果长度不正确,程序可能会异常退出
 
 ```cpp
 extern "C" int *createArrayi32(const int *arr, int size) {
@@ -315,11 +353,11 @@ deepStrictEqual(stringArr, load({
 
 ```
 
-### Pointer
+### 指针
 
-在 `ffi-rs`,我们使用 [DataType.External](https://nodejs.org/api/n-api.html#napi_create_external) 来包裹指针使得其可以在 `Node.js` 和 `C` 之间传递
+在`ffi-rs`中,我们使用[DataType.External](https://nodejs.org/api/n-api.html#napi_create_external)来包装`pointer`,使其能够在`Node.js`和`C`之间传递。
 
-由于指针类型非常复杂并且底层，所以 `ffi-rs`提供了四个方法 `createPointer`, `restorePointer`, `unwrapPointer`, `wrapPointer` 来操作指针，具体的用法请参考最新的英文文档。
+`Pointer`是复杂和底层的,`ffi-rs`提供了四个函数来处理这个指针,包括`createPointer`、`restorePointer`、`unwrapPointer`、`wrapPointer`、`freePointer`,用于不同的场景。
 
 ```cpp
 extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
@@ -334,7 +372,7 @@ extern "C" char *getStringFromPtr(void *ptr) { return (char *)ptr; };
 
 
 ```js
-// get pointer
+// 获取指针
 const ptr = load({
   library: "libsum",
   funcName: "concatenateStrings",
@@ -343,7 +381,7 @@ const ptr = load({
   paramsValue: [c, d],
 })
 
-// send pointer
+// 发送指针
 const string = load({
   library: "libsum",
   funcName: "getStringFromPtr",
@@ -353,189 +391,167 @@ const string = load({
 })
 ```
 
-### Struct
+#### createPointer
 
-创建一个 c 的结构体或者将 c 结构体类型作为返回值，你需要严格按照 c 结构体中声明的字段顺序来定义 js 侧参数的顺序。
+`createPointer`函数用于创建指向指定类型的指针。为了避免错误,开发者必须理解这个指针是什么类型。
 
-```cpp
-typedef struct Person {
-  int age;
-  double *doubleArray;
-  Person *parent;
-  double doubleProps;
-  const char *name;
-  char **stringArray;
-  int *i32Array;
-  bool boolTrue;
-  bool boolFalse;
-} Person;
+对于像`i32|u8|i64|f64`这样的数值类型,createPointer将创建一个像`*mut i32`这样指向这些数字的指针
 
-extern "C" Person *getStruct(Person *person) {
-  return person;
-}
-
-extern "C" Person *createPerson() {
-  Person *person = (Person *)malloc(sizeof(Person));
-
-  // Allocate and initialize doubleArray
-  person->doubleArray = (double *)malloc(sizeof(double) * 3);
-  person->doubleArray[0] = 1.1;
-  person->doubleArray[1] = 2.2;
-  person->doubleArray[2] = 3.3;
-
-  // Initialize age and doubleProps
-  person->age = 23;
-  person->doubleProps = 1.1;
-
-  // Allocate and initialize name
-  person->name = strdup("tom");
-
-  person->stringArray = (char **)malloc(sizeof(char *) * 1);
-  person->stringArray[0] = strdup("tom");
-
-  person->i32Array = (int *)malloc(sizeof(int) * 4);
-  person->i32Array[0] = 1;
-  person->i32Array[1] = 2;
-  person->i32Array[2] = 3;
-  person->i32Array[3] = 4;
-  person->boolTrue = true;
-  person->boolFalse = false;
-
-  // Allocate and initialize parent
-  person->parent = (Person *)malloc(sizeof(Person));
-  person->parent->doubleArray = (double *)malloc(sizeof(double) * 3);
-  person->parent->doubleArray[0] = 1.1;
-  person->parent->doubleArray[1] = 2.2;
-  person->parent->doubleArray[2] = 3.3;
-  person->parent->age = 43;
-  person->parent->doubleProps = 3.3;
-  person->parent->name = strdup("tom father");
-  person->parent->stringArray = (char **)malloc(sizeof(char *) * 2);
-  person->parent->stringArray[0] = strdup("tom");
-  person->parent->stringArray[1] = strdup("father");
-  person->parent->i32Array = (int *)malloc(sizeof(int) * 3);
-  person->parent->i32Array[0] = 5;
-  person->parent->i32Array[1] = 6;
-  person->parent->i32Array[2] = 7;
-  person->parent->boolTrue = true;
-  person->parent->boolFalse = false;
-
-  return person;
-}
-```
+对于原本就是指针类型的类型,如在`c`中表示`string`类型的`char *`,createPointer将创建一个像`*mut *mut c_char`这样指向`*mut c_char`的双重指针。开发者可以使用`unwrapPointer`获取内部指针`*mut c_char`
 
 ```js
-const parent = {
-  age: 43,
-  doubleArray: [1.1, 2.2, 3.3],
-  parent: {},
-  doubleProps: 3.3,
-  name: "tom father",
-  stringArray: ["tom", "father"],
-  i32Array: [5, 6, 7],
-  boolTrue: true,
-  boolFalse: false,
-};
-const person = {
-  age: 23,
-  doubleArray: [1.1, 2.2, 3.3],
-  parent,
-  doubleProps: 1.1,
-  name: "tom",
-  stringArray: ["tom"],
-  i32Array: [1, 2, 3, 4],
-  boolTrue: true,
-  boolFalse: false,
-};
-const parentType = {
-  age: DataType.I32,
-  doubleArray: arrayConstructor({
-    type: DataType.DoubleArray,
-    length: parent.doubleArray.length,
+let bigDoubleArr = new Array(5).fill(1.1);
+deepStrictEqual(
+  bigDoubleArr,
+  load({
+    library: "libsum",
+    funcName: "createArrayDouble",
+    retType: arrayConstructor({
+      type: DataType.DoubleArray,
+      length: bigDoubleArr.length,
+    }),
+    paramsType: [DataType.DoubleArray, DataType.I32],
+    paramsValue: [bigDoubleArr, bigDoubleArr.length],
   }),
-  parent: {},
-  doubleProps: DataType.Double,
-  name: DataType.String,
-  stringArray: arrayConstructor({
-    type: DataType.StringArray,
-    length: parent.stringArray.length,
-  }),
-  i32Array: arrayConstructor({
-    type: DataType.I32Array,
-    length: parent.i32Array.length,
-  }),
-  boolTrue: DataType.Boolean,
-  boolFalse: DataType.Boolean,
-};
-const personType = {
-  age: DataType.I32,
-  doubleArray: arrayConstructor({
-    type: DataType.DoubleArray,
-    length: person.doubleArray.length,
-  }),
-  parent: parentType,
-  doubleProps: DataType.Double,
-  name: DataType.String,
-  stringArray: arrayConstructor({
-    type: DataType.StringArray,
-    length: person.stringArray.length,
-  }),
-  i32Array: arrayConstructor({
-    type: DataType.I32Array,
-    length: person.i32Array.length,
-  }),
-  boolTrue: DataType.Boolean,
-  boolFalse: DataType.Boolean,
-};
-const personObj = load({
-  library: "libsum",
-  funcName: "getStruct",
-  retType: personType,
-  paramsType: [
-    {
-      age: DataType.I32,
-      doubleArray: DataType.DoubleArray,
-      parent: {
-        parent: {},
-        age: DataType.I32,
-        doubleProps: DataType.Double,
-        name: DataType.String,
-        stringArray: DataType.StringArray,
-        doubleArray: DataType.DoubleArray,
-        i32Array: DataType.I32Array,
-        boolTrue: DataType.Boolean,
-        boolFalse: DataType.Boolean,
-      },
-      doubleProps: DataType.Double,
-      name: DataType.String,
-      stringArray: DataType.StringArray,
-      i32Array: DataType.I32Array,
-      boolTrue: DataType.Boolean,
-      boolFalse: DataType.Boolean,
-    },
-  ],
-  paramsValue: [person],
-});
-deepStrictEqual(person, personObj);
-const createdPerson = load({
-  library: "libsum",
-  funcName: "createPerson",
-  retType: personType,
-  paramsType: [],
-  paramsValue: [],
-});
-
-deepStrictEqual(createdPerson, person);
-
+);
 ```
 
-## Function
+对于上面的代码,我们可以使用`createPointer`函数来包装一个指针数据并将其作为paramsValue发送
 
-`ffi-rs` 支持传递 js 函数给 c 语言侧，就像这样
+```js
+const ptrArr: unknown[] = createPointer({
+  paramsType: [DataType.DoubleArray],
+  paramsValue: [[1.1,2.2]]
+})
+
+load({
+  library: "libsum",
+  funcName: "createArrayDouble",
+  retType: arrayConstructor({
+    type: DataType.DoubleArray,
+    length: bigDoubleArr.length,
+  }),
+  paramsType: [DataType.External, DataType.I32],
+  paramsValue: [unwrapPointer(ptrArr)[0], bigDoubleArr.length],
+})
+```
+
+上面两段代码是等效的
+
+#### restorePointer
+
+同样,你可以使用`restorePointer`从由`createPointer`包装或作为外部函数返回值的`pointer`中恢复数据
+
+```js
+const pointerArr = createPointer({
+  paramsType: [DataType.DoubleArray],
+  paramsValue: [[1.1, 2.2]]
+})
+const restoreData = restorePointer({
+  retType: [arrayConstructor({
+    type: DataType.DoubleArray,
+    length: 2
+  })],
+  paramsValue: pointerArr
+})
+deepStrictEqual(restoreData, [[1.1, 2.2]])
+```
+
+#### freePointer
+
+`freePointer`用于释放不会自动释放的内存。
+
+默认情况下,`ffi-rs`会为ffi调用参数和返回结果释放数据内存以防止内存泄漏。除了以下情况。
+
+- 调用`load`方法时设置`freeResultMemory: false`
+
+如果你将freeResultMemory设置为false,`ffi-rs`将不会释放在c环境中分配的返回结果内存
+
+- 使用`DataType.External`作为paramsType或retType
+
+如果开发者使用`DataType.External`作为paramsType或retType,请使用`freePointer`释放指针的内存。参考[test.ts](./test.ts#170)
+
+#### wrapPointer
+
+`wrapPointer`用于创建多重指针。
+
+例如,开发者可以使用`wrapPointer`创建一个指向其他现有指针的指针。
+
+```js
+const { wrapPointer } = require('ffi-rs')
+// ptr类型是*mut c_char
+const ptr = load({
+  library: "libsum",
+  funcName: "concatenateStrings",
+  retType: DataType.External,
+  paramsType: [DataType.String, DataType.String],
+  paramsValue: [c, d],
+})
+
+// wrapPtr类型是*mut *mut c_char
+const wrapPtr = wrapPointer([ptr])[0]
+```
+
+#### unwrapPointer
+
+`unwrapPointer`与`wrapPointer`相反,用于获取多重指针的内部指针
+
+```js
+const { unwrapPointer, createPointer } = require('ffi-rs')
+// ptr类型是*mut *mut c_char
+let ptr = createPointer({
+  paramsType: [DataType.String],
+  paramsValue: ["foo"]
+})
+
+// unwrapPtr类型是*mut c_char
+const unwrapPtr = unwrapPointer([ptr])[0]
+```
+
+### 结构体
+
+要创建c结构体或获取c结构体作为返回类型,你需要严格按照c结构体字段定义的顺序定义参数类型。
+
+`ffi-rs`在[sum.cpp](https://github.com/zhangyuang/node-ffi-rs/blob/master/cpp/sum.cpp#L48)中提供了一个名为`Person`的c结构体,包含多种类型的字段
+
+关于如何调用外部函数来创建`Person`结构体或使用`Person`结构体作为返回值的示例调用方法在[这里](https://github.com/zhangyuang/node-ffi-rs/blob/master/test.ts#L289)
+
+#### 在结构体中使用数组
+
+c语言中有两种类型的数组,如`int* array`和`int array[100]`,它们有一些不同的用法。
+
+第一种类型`int* array`是一个指针类型,存储数组的第一个地址。
+
+第二种类型`int array[100]`是一个固定长度的数组,数组中的每个元素都有连续的地址。
+
+如果你使用数组作为函数参数,这通常会传递一个数组指针,无论你定义的是哪种类型。但如果数组类型在结构体中定义,两种数组定义会导致结构体的大小和对齐不同。
+
+因此,`ffi-rs`需要区分这两种类型。
+
+默认情况下,`ffi-rs`使用指针数组来计算结构体。如果你确认应该使用静态数组,你可以按以下方式定义它
+
+```js
+typedef struct Person {
+  //...
+  uint8_t staticBytes[16];
+  //...
+} Person;
+
+// 使用arrayConstructor并将dynamicArray字段设置为false
+staticBytes: arrayConstructor({
+  type: DataType.U8Array,
+  length: parent.staticBytes.length,
+  dynamicArray: false
+}),
+```
+
+## 函数
+
+`ffi-rs`支持将js函数指针传递给c函数,像这样。
 
 ```cpp
-typedef void (*FunctionPointer)(int a, bool b, char *c, char **d, int *e,
-                                Person *p);
+typedef const void (*FunctionPointer)(int a, bool b, char *c, double d,
+                                      char **e, int *f, Person *g);
 
 extern "C" void callFunction(FunctionPointer func) {
   printf("callFunction\n");
@@ -543,7 +559,7 @@ extern "C" void callFunction(FunctionPointer func) {
   for (int i = 0; i < 2; i++) {
     int a = 100;
     bool b = false;
-    double ddd = 100.11;
+    double d = 100.11;
     char *c = (char *)malloc(14 * sizeof(char));
     strcpy(c, "Hello, World!");
 
@@ -557,63 +573,86 @@ extern "C" void callFunction(FunctionPointer func) {
     i32Array[2] = 303;
 
     Person *p = createPerson();
-    func(a, b, c, stringArray, i32Array, p);
+    func(a, b, c, d, stringArray, i32Array, p);
   }
 }
 ```
 
-Corresponds to the code above，you can use `ffi-rs` like
+对应上面的代码,你可以这样使用`ffi-rs`
 
 ```js
-let count = 0;
-const func = (a, b, c, d, e, f) => {
-  equal(a, 100);
-  equal(b, false);
-  equal(c, "Hello, World!");
-  deepStrictEqual(d, ["Hello", "world"]);
-  deepStrictEqual(e, [101, 202, 303]);
-  deepStrictEqual(f, person);
-  console.log("callback called");
-  count++;
-  if (count === 2) {
-    console.log("test succeed");
-    process.exit(0);
-  }
-};
-
-load({
-  library: "libsum",
-  funcName: "callFunction",
-  retType: DataType.Void,
-  paramsType: [
-    funcConstructor({
+const testFunction = () => {
+  const func = (a, b, c, d, e, f, g) => {
+    equal(a, 100);
+    equal(b, false);
+    equal(c, "Hello, World!");
+    equal(d, "100.11");
+    deepStrictEqual(e, ["Hello", "world"]);
+    deepStrictEqual(f, [101, 202, 303]);
+    deepStrictEqual(g, person);
+    logGreen("test function succeed");
+    // 当不再使用时释放函数内存
+    freePointer({
+      paramsType: [funcConstructor({
+        paramsType: [
+          DataType.I32,
+          DataType.Boolean,
+          DataType.String,
+          DataType.Double,
+          arrayConstructor({ type: DataType.StringArray, length: 2 }),
+          arrayConstructor({ type: DataType.I32Array, length: 3 }),
+          personType,
+        ],
+        retType: DataType.Void,
+      })],
+      paramsValue: funcExternal
+    })
+    if (!process.env.MEMORY) {
+      close("libsum");
+    }
+  };
+  // 建议使用createPointer创建函数指针以进行手动内存管理
+  const funcExternal = createPointer({
+    paramsType: [funcConstructor({
       paramsType: [
         DataType.I32,
         DataType.Boolean,
         DataType.String,
+        DataType.Double,
         arrayConstructor({ type: DataType.StringArray, length: 2 }),
         arrayConstructor({ type: DataType.I32Array, length: 3 }),
         personType,
       ],
       retType: DataType.Void,
-    }),
-  ],
-  paramsValue: [func],
-});
+    })],
+    paramsValue: [func]
+  })
+  load({
+    library: "libsum",
+    funcName: "callFunction",
+    retType: DataType.Void,
+    paramsType: [
+      DataType.External,
+    ],
+    paramsValue: unwrapPointer(funcExternal),
+  });
+}
 ```
 
-目前函数支持的参数类型都在上面的例子里，我们将会在未来支持更多的参数类型
+函数参数支持的类型都在上面的示例中
+
+注意,由于绝大多数情况下开发者将js函数传递给c作为回调,所以`ffi-rs`会从jsfunction创建[threadsafe_function](https://nodejs.org/api/n-api.html#napi_threadsafe_function),这意味着jsfunction将被异步调用,并且Node.js进程不会自动退出
 
 
 ## C++
 
-We'll provide more examples from real-worl scenarios, if you have any ideas, please submit an issue
+我们将提供更多来自实际场景的示例,如果你有任何想法,请提交issue
 
-### class type
+### 类类型
 
-In C++ scene, we can use `DataType.External` to get class type pointer
+在C++场景中,我们可以使用`DataType.External`获取类类型指针
 
-In the code below, we use C types to wrap C++ types such as convert `char *` to `std::string` and return class pointer
+在下面的代码中,我们使用C类型包装C++类型,如将`char *`转换为`std::string`并返回类指针
 
 ```cpp
 MyClass *createMyClass(std::string name, int age) {
@@ -627,7 +666,7 @@ extern "C" MyClass *createMyClassFromC(const char *name, int age) {
 extern "C" void printMyClass(MyClass *instance) { instance->print(); }
 ```
 
-And then, we can call it by above code
+然后,可以通过以下代码调用
 
 ```js
 const classPointer = load({
@@ -649,4 +688,72 @@ load({
   ],
   paramsValue: [classPointer],
 })
+freePointer({
+  paramsType: [DataType.External],
+  paramsValue: [classPointer],
+  pointerType: PointerType.CPointer
+})
+```
+
+## errno
+
+默认情况下,`ffi-rs`不会输出[errno](https://man7.org/linux/man-pages/man3/errno.3.html)信息,开发者可以在调用open方法时传递`errno: true`来获取它,像这样
+
+```js
+load({
+   library: 'libnative',
+   funcName: 'setsockopt',
+   retType: DataType.I32,
+   paramsType: [DataType.I32, DataType.I32, DataType.I32, DataType.External, DataType.I32],
+   paramsValue: [socket._handle.fd, level, option, pointer[0], 4],
+   errno: true // 将errno设置为true
+})
+
+// 上面的代码将返回一个包含三个字段的对象,包括errnoCode、errnoMessage和外部函数返回值
+// { errnoCode: 22, errnoMessage: 'Invalid argument (os error 22)', value: -1 }
+```
+
+## 内存管理
+
+在单次ffi调用期间释放内存分配很重要,以防止内存泄漏。
+
+在这个过程中,哪些类型的数据内存被分配了?
+
+- 在Rust环境中分配在堆上的调用参数,如`String`
+- 在C环境中分配在堆上的返回值,如`char*`
+
+默认情况下,`ffi-rs`会释放在Rust中分配的调用参数内存。
+
+但不会释放来自c端的返回值,因为一些c动态库会自动管理它们的内存(当ffi-rs >= 1.0.79时)
+
+有两种方法可以防止`ffi-rs`释放内存
+
+- 调用`load`方法时设置`freeResultMemory: false`,默认值为false
+
+如果你将freeResultMemory设置为false,`ffi-rs`将不会释放在c环境中分配的返回结果内存
+
+- 使用`DataType.External`作为paramsType或retType
+
+如果开发者使用`DataType.External`作为paramsType或retType,请在不再使用此内存时使用`freePointer`释放指针的内存。参考[test.ts](./test.ts#170)
+
+## runInNewThread
+
+`ffi-rs`支持在新线程中运行ffi任务,而不阻塞主线程,这对于CPU密集型任务很有用。
+
+要使用此功能,你可以向load方法传递`runInNewThread`选项
+
+```js
+const testRunInNewThread = async () => {
+  // 将返回一个promise,但任务将在新线程中运行
+  load({
+    library: "libsum",
+    funcName: "sum",
+    retType: DataType.I32,
+    paramsType: [DataType.I32, DataType.I32],
+    paramsValue: [1, 2],
+    runInNewThread: true,
+  }).then(res => {
+    equal(res, 3)
+  })
+}
 ```
