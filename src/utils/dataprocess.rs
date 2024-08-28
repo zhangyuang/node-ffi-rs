@@ -85,8 +85,8 @@ pub fn get_func_desc(obj: &IndexMap<String, RsArgsValue>) -> FFIFUNCDESC {
   FFIFUNCDESC { need_free }
 }
 
-pub fn js_number_to_i32(js_number: JsNumber) -> i32 {
-  js_number.try_into().unwrap()
+pub fn js_number_to_i32(js_number: JsNumber) -> Result<i32> {
+  js_number.try_into()
 }
 pub unsafe fn get_arg_types_values(
   params_type: Rc<Vec<RsArgsValue>>,
@@ -441,7 +441,8 @@ pub unsafe fn get_value_pointer(
                 param
               })
               .collect();
-            let func_ret_type_clone = (&func_ret_type).clone();
+
+            let func_ret_type_rc = Rc::new(vec![func_ret_type.clone()]);
             let env_clone = env.clone();
             if std::thread::current().id() != main_thread_id  && func_ret_type != RsArgsValue::I32(7)  {
               let (se, re) = std::sync::mpsc::channel();
@@ -449,9 +450,9 @@ pub unsafe fn get_value_pointer(
                 value,
                 ThreadsafeFunctionCallMode::Blocking,
                 move |js_ret: JsUnknown| {
-                    let js_ret_rs = get_arg_types_values(Rc::new(vec![func_ret_type_clone.clone()]), vec![js_ret]).unwrap().1;
-                    let js_ret_rs_ptr = get_value_pointer(&env_clone,Rc::new(vec![func_ret_type_clone.clone()]), js_ret_rs).unwrap()[0];
-                    write_rs_ptr_to_c(&func_ret_type_clone, js_ret_rs_ptr, result);
+                    let js_ret_rs = get_arg_types_values(Rc::clone(&func_ret_type_rc), vec![js_ret]).unwrap().1;
+                    let js_ret_rs_ptr = get_value_pointer(&env_clone,Rc::clone(&func_ret_type_rc), js_ret_rs).unwrap()[0];
+                    write_rs_ptr_to_c(&Rc::clone(&func_ret_type_rc)[0], js_ret_rs_ptr, result);
                     se.send(()).unwrap();
                     Ok(())
                 },
@@ -719,9 +720,9 @@ pub unsafe fn type_object_to_rs_struct(
 pub unsafe fn type_define_to_rs_args(env: &Env, type_define: JsUnknown) -> Result<RsArgsValue> {
   let params_type_value_type = type_define.get_type()?;
   let ret_value = match params_type_value_type {
-    ValueType::Number => RsArgsValue::I32(js_number_to_i32(create_js_value_unchecked::<JsNumber>(
-      type_define,
-    )?)),
+    ValueType::Number => RsArgsValue::I32(js_number_to_i32(
+      create_js_value_unchecked::<JsNumber>(type_define)?,
+    )?),
     ValueType::Object => RsArgsValue::Object(type_object_to_rs_struct(
       env,
       &create_js_value_unchecked::<JsObject>(type_define)?,
