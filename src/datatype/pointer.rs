@@ -153,127 +153,128 @@ unsafe fn free_struct_memory(
       };
     }
     if let RsArgsValue::Object(obj) = val {
-      if let FFITag::Array = get_ffi_tag(&obj) {
-        let array_desc = get_array_desc(&obj);
-        // array
-        let FFIARRARYDESC {
-          array_type,
-          array_len,
-          dynamic_array,
-          ..
-        } = array_desc;
-        match array_type {
-          RefDataType::StringArray => {
+      match get_ffi_tag(&obj) {
+        FFITag::Array => {
+          let array_desc = get_array_desc(&obj);
+          // array
+          let FFIARRARYDESC {
+            array_type,
+            array_len,
+            dynamic_array,
+            ..
+          } = array_desc;
+          match array_type {
+            RefDataType::StringArray => {
+              let (size, align) = get_size_align::<*const c_void>();
+              let padding = (align - (offset % align)) % align;
+              field_ptr = field_ptr.offset(padding as isize);
+              if dynamic_array {
+                free_dynamic_string_array(field_ptr, array_len);
+              } else {
+                //
+              }
+              offset += size + padding;
+              field_size = size
+            }
+            RefDataType::DoubleArray => {
+              let (size, align) = if dynamic_array {
+                get_size_align::<*const c_void>()
+              } else {
+                let (size, align) = get_size_align::<c_double>();
+                (size * array_len, align)
+              };
+              let padding = (align - (offset % align)) % align;
+              field_ptr = field_ptr.offset(padding as isize);
+              if dynamic_array {
+                free_dynamic_double_array(field_ptr, array_len);
+              } else {
+                //
+              }
+              offset += size + padding;
+              field_size = size
+            }
+            RefDataType::FloatArray => {
+              let (size, align) = if dynamic_array {
+                get_size_align::<*const c_void>()
+              } else {
+                let (size, align) = get_size_align::<c_double>();
+                (size * array_len, align)
+              };
+              let padding = (align - (offset % align)) % align;
+              field_ptr = field_ptr.offset(padding as isize);
+              if dynamic_array {
+                free_dynamic_float_array(field_ptr, array_len);
+              } else {
+                //
+              }
+              offset += size + padding;
+              field_size = size
+            }
+            RefDataType::I32Array => {
+              let (size, align) = if dynamic_array {
+                get_size_align::<*const c_void>()
+              } else {
+                let (size, align) = get_size_align::<c_int>();
+                (size * array_len, align)
+              };
+              let padding = (align - (offset % align)) % align;
+              field_ptr = field_ptr.offset(padding as isize);
+              if dynamic_array {
+                free_dynamic_i32_array(field_ptr, array_len)
+              }
+              offset += size + padding;
+              field_size = size
+            }
+            RefDataType::U8Array => {
+              let (size, align) = if dynamic_array {
+                get_size_align::<*const c_void>()
+              } else {
+                let (size, align) = get_size_align::<u8>();
+                (size * array_len, align)
+              };
+              let padding = (align - (offset % align)) % align;
+              field_ptr = field_ptr.offset(padding as isize);
+              if dynamic_array {
+                if let PointerType::CPointer = ptr_type {
+                  // only free u8 pointer data when the pointer is allocated in c
+                  // rust u8 pointer memory is buffer
+                  free_dynamic_u8_array(field_ptr, array_len)
+                }
+              }
+              offset += size + padding;
+              field_size = size
+            }
+          };
+        }
+        FFITag::Function => {
+          let func_desc = get_func_desc(&obj);
+          if func_desc.need_free {
+            match ptr_type {
+              PointerType::CPointer => free(*(ptr as *mut *mut c_void)),
+              PointerType::RsPointer => free_closure(ptr),
+            }
+          }
+        }
+        _ => {
+          // struct
+          if obj.get(FFI_TAG_FIELD)
+            == Some(&RsArgsValue::I32(ReserveDataType::StackStruct.to_i32()))
+          {
+            let (size, align) = calculate_struct_size(&obj);
+            let padding = (align - (offset % align)) % align;
+            field_ptr = field_ptr.offset(padding as isize);
+            offset += size + padding;
+            field_size = size
+          } else {
             let (size, align) = get_size_align::<*const c_void>();
             let padding = (align - (offset % align)) % align;
             field_ptr = field_ptr.offset(padding as isize);
-            if dynamic_array {
-              free_dynamic_string_array(field_ptr, array_len);
-            } else {
-              //
-            }
+            free_struct_memory(*(field_ptr as *mut *mut c_void), obj, ptr_type);
             offset += size + padding;
             field_size = size
-          }
-          RefDataType::DoubleArray => {
-            let (size, align) = if dynamic_array {
-              get_size_align::<*const c_void>()
-            } else {
-              let (size, align) = get_size_align::<c_double>();
-              (size * array_len, align)
-            };
-            let padding = (align - (offset % align)) % align;
-            field_ptr = field_ptr.offset(padding as isize);
-            if dynamic_array {
-              free_dynamic_double_array(field_ptr, array_len);
-            } else {
-              //
-            }
-            offset += size + padding;
-            field_size = size
-          }
-          RefDataType::FloatArray => {
-            let (size, align) = if dynamic_array {
-              get_size_align::<*const c_void>()
-            } else {
-              let (size, align) = get_size_align::<c_double>();
-              (size * array_len, align)
-            };
-            let padding = (align - (offset % align)) % align;
-            field_ptr = field_ptr.offset(padding as isize);
-            if dynamic_array {
-              free_dynamic_float_array(field_ptr, array_len);
-            } else {
-              //
-            }
-            offset += size + padding;
-            field_size = size
-          }
-          RefDataType::I32Array => {
-            let (size, align) = if dynamic_array {
-              get_size_align::<*const c_void>()
-            } else {
-              let (size, align) = get_size_align::<c_int>();
-              (size * array_len, align)
-            };
-            let padding = (align - (offset % align)) % align;
-            field_ptr = field_ptr.offset(padding as isize);
-            if dynamic_array {
-              free_dynamic_i32_array(field_ptr, array_len)
-            } else {
-              //
-            }
-            offset += size + padding;
-            field_size = size
-          }
-          RefDataType::U8Array => {
-            let (size, align) = if dynamic_array {
-              get_size_align::<*const c_void>()
-            } else {
-              let (size, align) = get_size_align::<u8>();
-              (size * array_len, align)
-            };
-            let padding = (align - (offset % align)) % align;
-            field_ptr = field_ptr.offset(padding as isize);
-            if dynamic_array {
-              if let PointerType::CPointer = ptr_type {
-                // only free u8 pointer data when the pointer is allocated in c
-                // rust u8 pointer memory is buffer
-                free_dynamic_u8_array(field_ptr, array_len)
-              }
-            } else {
-              //
-            }
-            offset += size + padding;
-            field_size = size
-          }
-        };
-      } else if let FFITag::Function = get_ffi_tag(&obj) {
-        let func_desc = get_func_desc(&obj);
-        if func_desc.need_free {
-          match ptr_type {
-            PointerType::CPointer => free(*(ptr as *mut *mut c_void)),
-            PointerType::RsPointer => free_closure(ptr),
           }
         }
-      } else {
-        // struct
-        if obj.get(FFI_TAG_FIELD) == Some(&RsArgsValue::I32(ReserveDataType::StackStruct.to_i32()))
-        {
-          let (size, align) = calculate_struct_size(&obj);
-          let padding = (align - (offset % align)) % align;
-          field_ptr = field_ptr.offset(padding as isize);
-          offset += size + padding;
-          field_size = size
-        } else {
-          let (size, align) = get_size_align::<*const c_void>();
-          let padding = (align - (offset % align)) % align;
-          field_ptr = field_ptr.offset(padding as isize);
-          free_struct_memory(*(field_ptr as *mut *mut c_void), obj, ptr_type);
-          offset += size + padding;
-          field_size = size
-        }
-      };
+      }
     };
     field_ptr = field_ptr.offset(field_size as isize) as *mut c_void;
   }
