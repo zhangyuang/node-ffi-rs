@@ -1,3 +1,12 @@
+## [1.0.93](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.92...v1.0.93) (2024-09-11)
+
+
+### Features
+
+* add linux-arm-gnueabihf ([ef61ea4](https://github.com/zhangyuang/node-ffi-rs/commit/ef61ea4ca76378ebedf8d3b5393f9836e01ab282))
+
+
+
 ## [1.0.92](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.90...v1.0.92) (2024-09-11)
 
 
