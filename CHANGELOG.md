@@ -1,3 +1,19 @@
+## [1.0.92](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.90...v1.0.92) (2024-09-11)
+
+
+### Bug Fixes
+
+* disappear runInNewThread when return type is void ([2e799e9](https://github.com/zhangyuang/node-ffi-rs/commit/2e799e941bb8c0d578aa3c4a6934622b17d279a6))
+
+
+### Features
+
+* add linux-arm-gnueabihf ([9ae05b5](https://github.com/zhangyuang/node-ffi-rs/commit/9ae05b54493fbf04aba4a1f9956803f31ba5296e))
+* performance optimization by reduce cloning ([45c4986](https://github.com/zhangyuang/node-ffi-rs/commit/45c498680de0f5dc5d4465a9cbedf4a8fa03f840))
+* update zh readme.md ([13c7635](https://github.com/zhangyuang/node-ffi-rs/commit/13c76351382ad89b369357d846d06c78538a1018))
+
+
+
 ## [1.0.90](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.89...v1.0.90) (2024-08-12)
 
 
