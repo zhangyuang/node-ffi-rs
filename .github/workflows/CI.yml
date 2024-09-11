@@ -71,14 +71,15 @@ jobs:
               aarch64-unknown-linux-gnu-strip *.node &&
               ls
           # - host: ubuntu-latest
-          #   target: arm-unknown-linux-gnueabihf
+          #   target: armv7-unknown-linux-gnueabihf
+          #   docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:stable-2023-09-17-aarch64
           #   build: |-
           #     set -e &&
           #     uname -a &&
-          #     sudo apt-get update &&
-          #     sudo apt-get install gcc-arm-linux-gnueabihf -y &&
-          #     rustup target add arm-unknown-linux-gnueabihf &&
-          #     RUSTFLAGS='-C linker=arm-linux-gnueabihf-gcc' target=arm-unknown-linux-gnueabihf yarn build &&
+          #     apt-get update &&
+          #     apt-get install gcc-arm-linux-gnueabihf -y &&
+          #     rustup target add armv7-unknown-linux-gnueabihf &&
+          #     RUSTFLAGS='-C linker=arm-linux-gnueabihf-gcc' target=armv7-unknown-linux-gnueabihf yarn build &&
           #     strip *.node &&
           #     ls
           - host: ubuntu-latest
@@ -132,7 +133,8 @@ jobs:
             .cargo-cache
             target/
           key: ${{ matrix.settings.target }}-cargo-${{ matrix.settings.host }}
-      - uses: goto-bus-stop/setup-zig@v2
+      - name: Setup zig
+        uses: goto-bus-stop/setup-zig@v2
         if: ${{ matrix.settings.target == 'armv7-unknown-linux-gnueabihf' }}
         with:
           version: 0.10.1
