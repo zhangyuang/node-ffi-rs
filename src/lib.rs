@@ -247,6 +247,14 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     is_variadic: 0,
     #[cfg(all(target_arch = "aarch64", target_vendor = "apple"))]
     aarch64_nfixedargs: params_type_len as u32,
+    #[cfg(all(target_arch = "arm"))]
+    vfp_used: 0,
+    #[cfg(all(target_arch = "arm"))]
+    vfp_reg_free: 0,
+    #[cfg(all(target_arch = "arm"))]
+    vfp_nargs: 0,
+    #[cfg(all(target_arch = "arm"))]
+    vfp_args: [0; 16],
   };
   ffi_prep_cif(
     &mut cif,
