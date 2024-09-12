@@ -71,17 +71,19 @@ jobs:
               aarch64-unknown-linux-gnu-strip *.node &&
               ls
           # - host: ubuntu-latest
-          #   target: armv7-unknown-linux-gnueabihf
-          #   docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:stable-2023-09-17-aarch64
-          #   build: |-
-          #     set -e &&
-          #     uname -a &&
-          #     apt-get update &&
-          #     apt-get install gcc-arm-linux-gnueabihf -y &&
-          #     rustup target add armv7-unknown-linux-gnueabihf &&
-          #     RUSTFLAGS='-C linker=arm-linux-gnueabihf-gcc' target=armv7-unknown-linux-gnueabihf yarn build &&
-          #     strip *.node &&
-          #     ls
+          #   target: arm-unknown-linux-gnueabihf
+            
+          - host: ubuntu-latest
+            target: arm-unknown-linux-gnueabihf
+            docker: ghcr.io/catthehacker/ubuntu:custom-20.04-dev
+            build: |
+              set -e && uname -a &&
+              apt-get update &&
+              apt-get install gcc-arm-linux-gnueabihf -y &&
+              rustup target add arm-unknown-linux-gnueabihf &&
+              target=arm-unknown-linux-gnueabihf yarn build &&
+              arm-linux-gnueabihf-strip *.node &&
+              ls
           - host: ubuntu-latest
             target: x86_64-unknown-linux-musl
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:stable-2023-09-17-alpine
@@ -133,11 +135,21 @@ jobs:
             .cargo-cache
             target/
           key: ${{ matrix.settings.target }}-cargo-${{ matrix.settings.host }}
-      - name: Setup zig
-        uses: goto-bus-stop/setup-zig@v2
-        if: ${{ matrix.settings.target == 'armv7-unknown-linux-gnueabihf' }}
-        with:
-          version: 0.10.1
+      # - name: Setup zig
+      #   uses: goto-bus-stop/setup-zig@v2
+      #   if: ${{ matrix.settings.target == 'arm-unknown-linux-gnueabihf' }}
+      #   with:
+      #     version: 0.13.0
+      # - name: Setup Cross
+      #   if: ${{ matrix.settings.target == 'arm-unknown-linux-gnueabihf' }}
+      #   uses: houseabsolute/actions-rust-cross@v0
+      #   with:
+      #     target: arm-unknown-linux-gnueabihf
+      #     args: "--locked --release"
+      #     strip: true
+      # - name: Move gnuabihf
+      #   if: ${{ matrix.settings.target == 'arm-unknown-linux-gnueabihf' }}
+      #   run: mv target/arm-unknown-linux-gnueabihf/release/libffi_rs.so ./ffi-rs.arm-unknown-linux-gnueabihf.node
       - name: Setup toolchain
         run: ${{ matrix.settings.setup }}
         if: ${{ matrix.settings.setup }}
