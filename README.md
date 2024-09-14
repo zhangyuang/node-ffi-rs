@@ -105,6 +105,7 @@ Note: You need to make sure that the compilation environment of the dynamic libr
 - win32-arm64-msvc
 - linux-arm64-gnu
 - linux-arm64-musl
+- linux-arm-gnueabihf
 
 ## Usage
 

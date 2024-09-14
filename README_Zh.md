@@ -106,6 +106,7 @@ $ npm i ffi-rs
 - win32-arm64-msvc
 - linux-arm64-gnu
 - linux-arm64-musl
+- linux-arm-gnueabihf
 
 ## 使用方法
 
