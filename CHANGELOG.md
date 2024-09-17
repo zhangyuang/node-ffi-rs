@@ -1,3 +1,12 @@
+## [1.0.95](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.94...v1.0.95) (2024-09-17)
+
+
+### Features
+
+* static link msvc in windows ([ffd2e4f](https://github.com/zhangyuang/node-ffi-rs/commit/ffd2e4f93f30ec8d03ba9d9fb27cb87f874b18ed))
+
+
+
 ## [1.0.94](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.93...v1.0.94) (2024-09-13)
 
 
