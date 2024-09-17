@@ -221,8 +221,8 @@ jobs:
         with:
           node-version: 18
           check-latest: true
-
           architecture: x86
+
       - name: Setup node x86
         if: matrix.settings.target == 'i686-pc-windows-msvc'
         run: yarn config set supportedArchitectures.cpu "ia32"
