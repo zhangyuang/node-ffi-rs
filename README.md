@@ -191,7 +191,6 @@ const res = define({
     library: "libnative",
     retType: DataType.I32,
     paramsType: [DataType.String],
-    paramsValue: ["1000"],
   }
 })
 equal(res.sum([1, 2]), 3)

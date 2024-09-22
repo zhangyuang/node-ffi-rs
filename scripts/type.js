@@ -366,7 +366,7 @@ exports.funcConstructor = (options) => ({
 exports.define = (obj) => {
   const res = {}
   Object.entries(obj).map(([funcName, funcDesc]) => {
-    res[funcName] = (paramsValue) => wrapLoad({
+    res[funcName] = (paramsValue = []) => wrapLoad({
       ...obj[funcName],
       funcName,
       paramsValue
