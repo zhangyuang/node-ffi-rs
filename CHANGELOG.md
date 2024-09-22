@@ -1,3 +1,12 @@
+## [1.0.96](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.95...v1.0.96) (2024-09-22)
+
+
+### Bug Fixes
+
+* add default value for paramsValue when call define method close [#77](https://github.com/zhangyuang/node-ffi-rs/issues/77) ([946b889](https://github.com/zhangyuang/node-ffi-rs/commit/946b88982852903ea8896c4c229d5552c494afa9))
+
+
+
 ## [1.0.95](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.94...v1.0.95) (2024-09-17)
 
 
