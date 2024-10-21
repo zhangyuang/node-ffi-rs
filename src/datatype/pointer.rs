@@ -294,28 +294,15 @@ pub unsafe fn free_rs_pointer_memory(
         BasicDataType::WString => {
           let _ = WideCString::from_raw(*(ptr as *mut *mut WideChar));
         }
-        BasicDataType::U8 => {
-          let _ = Box::from_raw(ptr);
-        }
-        BasicDataType::I32 => {
-          let _ = Box::from_raw(ptr);
-        }
-        BasicDataType::I64 | BasicDataType::BigInt => {
-          let _ = Box::from_raw(ptr);
-        }
-        BasicDataType::U64 => {
-          let _ = Box::from_raw(ptr);
-        }
-        BasicDataType::Void => {
-          let _ = Box::from_raw(ptr);
-        }
-        BasicDataType::Float => {
-          let _ = Box::from_raw(ptr);
-        }
-        BasicDataType::Double => {
-          let _ = Box::from_raw(ptr);
-        }
-        BasicDataType::Boolean => {
+        BasicDataType::U8
+        | BasicDataType::I32
+        | BasicDataType::I64
+        | BasicDataType::BigInt
+        | BasicDataType::U64
+        | BasicDataType::Void
+        | BasicDataType::Float
+        | BasicDataType::Double
+        | BasicDataType::Boolean => {
           let _ = Box::from_raw(ptr);
         }
         BasicDataType::External => {
