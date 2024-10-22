@@ -305,7 +305,7 @@ if (!nativeBinding) {
     (processParamsTypeForArray(params))
 }
 
-const { DataType, createPointer, restorePointer, unwrapPointer, wrapPointer, freePointer, open, close, load } = nativeBinding
+const { DataType, createPointer, restorePointer, unwrapPointer, wrapPointer, freePointer, open, close, load, isNullPointer } = nativeBinding
 DataType.StackStruct = 999
 
 module.exports.DataType = DataType
@@ -313,6 +313,7 @@ module.exports.PointerType = nativeBinding.PointerType
 module.exports.open = open
 module.exports.close = close
 module.exports.load = load
+module.exports.isNullPointer = isNullPointer
 
 const arrayDataType = [DataType.I32Array, DataType.StringArray, DataType.DoubleArray, DataType.U8Array, DataType.FloatArray]
 const arrayConstructor = (options) => ({

@@ -142,6 +142,8 @@ export function unwrapPointer(params: Array<JsExternal>): Array<JsExternal>
 
 export function wrapPointer(params: Array<JsExternal>): Array<JsExternal>
 
+export function isNullPointer(params: JsExternal): boolean
+
 type ResultWithErrno<T, IncludeErrno extends boolean | undefined = undefined> = IncludeErrno extends true
   ? { value: T; errnoCode: number; errnoMessage: string }
   : T;

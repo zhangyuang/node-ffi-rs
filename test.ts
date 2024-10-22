@@ -12,7 +12,8 @@ import {
   wrapPointer,
   freePointer,
   define,
-  PointerType
+  PointerType,
+  isNullPointer
 } from "./index"
 
 
@@ -262,6 +263,20 @@ const testPointer = () => {
   })
   equal(getValueFromDoublePointer, 100)
   logGreen('test getValueFromDoublePointer success')
+  const nullPointer = load({
+    library: "libsum",
+    funcName: "returnNullPointer",
+    retType: DataType.External,
+    paramsType: [],
+    paramsValue: [],
+  })
+  equal(isNullPointer(nullPointer), true)
+  const rsNullPointer = createPointer({
+    paramsType: [DataType.Void],
+    paramsValue: [undefined]
+  })
+  equal(isNullPointer(unwrapPointer(rsNullPointer)[0]), true)
+  logGreen('test null pointer success')
 }
 const parent = {
   age: 43,

@@ -52,6 +52,15 @@ unsafe fn create_pointer(env: Env, params: CreatePointerParams) -> Result<Vec<Js
     .collect()
 }
 
+
+
+#[napi]
+unsafe fn is_null_pointer(env: Env, js_external: JsExternal) -> Result<bool> {
+    let ptr = get_js_external_wrap_data(&env, js_external)?;
+    Ok(ptr.is_null())
+}
+
+
 #[napi]
 unsafe fn restore_pointer(env: Env, params: StorePointerParams) -> Result<Vec<JsUnknown>> {
   let StorePointerParams {

@@ -363,7 +363,7 @@ pub unsafe fn get_value_pointer(
         let c_bool = Box::new(val);
         Ok(Box::into_raw(c_bool) as *mut c_void)
       }
-      RsArgsValue::Void(_) => Ok(Box::into_raw(Box::new(())) as *mut c_void),
+      RsArgsValue::Void(_) => Ok(Box::into_raw(Box::new(std::ptr::null_mut() as *mut c_void)) as *mut c_void),
       RsArgsValue::Object(val) => {
         if let RsArgsValue::Object(arg_type_rs) = arg_type {
           Ok(

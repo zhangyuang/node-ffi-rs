@@ -351,7 +351,7 @@ deepStrictEqual(stringArr, load({
 
 In `ffi-rs`, we use [DataType.External](https://nodejs.org/api/n-api.html#napi_create_external) for wrapping the `pointer` which enables it to be passed between `Node.js` and `C`.
 
-`Pointer` is complicated and underlying, `ffi-rs` provides four functions to handle this pointer including `createPointer`, `restorePointer`, `unwrapPointer`, `wrapPointer`, `freePointer` for different scenes.
+`Pointer` is complicated and underlying, `ffi-rs` provides four functions to handle this pointer including `createPointer`, `restorePointer`, `unwrapPointer`, `wrapPointer`, `freePointer`, `isNullPointer` for different scenes.
 
 ```cpp
 extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
