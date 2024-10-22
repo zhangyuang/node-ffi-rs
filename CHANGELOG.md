@@ -1,183 +1,40 @@
-## [1.0.96](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.95...v1.0.96) (2024-09-22)
+## [1.0.97](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.78...v1.0.97) (2024-10-22)
 
 
 ### Bug Fixes
 
 * add default value for paramsValue when call define method close [#77](https://github.com/zhangyuang/node-ffi-rs/issues/77) ([946b889](https://github.com/zhangyuang/node-ffi-rs/commit/946b88982852903ea8896c4c229d5552c494afa9))
-
-
-
-## [1.0.95](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.94...v1.0.95) (2024-09-17)
-
-
-### Features
-
-* static link msvc in windows ([ffd2e4f](https://github.com/zhangyuang/node-ffi-rs/commit/ffd2e4f93f30ec8d03ba9d9fb27cb87f874b18ed))
-
-
-
-## [1.0.94](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.93...v1.0.94) (2024-09-13)
-
-
-### Features
-
-* add linux-arm-gnueabihf ([8cf9cfe](https://github.com/zhangyuang/node-ffi-rs/commit/8cf9cfe515bec12e5856d81580d2b77c07681b77))
-
-
-
-## [1.0.93](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.92...v1.0.93) (2024-09-11)
-
-
-### Features
-
-* add linux-arm-gnueabihf ([ef61ea4](https://github.com/zhangyuang/node-ffi-rs/commit/ef61ea4ca76378ebedf8d3b5393f9836e01ab282))
-
-
-
-## [1.0.92](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.90...v1.0.92) (2024-09-11)
-
-
-### Bug Fixes
-
-* disappear runInNewThread when return type is void ([2e799e9](https://github.com/zhangyuang/node-ffi-rs/commit/2e799e941bb8c0d578aa3c4a6934622b17d279a6))
-
-
-### Features
-
-* add linux-arm-gnueabihf ([9ae05b5](https://github.com/zhangyuang/node-ffi-rs/commit/9ae05b54493fbf04aba4a1f9956803f31ba5296e))
-* performance optimization by reduce cloning ([45c4986](https://github.com/zhangyuang/node-ffi-rs/commit/45c498680de0f5dc5d4465a9cbedf4a8fa03f840))
-* update zh readme.md ([13c7635](https://github.com/zhangyuang/node-ffi-rs/commit/13c76351382ad89b369357d846d06c78538a1018))
-
-
-
-## [1.0.90](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.89...v1.0.90) (2024-08-12)
-
-
-### Features
-
-* add license close [#66](https://github.com/zhangyuang/node-ffi-rs/issues/66) ([137c306](https://github.com/zhangyuang/node-ffi-rs/commit/137c30691775c0083a1a8530cade60fb03da77c6))
-* update get_symbol about use Result as return type ([a24ebba](https://github.com/zhangyuang/node-ffi-rs/commit/a24ebba8444d00d79784757db9c7a5e232033840))
-
-
-
-## [1.0.89](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.88...v1.0.89) (2024-08-03)
-
-
-### Features
-
-* add TsFnCallContext ([84df186](https://github.com/zhangyuang/node-ffi-rs/commit/84df1865c5bb2262a54b8fcfa63552fae640a893))
-
-
-
-## [1.0.88](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.88-alpha.0...v1.0.88) (2024-07-27)
-
-
-### Bug Fixes
-
-* judge func_ret_type is void condition ([6b96974](https://github.com/zhangyuang/node-ffi-rs/commit/6b9697416d26c007b97e07bc72befc9d5cee1898))
-
-
-### Features
-
-* visit jsValue in main thread prevent thread error ([9eb78b1](https://github.com/zhangyuang/node-ffi-rs/commit/9eb78b1c66887b1477d643412297218e42fbc4cf))
-
-
-
-## [1.0.88-alpha.0](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.87...v1.0.88-alpha.0) (2024-07-24)
-
-
-### Features
-
-* update string judge compatible with bun ([6103692](https://github.com/zhangyuang/node-ffi-rs/commit/6103692f918ca21b79fedcf313af7c6eb59bfcde))
-* use call_with_return_value when retType is not void-n ([2448c5d](https://github.com/zhangyuang/node-ffi-rs/commit/2448c5da9faabde3973883ac719cee5eef34424c))
-
-
-
-## [1.0.87](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.86...v1.0.87) (2024-07-23)
-
-
-### Features
-
-* update FFICALLPARAMS implemention ([a09c44d](https://github.com/zhangyuang/node-ffi-rs/commit/a09c44de99b7c5c30a386221e18facb113d5fbf9))
-
-
-
-## [1.0.86](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.85...v1.0.86) (2024-07-14)
-
-
-### Bug Fixes
-
 * call_with_return_value error tips ([43b0125](https://github.com/zhangyuang/node-ffi-rs/commit/43b0125fe99d7236690d2babcbad23a9cdd99851))
-
-
-
-## [1.0.85](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.84...v1.0.85) (2024-07-14)
-
-
-### Features
-
-* add tips for jsobject/array when used in new thread ([41da725](https://github.com/zhangyuang/node-ffi-rs/commit/41da725e600365fcc59788cf98d636767d87cbcb))
-
-
-
-## [1.0.84](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.83...v1.0.84) (2024-07-14)
-
-
-### Features
-
-* support pass jsFunction return value to c ([#60](https://github.com/zhangyuang/node-ffi-rs/issues/60)) ([44c19be](https://github.com/zhangyuang/node-ffi-rs/commit/44c19be94234a6dc5724d08cf379b76fc8daa25f))
-
-
-
-## [1.0.83](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.82...v1.0.83) (2024-06-20)
-
-
-### Bug Fixes
-
+* disappear runInNewThread when return type is void ([2e799e9](https://github.com/zhangyuang/node-ffi-rs/commit/2e799e941bb8c0d578aa3c4a6934622b17d279a6))
+* judge func_ret_type is void condition ([6b96974](https://github.com/zhangyuang/node-ffi-rs/commit/6b9697416d26c007b97e07bc72befc9d5cee1898))
+* No need to free jsBuffer memory in rust call params ([2e39791](https://github.com/zhangyuang/node-ffi-rs/commit/2e39791948a7634ec5dff493df5915bf575a9414))
 * return bigInt when use struct field ([0be42a7](https://github.com/zhangyuang/node-ffi-rs/commit/0be42a78005449f9f40783e73779ca8e85dfcb1b))
 
 
 ### Features
 
-* update d.ts ([7aeeb20](https://github.com/zhangyuang/node-ffi-rs/commit/7aeeb20b63815627d17a9b87e2e104d14e483826))
-
-
-
-## [1.0.82](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.81...v1.0.82) (2024-06-15)
-
-
-### Bug Fixes
-
-* No need to free jsBuffer memory in rust call params ([2e39791](https://github.com/zhangyuang/node-ffi-rs/commit/2e39791948a7634ec5dff493df5915bf575a9414))
-
-
-
-## [1.0.81](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.80...v1.0.81) (2024-06-14)
-
-
-### Features
-
-* support DataType.BigInt ([cf05fab](https://github.com/zhangyuang/node-ffi-rs/commit/cf05fab803527174d29e96371d3a0a3bf9d55389))
-
-
-
-## [1.0.80](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.79...v1.0.80) (2024-06-13)
-
-
-### Features
-
+* add license close [#66](https://github.com/zhangyuang/node-ffi-rs/issues/66) ([137c306](https://github.com/zhangyuang/node-ffi-rs/commit/137c30691775c0083a1a8530cade60fb03da77c6))
+* add linux-arm-gnueabihf ([8cf9cfe](https://github.com/zhangyuang/node-ffi-rs/commit/8cf9cfe515bec12e5856d81580d2b77c07681b77))
+* add linux-arm-gnueabihf ([ef61ea4](https://github.com/zhangyuang/node-ffi-rs/commit/ef61ea4ca76378ebedf8d3b5393f9836e01ab282))
+* add linux-arm-gnueabihf ([9ae05b5](https://github.com/zhangyuang/node-ffi-rs/commit/9ae05b54493fbf04aba4a1f9956803f31ba5296e))
+* add tips for jsobject/array when used in new thread ([41da725](https://github.com/zhangyuang/node-ffi-rs/commit/41da725e600365fcc59788cf98d636767d87cbcb))
+* add TsFnCallContext ([84df186](https://github.com/zhangyuang/node-ffi-rs/commit/84df1865c5bb2262a54b8fcfa63552fae640a893))
+* performance optimization by reduce cloning ([45c4986](https://github.com/zhangyuang/node-ffi-rs/commit/45c498680de0f5dc5d4465a9cbedf4a8fa03f840))
 * set freeResultMemory as false at default ([ddcf108](https://github.com/zhangyuang/node-ffi-rs/commit/ddcf108a0b9d2beb4c9ffc3ba928a78429bf3e20))
-
-
-
-## [1.0.79](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.78...v1.0.79) (2024-06-11)
-
-
-### Features
-
+* static link msvc in windows ([ffd2e4f](https://github.com/zhangyuang/node-ffi-rs/commit/ffd2e4f93f30ec8d03ba9d9fb27cb87f874b18ed))
+* support DataType.BigInt ([cf05fab](https://github.com/zhangyuang/node-ffi-rs/commit/cf05fab803527174d29e96371d3a0a3bf9d55389))
+* support isNullPointer ([e3ec0c0](https://github.com/zhangyuang/node-ffi-rs/commit/e3ec0c0ef812459d928e55f14bc514352918ee9f))
+* support pass jsFunction return value to c ([#60](https://github.com/zhangyuang/node-ffi-rs/issues/60)) ([44c19be](https://github.com/zhangyuang/node-ffi-rs/commit/44c19be94234a6dc5724d08cf379b76fc8daa25f))
 * support wideString ([a9828b2](https://github.com/zhangyuang/node-ffi-rs/commit/a9828b2423d867b7628a3d9b9e2c82fa485bf9de))
+* update d.ts ([7aeeb20](https://github.com/zhangyuang/node-ffi-rs/commit/7aeeb20b63815627d17a9b87e2e104d14e483826))
+* update FFICALLPARAMS implemention ([a09c44d](https://github.com/zhangyuang/node-ffi-rs/commit/a09c44de99b7c5c30a386221e18facb113d5fbf9))
+* update get_symbol about use Result as return type ([a24ebba](https://github.com/zhangyuang/node-ffi-rs/commit/a24ebba8444d00d79784757db9c7a5e232033840))
+* update string judge compatible with bun ([6103692](https://github.com/zhangyuang/node-ffi-rs/commit/6103692f918ca21b79fedcf313af7c6eb59bfcde))
+* update zh readme.md ([13c7635](https://github.com/zhangyuang/node-ffi-rs/commit/13c76351382ad89b369357d846d06c78538a1018))
+* use call_with_return_value when retType is not void-n ([2448c5d](https://github.com/zhangyuang/node-ffi-rs/commit/2448c5da9faabde3973883ac719cee5eef34424c))
 * use ref as params type avoid clone ([b9d37fb](https://github.com/zhangyuang/node-ffi-rs/commit/b9d37fb1875a84a26ffc59c1be77bd776cface4b))
 * use trait to implement feature insteadof separate function ([f2679b9](https://github.com/zhangyuang/node-ffi-rs/commit/f2679b90880dd7b44d3f802b4d1b6ab60e04ab38))
+* visit jsValue in main thread prevent thread error ([9eb78b1](https://github.com/zhangyuang/node-ffi-rs/commit/9eb78b1c66887b1477d643412297218e42fbc4cf))
 
 
 
