@@ -26,3 +26,7 @@ bindgen = "^0.66.0"
 
 [profile.release]
 lto = true
+
+[lints.rust]
+static-mut-refs="allow"
+# warnings = "allow"

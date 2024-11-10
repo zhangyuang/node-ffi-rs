@@ -1,12 +1,12 @@
+use crate::define::*;
 use crate::utils::{
   calculate_struct_size, get_array_desc, get_ffi_tag, get_func_desc, get_size_align,
 };
 use indexmap::IndexMap;
 use libc::{c_double, c_float, c_int, c_void, free};
+use napi::{Env, JsExternal};
 use std::ffi::{c_char, c_longlong, c_uchar, c_ulonglong, CStr, CString};
 use widestring::{WideCString, WideChar};
-
-use crate::define::*;
 pub trait ArrayPointer {
   type Output;
   unsafe fn get_and_advance(&mut self) -> Self::Output;
@@ -37,11 +37,28 @@ impl ArrayPointer for *mut *mut c_char {
     CStr::from_ptr(value).to_string_lossy().to_string()
   }
 }
+
 pub fn create_array_from_pointer<P>(mut pointer: P, len: usize) -> Vec<P::Output>
 where
   P: ArrayPointer,
 {
   unsafe { (0..len).map(|_| pointer.get_and_advance()).collect() }
+}
+
+pub fn create_external_array_from_pointer(
+  env: &Env,
+  mut pointer: *mut *mut c_void,
+  len: usize,
+) -> Vec<JsExternal> {
+  unsafe {
+    (0..len)
+      .map(|_| {
+        let val = env.create_external(pointer, None).unwrap();
+        pointer = pointer.offset(1);
+        val
+      })
+      .collect()
+  }
 }
 
 unsafe fn free_struct_memory(
@@ -244,6 +261,7 @@ unsafe fn free_struct_memory(
               offset += size + padding;
               field_size = size
             }
+            RefDataType::ExternalArray => panic!("free external array not supported"),
           };
         }
         FFITag::Function => {
@@ -328,6 +346,7 @@ pub unsafe fn free_rs_pointer_memory(
           RefDataType::DoubleArray => free_dynamic_double_array(ptr, array_len),
           RefDataType::FloatArray => free_dynamic_float_array(ptr, array_len),
           RefDataType::StringArray => free_dynamic_string_array(ptr, array_len),
+          RefDataType::ExternalArray => panic!("free external array not supported"),
         }
       } else if let FFITag::Function = ffi_tag {
         let func_desc = get_func_desc(&obj);
@@ -393,6 +412,7 @@ pub unsafe fn free_c_pointer_memory(
           RefDataType::DoubleArray => free_dynamic_double_array(ptr, array_len),
           RefDataType::FloatArray => free_dynamic_float_array(ptr, array_len),
           RefDataType::StringArray => free_dynamic_string_array(ptr, array_len),
+          RefDataType::ExternalArray => panic!("free external array not supported"),
         }
       } else if let FFITag::Function = ffi_tag {
         let func_desc = get_func_desc(&obj);

@@ -246,6 +246,7 @@ pub unsafe fn create_rs_struct_from_pointer(
             offset += size + padding;
             field_size = size
           }
+          RefDataType::ExternalArray => panic!("external array not supported"),
         };
       } else {
         // raw object
@@ -326,6 +327,7 @@ pub fn rs_value_to_js_unknown(env: &Env, data: RsArgsValue) -> Result<JsUnknown>
     RsArgsValue::Object(obj) => create_js_object_from_rs_map(env, obj)?.into_unknown(),
     RsArgsValue::External(val) => val.into_unknown(),
     RsArgsValue::Void(_) => env.get_undefined()?.into_unknown(),
+    RsArgsValue::ExternalArray(val) => panic!("external array not supported"),
     RsArgsValue::Function(_, _) | RsArgsValue::Float(_) | RsArgsValue::FloatArray(_) => {
       return Err(FFIError::Panic(format!("{}", "JsNumber can only be double type")).into())
     }

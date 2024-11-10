@@ -227,6 +227,19 @@ pub unsafe fn generate_c_struct(
                 return Err(FFIError::Panic(format!("error array type {:?}", array_type)).into());
               }
             }
+            RefDataType::ExternalArray => {
+              if let RsArgsValue::ExternalArray(arr) = array_value {
+                let (size, align) = get_size_align::<*mut c_void>();
+                let padding = (align - (offset % align)) % align;
+                field_ptr = field_ptr.offset(padding as isize);
+                (field_ptr as *mut *const c_void).write(arr.as_ptr() as *const c_void);
+                std::mem::forget(arr);
+                offset += size + padding;
+                size
+              } else {
+                return Err(FFIError::Panic(format!("error array type {:?}", array_type)).into());
+              }
+            }
             RefDataType::StringArray => {
               if let RsArgsValue::StringArray(arr) = array_value {
                 if !dynamic_array {
@@ -297,7 +310,8 @@ pub unsafe fn generate_c_struct(
       | RsArgsValue::FloatArray(_)
       | RsArgsValue::I32Array(_)
       | RsArgsValue::DoubleArray(_)
-      | RsArgsValue::U8Array(_, _) => {
+      | RsArgsValue::U8Array(_, _)
+      | RsArgsValue::ExternalArray(_) => {
         return Err(
           FFIError::Panic(format!(
           "In the latest ffi-rs version, please use ffi-rs.arrayConstrutor to describe array type"

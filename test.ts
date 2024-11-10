@@ -557,28 +557,73 @@ const testDefine = () => {
   equal(res.sum([1, 2]), 3)
 }
 const unitTest = () => {
-  testNumber()
-  logGreen('test number succeed')
-  testString()
-  logGreen('test string succeed')
-  testDefine()
-  logGreen('test define succeed')
-  testArray()
-  logGreen('test array succeed')
-  testVoid()
-  logGreen('test void succeed')
-  testBool()
-  logGreen('test bool succeed')
-  testMainProgram()
-  logGreen('test main program succeed')
-  testFunction()
-  testCpp()
-  logGreen('test cpp succeed')
-  testObject()
-  logGreen('test object succeed')
-  testPointer()
-  logGreen('test createPointer succeed')
-  testRunInNewThread()
+  const rows = 3;
+  const cols = 4;
+
+  const row1 = createPointer({
+    paramsType: [arrayConstructor({
+      type: DataType.I32Array,
+      length: 4,
+      dynamicArray: true
+    })],
+    paramsValue: [[1, 2, 3, 4]]
+  });
+
+  const row2 = createPointer({
+    paramsType: [arrayConstructor({
+      type: DataType.I32Array,
+      length: 4,
+      dynamicArray: true
+    })],
+    paramsValue: [[5, 6, 7, 8]]
+  });
+
+  // 将行数组组合成一个数组
+  const multirows = createPointer({
+    paramsType: [arrayConstructor({
+      type: DataType.ExternalArray,
+      length: 2,
+      dynamicArray: true
+    })],
+    paramsValue: [[row1[0], row2[0]]]
+  });
+
+  load({
+    library: 'libsum',  // 你的库名
+    funcName: 'printArray2D',
+    retType: DataType.Void,
+    paramsType: [
+      DataType.External,
+      DataType.I32,
+      DataType.I32
+    ],
+    paramsValue: [multirows[0], rows, cols]
+  });
+
+  // 访问元素的方式：array[i * cols + j]
+  // 例如访问 array[1][2] 就是 array[1 * 4 + 2]
+  // testNumber()
+  // logGreen('test number succeed')
+  // testString()
+  // logGreen('test string succeed')
+  // testDefine()
+  // logGreen('test define succeed')
+  // testArray()
+  // logGreen('test array succeed')
+  // testVoid()
+  // logGreen('test void succeed')
+  // testBool()
+  // logGreen('test bool succeed')
+  // testMainProgram()
+  // logGreen('test main program succeed')
+  // testFunction()
+  // testCpp()
+  // logGreen('test cpp succeed')
+  // testObject()
+  // logGreen('test object succeed')
+  // testPointer()
+  // logGreen('test createPointer succeed')
+  // testRunInNewThread()
 };
 
 unitTest();

@@ -315,7 +315,7 @@ module.exports.close = close
 module.exports.load = load
 module.exports.isNullPointer = isNullPointer
 
-const arrayDataType = [DataType.I32Array, DataType.StringArray, DataType.DoubleArray, DataType.U8Array, DataType.FloatArray]
+const arrayDataType = [DataType.I32Array, DataType.StringArray, DataType.DoubleArray, DataType.U8Array, DataType.FloatArray, DataType.ExternalArray]
 const arrayConstructor = (options) => ({
   dynamicArray: true,
   ...options,

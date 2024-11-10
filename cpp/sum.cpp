@@ -34,6 +34,17 @@ extern "C" const wchar_t *concatenateWideStrings(const wchar_t *str1,
   return wcstr;
 }
 
+// 添加新函数
+extern "C" void printArray2D(int **rows, int row_size, int col_size) {
+    printf("Print 2D Array (%dx%d):\n", row_size, col_size);
+    for(int i = 0; i < row_size; i++) {
+        printf("Row %d: ", i);
+        for(int j = 0; j < col_size; j++) {
+            printf("%d ", rows[i][j]);
+        }
+        printf("\n");
+    }
+}
 extern "C" char *getStringFromPtr(void *ptr) { return (char *)ptr; };
 
 extern "C" int getValueFromDoublePointer(int **ptr) { return *ptr[0]; };
@@ -55,6 +66,7 @@ extern "C" double *createArrayDouble(const double *arr, int size) {
   }
   return vec;
 }
+
 
 extern "C" double *createArrayFloat(const float *arr, int size) {
   double *vec = (double *)malloc((size) * sizeof(double));

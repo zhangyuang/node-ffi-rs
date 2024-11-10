@@ -47,6 +47,7 @@ export const enum DataType {
    As params will be transformed to i64, as return value will be created from i64
   */
   BigInt = 16,
+  ExternalArray = 17,
   StackStruct = 999 // reserve keyword
 }
 

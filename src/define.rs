@@ -114,6 +114,7 @@ pub enum DataType {
   Float = 14,
   WString = 15,
   BigInt = 16,
+  ExternalArray = 17,
 }
 
 pub enum ReserveDataType {
@@ -149,6 +150,7 @@ pub enum RefDataType {
   DoubleArray = 5,
   U8Array = 10,
   FloatArray = 13,
+  ExternalArray = 17,
 }
 
 pub trait ToDataType {
@@ -176,6 +178,7 @@ impl ToDataType for i32 {
       14 => DataType::Float,
       15 => DataType::WString,
       16 => DataType::BigInt,
+      17 => DataType::ExternalArray,
       _ => panic!("unknow DataType"),
     }
   }
@@ -208,6 +211,7 @@ impl ToDataType for i32 {
       5 => RefDataType::DoubleArray,
       10 => RefDataType::U8Array,
       13 => RefDataType::FloatArray,
+      17 => RefDataType::ExternalArray,
       _ => panic!("unknow DataType"),
     }
   }
@@ -243,7 +247,7 @@ impl RsArgsTrait for RsArgsValue {
 
 pub fn is_array_type(value: &i32) -> bool {
   match value {
-    3 | 4 | 5 | 10 | 13 => true,
+    3 | 4 | 5 | 10 | 13 | 17 => true,
     _ => false,
   }
 }
@@ -263,6 +267,7 @@ pub enum RsArgsValue {
   StringArray(Vec<String>),
   DoubleArray(Vec<f64>),
   FloatArray(Vec<f32>),
+  ExternalArray(Vec<JsExternal>),
   Object(IndexMap<String, RsArgsValue>),
   Boolean(bool),
   Void(()),
@@ -291,6 +296,7 @@ impl Clone for RsArgsValue {
       RsArgsValue::U8Array(_, _) => panic!("U8Array is buffer cannot be cloned"),
       RsArgsValue::Function(_, _) => panic!("Function cannot be cloned"),
       RsArgsValue::External(_) => panic!("External cannot be cloned"),
+      RsArgsValue::ExternalArray(_) => panic!("ExternalArray cannot be cloned"),
     }
   }
 }
@@ -318,6 +324,7 @@ impl PartialEq for RsArgsValue {
       (RsArgsValue::U8Array(_, _), RsArgsValue::U8Array(_, _)) => false,
       (RsArgsValue::Function(..), _) | (_, RsArgsValue::Function(..)) => false,
       (RsArgsValue::External(..), _) | (_, RsArgsValue::External(..)) => false,
+      (RsArgsValue::ExternalArray(..), _) | (_, RsArgsValue::ExternalArray(..)) => false,
       _ => false,
     }
   }
@@ -350,6 +357,7 @@ impl std::fmt::Debug for RsArgsValue {
       RsArgsValue::StringArray(arr) => write!(f, "StringArray({:?})", arr),
       RsArgsValue::DoubleArray(arr) => write!(f, "DoubleArray({:?})", arr),
       RsArgsValue::FloatArray(arr) => write!(f, "FloatArray({:?})", arr),
+      RsArgsValue::ExternalArray(_) => write!(f, "ExternalArray()"),
       RsArgsValue::Object(obj) => write!(f, "Object({:?})", obj),
       RsArgsValue::Boolean(b) => write!(f, "Boolean({})", b),
       RsArgsValue::Void(_) => write!(f, "Void"),

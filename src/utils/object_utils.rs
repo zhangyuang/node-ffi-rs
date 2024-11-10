@@ -70,6 +70,7 @@ pub fn calculate_struct_size(struct_type: &IndexMap<String, RsArgsValue>) -> (us
               RefDataType::FloatArray => get_size_align::<f32>(),
               RefDataType::StringArray => get_size_align::<*const c_char>(),
               RefDataType::DoubleArray => get_size_align::<f64>(),
+              RefDataType::ExternalArray => get_size_align::<*const c_void>(),
             };
             type_size = type_size * array_len;
             let align = align.max(type_align);

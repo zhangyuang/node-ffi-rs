@@ -75,6 +75,14 @@ pub unsafe fn get_rs_value_from_pointer(
             let arr = create_array_from_pointer(*(pointer as *mut *mut c_float), array_len);
             RsArgsValue::FloatArray(arr)
           }
+          RefDataType::ExternalArray => {
+            let arr = create_external_array_from_pointer(
+              env,
+              *(pointer as *mut *mut *mut c_void),
+              array_len,
+            );
+            RsArgsValue::ExternalArray(arr)
+          }
         }
       } else {
         // function | raw object

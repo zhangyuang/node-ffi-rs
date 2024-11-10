@@ -232,6 +232,12 @@ pub unsafe fn get_arg_types_values(
                 let arg_val = js_object.to_rs_array()?;
                 (arg_type, RsArgsValue::StringArray(arg_val))
               }
+              RefDataType::ExternalArray => {
+                let arg_type = &mut ffi_type_pointer as *mut ffi_type;
+                let js_object = create_js_value_unchecked::<JsObject>(value)?;
+                let arg_val = js_object.to_rs_array()?;
+                (arg_type, RsArgsValue::ExternalArray(arg_val))
+              }
             }
           } else if let FFITag::Function = get_ffi_tag(&params_type_object_rs) {
             let params_val_function: JsFunction = value.try_into()?;
@@ -341,6 +347,11 @@ pub unsafe fn get_value_pointer(
         Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
       }
       RsArgsValue::FloatArray(val) => {
+        let ptr = val.as_ptr();
+        std::mem::forget(val);
+        Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
+      }
+      RsArgsValue::ExternalArray(val) => {
         let ptr = val.as_ptr();
         std::mem::forget(val);
         Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
@@ -582,6 +593,11 @@ pub unsafe fn get_params_value_rs_struct(
                 let arg_val: Vec<f64> = js_array.to_rs_array()?;
                 RsArgsValue::DoubleArray(arg_val)
               }
+              DataType::ExternalArray => {
+                let js_array: JsObject = params_value_object.get_named_property(&field)?;
+                let arg_val: Vec<JsExternal> = js_array.to_rs_array()?;
+                RsArgsValue::ExternalArray(arg_val)
+              }
               DataType::FloatArray => {
                 let js_array: JsObject = params_value_object.get_named_property(&field)?;
                 let arg_val: Vec<f32> = js_array
@@ -642,6 +658,11 @@ pub unsafe fn get_params_value_rs_struct(
                   let js_array: JsObject = params_value_object.get_named_property(&field)?;
                   let arg_val = js_array.to_rs_array()?;
                   RsArgsValue::StringArray(arg_val)
+                }
+                RefDataType::ExternalArray => {
+                  let js_array: JsObject = params_value_object.get_named_property(&field)?;
+                  let arg_val = js_array.to_rs_array()?;
+                  RsArgsValue::ExternalArray(arg_val)
                 }
               };
               params_type_rs_value.insert(ARRAY_VALUE_TAG.to_string(), array_value);
@@ -812,6 +833,11 @@ pub unsafe fn get_js_unknown_from_pointer(
           RefDataType::StringArray => {
             let arr = create_array_from_pointer(*(ptr as *mut *mut *mut c_char), array_len);
             rs_value_to_js_unknown(env, RsArgsValue::StringArray(arr))
+          }
+          RefDataType::ExternalArray => {
+            let arr =
+              create_external_array_from_pointer(env, *(ptr as *mut *mut *mut c_void), array_len);
+            rs_value_to_js_unknown(env, RsArgsValue::ExternalArray(arr))
           }
         }
       } else {

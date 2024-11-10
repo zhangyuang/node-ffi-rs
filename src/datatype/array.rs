@@ -1,6 +1,6 @@
 use super::string::js_string_to_string;
 use napi::bindgen_prelude::*;
-use napi::{Error, JsNumber, JsObject, JsString, JsUnknown, NapiValue};
+use napi::{Error, JsExternal, JsNumber, JsObject, JsString, JsUnknown, NapiValue};
 pub trait ToRsArray<T, U> {
   fn to_rs_array(self) -> Result<Vec<T>>
   where
@@ -50,6 +50,21 @@ impl ToRsArray<i32, JsNumber> for JsObject {
     JsNumber: TryFrom<JsUnknown> + NapiValue,
   {
     convert_number_array::<i32, JsNumber>(self)
+  }
+}
+
+impl ToRsArray<JsExternal, JsExternal> for JsObject {
+  fn to_rs_array(self) -> Result<Vec<JsExternal>>
+  where
+    JsExternal: TryFrom<JsUnknown> + NapiValue,
+  {
+    (0..self.get_array_length()?)
+      .enumerate()
+      .map(|(index, _)| {
+        let js_unknown: JsExternal = self.get_element(index as u32)?;
+        Ok(js_unknown)
+      })
+      .collect()
   }
 }
 
