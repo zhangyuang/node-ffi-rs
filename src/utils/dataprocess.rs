@@ -37,6 +37,13 @@ pub unsafe fn get_js_external_wrap_data(env: &Env, js_external: JsExternal) -> R
   Ok(*p)
 }
 
+pub fn is_stack_struct(obj: &IndexMap<String, RsArgsValue>) -> bool {
+  if let Some(tag) = obj.get(FFI_TAG_FIELD) {
+    tag == &RsArgsValue::I32(ReserveDataType::StackStruct.to_i32())
+  } else {
+    false
+  }
+}
 pub fn get_ffi_tag(obj: &IndexMap<String, RsArgsValue>) -> FFITag {
   if obj.get(FFI_TAG_FIELD).is_none() {
     return FFITag::Unknown;
@@ -85,9 +92,6 @@ pub fn get_func_desc(obj: &IndexMap<String, RsArgsValue>) -> FFIFUNCDESC {
   FFIFUNCDESC { need_free }
 }
 
-pub fn js_number_to_i32(js_number: JsNumber) -> Result<i32> {
-  js_number.try_into()
-}
 pub unsafe fn get_arg_types_values(
   params_type: Rc<Vec<RsArgsValue>>,
   params_value: Vec<JsUnknown>,
@@ -721,9 +725,9 @@ pub unsafe fn type_object_to_rs_struct(
 pub unsafe fn type_define_to_rs_args(env: &Env, type_define: JsUnknown) -> Result<RsArgsValue> {
   let params_type_value_type = type_define.get_type()?;
   let ret_value = match params_type_value_type {
-    ValueType::Number => RsArgsValue::I32(js_number_to_i32(
-      create_js_value_unchecked::<JsNumber>(type_define)?,
-    )?),
+    ValueType::Number => {
+      RsArgsValue::I32(create_js_value_unchecked::<JsNumber>(type_define)?.try_into()?)
+    }
     ValueType::Object => RsArgsValue::Object(type_object_to_rs_struct(
       env,
       &create_js_value_unchecked::<JsObject>(type_define)?,
@@ -757,9 +761,7 @@ pub unsafe fn get_js_unknown_from_pointer(
           rs_value_to_js_unknown(&env, RsArgsValue::String(ptr_str))
         }
         BasicDataType::WString => {
-          let ptr_str = WideCString::from_ptr_str(*(ptr as *mut *const WideChar))
-            .to_string_lossy()
-            .to_string();
+          let ptr_str = WideCString::from_ptr_str(*(ptr as *mut *const WideChar)).to_string_lossy();
           rs_value_to_js_unknown(&env, RsArgsValue::WString(ptr_str))
         }
         BasicDataType::U8 => rs_value_to_js_unknown(env, RsArgsValue::U8(*(ptr as *mut u8))),
@@ -783,9 +785,9 @@ pub unsafe fn get_js_unknown_from_pointer(
         }
       }
     }
-    RsArgsValue::Object(obj) => {
-      if let FFITag::Array = get_ffi_tag(&obj) {
-        let array_desc = get_array_desc(&obj);
+    RsArgsValue::Object(sub_obj_type) => {
+      if let FFITag::Array = get_ffi_tag(&sub_obj_type) {
+        let array_desc = get_array_desc(&sub_obj_type);
         // array
         let FFIARRARYDESC {
           array_type,
@@ -816,7 +818,17 @@ pub unsafe fn get_js_unknown_from_pointer(
         }
       } else {
         // raw object
-        let rs_struct = create_rs_struct_from_pointer(env, *(ptr as *mut *mut c_void), &obj, false);
+        let is_stack_struct = is_stack_struct(&sub_obj_type);
+        let rs_struct = create_rs_struct_from_pointer(
+          env,
+          if is_stack_struct {
+            ptr
+          } else {
+            *(ptr as *mut *mut c_void)
+          },
+          &sub_obj_type,
+          false,
+        );
         rs_value_to_js_unknown(env, RsArgsValue::Object(rs_struct))
       }
     }

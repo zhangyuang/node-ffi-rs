@@ -1,5 +1,6 @@
 use super::string::{string_to_c_string, string_to_c_w_string};
 use crate::define::*;
+use crate::utils::dataprocess::is_stack_struct;
 use crate::utils::{
   calculate_struct_size, get_array_desc, get_array_value, get_ffi_tag, get_js_external_wrap_data,
   get_size_align,
@@ -124,10 +125,10 @@ pub unsafe fn generate_c_struct(
         offset += size + padding;
         size
       }
-      RsArgsValue::Object(mut val) => {
-        if let FFITag::Array = get_ffi_tag(&val) {
-          let array_desc = get_array_desc(&val);
-          let array_value = get_array_value(&mut val).unwrap();
+      RsArgsValue::Object(mut obj_value) => {
+        if let FFITag::Array = get_ffi_tag(&obj_value) {
+          let array_desc = get_array_desc(&obj_value);
+          let array_value = get_array_value(&mut obj_value).unwrap();
           let FFIARRARYDESC {
             array_type,
             array_len,
@@ -261,8 +262,7 @@ pub unsafe fn generate_c_struct(
         } else {
           let is_stack_struct =
             if let Some(RsArgsValue::Object(field_type)) = struct_type.get(&field) {
-              field_type.get(FFI_TAG_FIELD)
-                == Some(&RsArgsValue::I32(ReserveDataType::StackStruct.to_i32()))
+              is_stack_struct(field_type)
             } else {
               false
             };
@@ -273,7 +273,7 @@ pub unsafe fn generate_c_struct(
               let (size, align) = calculate_struct_size(val_type);
               let padding = (align - (offset % align)) % align;
               field_ptr = field_ptr.offset(padding as isize);
-              generate_c_struct(env, val_type, val, Some(field_ptr))?;
+              generate_c_struct(env, val_type, obj_value, Some(field_ptr))?;
               offset += size + padding;
               size
             } else {
@@ -284,7 +284,7 @@ pub unsafe fn generate_c_struct(
             let padding = (align - (offset % align)) % align;
             field_ptr = field_ptr.offset(padding as isize);
             if let RsArgsValue::Object(val_type) = struct_type.get(&field).unwrap() {
-              let obj_ptr = generate_c_struct(env, val_type, val, None)?;
+              let obj_ptr = generate_c_struct(env, val_type, obj_value, None)?;
               (field_ptr as *mut *const c_void).write(obj_ptr);
             }
             offset += size + padding;

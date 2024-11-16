@@ -1,5 +1,6 @@
 use crate::utils::{
   calculate_struct_size, get_array_desc, get_ffi_tag, get_func_desc, get_size_align,
+  is_stack_struct,
 };
 use indexmap::IndexMap;
 use libc::{c_double, c_float, c_int, c_void, free};
@@ -257,9 +258,7 @@ unsafe fn free_struct_memory(
         }
         _ => {
           // struct
-          if obj.get(FFI_TAG_FIELD)
-            == Some(&RsArgsValue::I32(ReserveDataType::StackStruct.to_i32()))
-          {
+          if is_stack_struct(obj) {
             let (size, align) = calculate_struct_size(&obj);
             let padding = (align - (offset % align)) % align;
             field_ptr = field_ptr.offset(padding as isize);

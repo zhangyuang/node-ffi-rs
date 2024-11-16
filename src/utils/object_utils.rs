@@ -1,4 +1,4 @@
-use super::dataprocess::{get_array_desc, get_ffi_tag};
+use super::dataprocess::{get_array_desc, get_ffi_tag, is_stack_struct};
 use crate::define::*;
 use crate::{RefDataType, RsArgsValue, FFIARRARYDESC};
 use indexmap::IndexMap;
@@ -81,9 +81,7 @@ pub fn calculate_struct_size(struct_type: &IndexMap<String, RsArgsValue>) -> (us
             return calculate_pointer(size, align, offset);
           }
         } else {
-          if obj.get(FFI_TAG_FIELD)
-            == Some(&RsArgsValue::I32(ReserveDataType::StackStruct.to_i32()))
-          {
+          if is_stack_struct(obj) {
             let (type_size, type_align) = calculate_struct_size(obj);
             let align = align.max(type_align);
             let padding = (type_align - (offset % type_align)) % type_align;
