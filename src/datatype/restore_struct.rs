@@ -144,7 +144,7 @@ pub unsafe fn create_rs_struct_from_pointer(
     }
     if let RsArgsValue::Object(sub_obj_type) = val {
       let field = field.clone();
-      if let FFITag::Array = get_ffi_tag(sub_obj_type) {
+      if let FFITypeTag::Array = get_ffi_tag(sub_obj_type) {
         let array_desc = get_array_desc(sub_obj_type);
         // array
         let FFIARRARYDESC {
@@ -249,8 +249,8 @@ pub unsafe fn create_rs_struct_from_pointer(
         };
       } else {
         // raw object
-        if is_stack_struct(&sub_obj_type) {
-          let (size, align) = calculate_struct_size(sub_obj_type);
+        if get_ffi_tag(&sub_obj_type) == FFITypeTag::StackStruct {
+          let (size, align) = calculate_struct_size(&sub_obj_type);
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           let sub_object = RsArgsValue::Object(create_rs_struct_from_pointer(

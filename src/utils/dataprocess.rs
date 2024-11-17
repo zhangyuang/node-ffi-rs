@@ -37,27 +37,23 @@ pub unsafe fn get_js_external_wrap_data(env: &Env, js_external: JsExternal) -> R
   Ok(*p)
 }
 
-pub fn is_stack_struct(obj: &IndexMap<String, RsArgsValue>) -> bool {
-  if let Some(tag) = obj.get(FFI_TAG_FIELD) {
-    tag == &RsArgsValue::I32(ReserveDataType::StackStruct.to_i32())
-  } else {
-    false
-  }
-}
-pub fn get_ffi_tag(obj: &IndexMap<String, RsArgsValue>) -> FFITag {
+pub fn get_ffi_tag(obj: &IndexMap<String, RsArgsValue>) -> FFITypeTag {
   if obj.get(FFI_TAG_FIELD).is_none() {
-    return FFITag::Unknown;
+    return FFITypeTag::Unknown;
   }
-  if let RsArgsValue::String(ffitypetag) = obj.get(FFI_TAG_FIELD).unwrap() {
-    if ffitypetag.starts_with(&ARRAY_FFI_TAG) {
-      return FFITag::Array;
+  if let Some(RsArgsValue::I32(ffitypetag)) = obj.get(FFI_TAG_FIELD) {
+    if ffitypetag == &FFITypeTag::Array.into() {
+      return FFITypeTag::Array;
     }
-    if ffitypetag.starts_with(&FUNCTION_FFI_TAG) {
-      return FFITag::Function;
+    if ffitypetag == &FFITypeTag::StackStruct.into() {
+      return FFITypeTag::StackStruct;
     }
-    FFITag::Unknown
+    if ffitypetag == &FFITypeTag::Function.into() {
+      return FFITypeTag::Function;
+    }
+    FFITypeTag::Unknown
   } else {
-    FFITag::Unknown
+    FFITypeTag::Unknown
   }
 }
 pub fn get_array_desc(obj: &IndexMap<String, RsArgsValue>) -> FFIARRARYDESC {
@@ -177,7 +173,7 @@ pub unsafe fn get_arg_types_values(
         }
         RsArgsValue::Object(params_type_object_rs) => {
           let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-          if let FFITag::Array = get_ffi_tag(&params_type_object_rs) {
+          if let FFITypeTag::Array = get_ffi_tag(&params_type_object_rs) {
             let array_desc = get_array_desc(&params_type_object_rs);
             let FFIARRARYDESC { array_type, .. } = array_desc;
             match array_type {
@@ -237,7 +233,7 @@ pub unsafe fn get_arg_types_values(
                 (arg_type, RsArgsValue::StringArray(arg_val))
               }
             }
-          } else if let FFITag::Function = get_ffi_tag(&params_type_object_rs) {
+          } else if let FFITypeTag::Function = get_ffi_tag(&params_type_object_rs) {
             let params_val_function: JsFunction = value.try_into()?;
             let arg_type = &mut ffi_type_pointer as *mut ffi_type;
             (
@@ -616,7 +612,7 @@ pub unsafe fn get_params_value_rs_struct(
 
           RsArgsValue::Object(mut params_type_rs_value) => {
             let params_value: JsObject = params_value_object.get_named_property(&field)?;
-            if let FFITag::Array = get_ffi_tag(&params_type_rs_value) {
+            if let FFITypeTag::Array = get_ffi_tag(&params_type_rs_value) {
               let array_desc = get_array_desc(&params_type_rs_value);
               let FFIARRARYDESC { array_type, .. } = array_desc;
               let array_value = match array_type {
@@ -787,7 +783,7 @@ pub unsafe fn get_js_unknown_from_pointer(
       }
     }
     RsArgsValue::Object(sub_obj_type) => {
-      if let FFITag::Array = get_ffi_tag(&sub_obj_type) {
+      if let FFITypeTag::Array = get_ffi_tag(&sub_obj_type) {
         let array_desc = get_array_desc(&sub_obj_type);
         // array
         let FFIARRARYDESC {
@@ -819,7 +815,7 @@ pub unsafe fn get_js_unknown_from_pointer(
         }
       } else {
         // raw object
-        let is_stack_struct = is_stack_struct(&sub_obj_type);
+        let is_stack_struct = get_ffi_tag(&sub_obj_type) == FFITypeTag::StackStruct;
         let rs_struct = create_rs_struct_from_pointer(
           env,
           if is_stack_struct {

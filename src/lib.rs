@@ -17,8 +17,8 @@ use std::collections::HashMap;
 use std::ffi::c_void;
 use std::rc::Rc;
 use utils::dataprocess::{
-  get_arg_types_values, get_js_external_wrap_data, get_js_unknown_from_pointer, get_value_pointer,
-  is_stack_struct, type_define_to_rs_args,
+  get_arg_types_values, get_ffi_tag, get_js_external_wrap_data, get_js_unknown_from_pointer,
+  get_value_pointer, type_define_to_rs_args,
 };
 
 static mut LIBRARY_MAP: Option<
@@ -246,7 +246,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
         }
       }
       RsArgsValue::Object(struct_type) => {
-        if is_stack_struct(struct_type) {
+        if get_ffi_tag(struct_type) == FFITypeTag::StackStruct {
           let mut elements: Vec<*mut ffi_type> = struct_type
             .iter()
             .filter(|(field_name, _)| field_name != &FFI_TAG_FIELD)

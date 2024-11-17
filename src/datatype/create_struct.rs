@@ -1,6 +1,5 @@
 use super::string::{string_to_c_string, string_to_c_w_string};
 use crate::define::*;
-use crate::utils::dataprocess::is_stack_struct;
 use crate::utils::{
   calculate_struct_size, get_array_desc, get_array_value, get_ffi_tag, get_js_external_wrap_data,
   get_size_align,
@@ -126,7 +125,7 @@ pub unsafe fn generate_c_struct(
         size
       }
       RsArgsValue::Object(mut obj_value) => {
-        if let FFITag::Array = get_ffi_tag(&obj_value) {
+        if let FFITypeTag::Array = get_ffi_tag(&obj_value) {
           let array_desc = get_array_desc(&obj_value);
           let array_value = get_array_value(&mut obj_value).unwrap();
           let FFIARRARYDESC {
@@ -262,7 +261,7 @@ pub unsafe fn generate_c_struct(
         } else {
           let is_stack_struct =
             if let Some(RsArgsValue::Object(field_type)) = struct_type.get(&field) {
-              is_stack_struct(field_type)
+              get_ffi_tag(field_type) == FFITypeTag::StackStruct
             } else {
               false
             };

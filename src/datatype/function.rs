@@ -41,7 +41,7 @@ pub unsafe fn get_rs_value_from_pointer(
       data
     }
     RsArgsValue::Object(obj) => {
-      if let FFITag::Array = get_ffi_tag(obj) {
+      if let FFITypeTag::Array = get_ffi_tag(obj) {
         let array_desc = get_array_desc(obj);
         let FFIARRARYDESC {
           array_type,
@@ -123,7 +123,7 @@ pub unsafe fn get_rs_value_from_pointer(
 //       data
 //     }
 //     RsArgsValue::Object(obj) => {
-//       if let FFITag::Array = get_ffi_tag(obj) {
+//       if let FFITypeTag::Array = get_ffi_tag(obj) {
 //         let array_desc = get_array_desc(obj);
 //         let FFIARRARYDESC {
 //           array_type,

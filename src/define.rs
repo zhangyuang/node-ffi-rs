@@ -116,16 +116,6 @@ pub enum DataType {
   BigInt = 16,
 }
 
-pub enum ReserveDataType {
-  StackStruct = 999,
-}
-impl ReserveDataType {
-  pub fn to_i32(&self) -> i32 {
-    match self {
-      ReserveDataType::StackStruct => 999,
-    }
-  }
-}
 #[derive(Debug)]
 pub enum BasicDataType {
   String = 0,
@@ -460,19 +450,28 @@ pub const ARRAY_DYNAMIC_TAG: &str = "dynamicArray";
 pub const ARRAY_VALUE_TAG: &str = "value";
 
 pub const FFI_TAG_FIELD: &str = "ffiTypeTag";
-pub const ARRAY_FFI_TAG: &str = "array";
-pub const FUNCTION_FFI_TAG: &str = "function";
 pub const FUNCTION_FREE_TAG: &str = "needFree";
 
 pub const PARAMS_TYPE: &str = "paramsType";
 pub const RET_TYPE: &str = "retType";
 pub const FREE_FUNCTION_TAG: &str = "freeCFuncParamsMemory";
 
-pub static mut CLOSURE_MAP: Option<HashMap<*mut c_void, *mut c_void>> = None;
-
-#[derive(Debug)]
-pub enum FFITag {
-  Array,
-  Function,
-  Unknown,
+#[derive(PartialEq, Eq)]
+pub enum FFITypeTag {
+  Unknown = 0,
+  Function = 998,
+  Array = 997,
+  StackStruct = 999,
 }
+impl From<FFITypeTag> for i32 {
+  fn from(tag: FFITypeTag) -> i32 {
+    match tag {
+      FFITypeTag::Unknown => 0,
+      FFITypeTag::Function => 998,
+      FFITypeTag::Array => 997,
+      FFITypeTag::StackStruct => 999,
+    }
+  }
+}
+
+pub static mut CLOSURE_MAP: Option<HashMap<*mut c_void, *mut c_void>> = None;

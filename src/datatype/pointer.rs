@@ -1,6 +1,5 @@
 use crate::utils::{
   calculate_struct_size, get_array_desc, get_ffi_tag, get_func_desc, get_size_align,
-  is_stack_struct,
 };
 use indexmap::IndexMap;
 use libc::{c_double, c_float, c_int, c_void, free};
@@ -155,7 +154,7 @@ unsafe fn free_struct_memory(
     }
     if let RsArgsValue::Object(obj) = val {
       match get_ffi_tag(&obj) {
-        FFITag::Array => {
+        FFITypeTag::Array => {
           let array_desc = get_array_desc(&obj);
           // array
           let FFIARRARYDESC {
@@ -247,7 +246,7 @@ unsafe fn free_struct_memory(
             }
           };
         }
-        FFITag::Function => {
+        FFITypeTag::Function => {
           let func_desc = get_func_desc(&obj);
           if func_desc.need_free {
             match ptr_type {
@@ -258,7 +257,7 @@ unsafe fn free_struct_memory(
         }
         _ => {
           // struct
-          if is_stack_struct(obj) {
+          if get_ffi_tag(obj) == FFITypeTag::StackStruct {
             let (size, align) = calculate_struct_size(&obj);
             let padding = (align - (offset % align)) % align;
             field_ptr = field_ptr.offset(padding as isize);
@@ -313,7 +312,7 @@ pub unsafe fn free_rs_pointer_memory(
     }
     RsArgsValue::Object(obj) => {
       let ffi_tag = get_ffi_tag(&obj);
-      if let FFITag::Array = ffi_tag {
+      if let FFITypeTag::Array = ffi_tag {
         let array_desc = get_array_desc(&obj);
         // array
         let FFIARRARYDESC {
@@ -328,7 +327,7 @@ pub unsafe fn free_rs_pointer_memory(
           RefDataType::FloatArray => free_dynamic_float_array(ptr, array_len),
           RefDataType::StringArray => free_dynamic_string_array(ptr, array_len),
         }
-      } else if let FFITag::Function = ffi_tag {
+      } else if let FFITypeTag::Function = ffi_tag {
         let func_desc = get_func_desc(&obj);
         if func_desc.need_free {
           free_closure(ptr)
@@ -378,7 +377,7 @@ pub unsafe fn free_c_pointer_memory(
     }
     RsArgsValue::Object(obj) => {
       let ffi_tag = get_ffi_tag(&obj);
-      if let FFITag::Array = ffi_tag {
+      if let FFITypeTag::Array = ffi_tag {
         let array_desc = get_array_desc(&obj);
         // array
         let FFIARRARYDESC {
@@ -393,7 +392,7 @@ pub unsafe fn free_c_pointer_memory(
           RefDataType::FloatArray => free_dynamic_float_array(ptr, array_len),
           RefDataType::StringArray => free_dynamic_string_array(ptr, array_len),
         }
-      } else if let FFITag::Function = ffi_tag {
+      } else if let FFITypeTag::Function = ffi_tag {
         let func_desc = get_func_desc(&obj);
         if func_desc.need_free {
           free(*(ptr as *mut *mut c_void))

@@ -307,6 +307,8 @@ if (!nativeBinding) {
 
 const { DataType, createPointer, restorePointer, unwrapPointer, wrapPointer, freePointer, open, close, load, isNullPointer } = nativeBinding
 DataType.StackStruct = 999
+DataType.Function = 998
+DataType.Array = 997
 
 module.exports.DataType = DataType
 module.exports.PointerType = nativeBinding.PointerType
@@ -319,7 +321,7 @@ const arrayDataType = [DataType.I32Array, DataType.StringArray, DataType.DoubleA
 const arrayConstructor = (options) => ({
   dynamicArray: true,
   ...options,
-  ffiTypeTag: 'array'
+  ffiTypeTag: DataType.Array
 })
 
 const processParamsTypeForArray = (params) => {
@@ -337,7 +339,7 @@ const processParamsTypeForArray = (params) => {
 
 const setFreePointerTag = (params) => {
   params.paramsType = params.paramsType?.map((paramType, index) => {
-    if (paramType.ffiTypeTag === 'function') {
+    if (paramType.ffiTypeTag === DataType.Function) {
       paramType.needFree = true
     }
     return paramType
@@ -359,7 +361,7 @@ exports.wrapPointer = (params) => wrapPointer(processParamsTypeForArray(params))
 exports.freePointer = (params) => freePointer(setFreePointerTag(processParamsTypeForArray(params)))
 exports.arrayConstructor = arrayConstructor
 exports.funcConstructor = (options) => ({
-  ffiTypeTag: 'function',
+  ffiTypeTag: DataType.Function,
   needFree: false,
   freeCFuncParamsMemory: false,
   ...options,
