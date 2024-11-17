@@ -1,3 +1,12 @@
+## [1.0.99](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.98...v1.0.99) (2024-11-17)
+
+
+### Features
+
+* support restore stack struct ([2cd1def](https://github.com/zhangyuang/node-ffi-rs/commit/2cd1defe1427b9b7235ad6671e68bc036ea2a859))
+
+
+
 ## [1.0.98](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.96...v1.0.98) (2024-10-29)
 
 
