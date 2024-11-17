@@ -530,11 +530,11 @@ typedef struct Person {
   //...
 } Person;
 
-// use arrayConstructor and set dynamicArray field to false
+// use arrayConstructor and set ffiTypeTag field to DataType.StackArray
 staticBytes: arrayConstructor({
   type: DataType.U8Array,
   length: parent.staticBytes.length,
-  dynamicArray: false
+  ffiTypeTag: DataType.StackArray
 }),
 ```
 
