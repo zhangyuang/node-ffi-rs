@@ -1,3 +1,13 @@
+# [1.1.0](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.99...v1.1.0) (2024-11-17)
+
+
+### Features
+
+* add  FFITypeTag::StackStruct ([72931b0](https://github.com/zhangyuang/node-ffi-rs/commit/72931b0317f92c0b1c3d5fe70ad411d1a9bac061))
+* use FFITypeTag::StackArray replace dynamicArray parameter ([b7c5874](https://github.com/zhangyuang/node-ffi-rs/commit/b7c5874a933a64fddca7b4d9b73237648bd1012a))
+
+
+
 ## [1.0.99](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.98...v1.0.99) (2024-11-17)
 
 
