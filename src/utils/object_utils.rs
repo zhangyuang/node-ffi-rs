@@ -55,43 +55,38 @@ pub fn calculate_struct_size(struct_type: &IndexMap<String, RsArgsValue>) -> (us
           BasicDataType::External => calculate_pointer(size, align, offset),
         };
       } else if let RsArgsValue::Object(obj) = field_type {
-        if let FFITypeTag::Array = get_ffi_tag(obj) {
+        if let FFITypeTag::StackArray = get_ffi_tag(obj) {
           let array_desc = get_array_desc(obj);
           let FFIARRARYDESC {
             array_type,
             array_len,
-            dynamic_array,
             ..
           } = array_desc;
-          if !dynamic_array {
-            let (mut type_size, type_align) = match array_type {
-              RefDataType::U8Array => get_size_align::<u8>(),
-              RefDataType::I32Array => get_size_align::<i32>(),
-              RefDataType::FloatArray => get_size_align::<f32>(),
-              RefDataType::StringArray => get_size_align::<*const c_char>(),
-              RefDataType::DoubleArray => get_size_align::<f64>(),
-            };
-            type_size = type_size * array_len;
-            let align = align.max(type_align);
-            let padding = (type_align - (offset % type_align)) % type_align;
-            let size = size + padding + type_size;
-            let offset = offset + padding + type_size;
-            return (size, align, offset);
-          } else {
-            return calculate_pointer(size, align, offset);
-          }
+          let (mut type_size, type_align) = match array_type {
+            RefDataType::U8Array => get_size_align::<u8>(),
+            RefDataType::I32Array => get_size_align::<i32>(),
+            RefDataType::FloatArray => get_size_align::<f32>(),
+            RefDataType::StringArray => get_size_align::<*const c_char>(),
+            RefDataType::DoubleArray => get_size_align::<f64>(),
+          };
+          type_size = type_size * array_len;
+          let align = align.max(type_align);
+          let padding = (type_align - (offset % type_align)) % type_align;
+          let size = size + padding + type_size;
+          let offset = offset + padding + type_size;
+          return (size, align, offset);
+        } else if let FFITypeTag::Array = get_ffi_tag(obj) {
+          return calculate_pointer(size, align, offset);
+        } else if get_ffi_tag(obj) == FFITypeTag::StackStruct {
+          let (type_size, type_align) = calculate_struct_size(obj);
+          let align = align.max(type_align);
+          let padding = (type_align - (offset % type_align)) % type_align;
+          let size = size + padding + type_size;
+          let offset = offset + padding + type_size;
+          return (size, align, offset);
         } else {
-          if get_ffi_tag(obj) == FFITypeTag::StackStruct {
-            let (type_size, type_align) = calculate_struct_size(obj);
-            let align = align.max(type_align);
-            let padding = (type_align - (offset % type_align)) % type_align;
-            let size = size + padding + type_size;
-            let offset = offset + padding + type_size;
-            return (size, align, offset);
-          } else {
-            return calculate_pointer(size, align, offset);
-          }
-        };
+          return calculate_pointer(size, align, offset);
+        }
       } else {
         panic!("unknown struct type {:?}", field_type)
       }

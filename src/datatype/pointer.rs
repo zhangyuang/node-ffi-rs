@@ -154,15 +154,15 @@ unsafe fn free_struct_memory(
     }
     if let RsArgsValue::Object(obj) = val {
       match get_ffi_tag(&obj) {
-        FFITypeTag::Array => {
+        FFITypeTag::Array | FFITypeTag::StackArray => {
           let array_desc = get_array_desc(&obj);
           // array
           let FFIARRARYDESC {
             array_type,
             array_len,
-            dynamic_array,
             ..
           } = array_desc;
+          let dynamic_array = get_ffi_tag(&obj) == FFITypeTag::Array;
           match array_type {
             RefDataType::StringArray => {
               let (size, align) = get_size_align::<*const c_void>();

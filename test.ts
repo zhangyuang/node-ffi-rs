@@ -334,7 +334,7 @@ const parentType = {
   staticBytes: arrayConstructor({
     type: DataType.U8Array,
     length: parent.staticBytes.length,
-    dynamicArray: false
+    ffiTypeTag: DataType.StackArray
   }),
   boolTrue: DataType.Boolean,
   boolFalse: DataType.Boolean,
@@ -369,7 +369,7 @@ const personType = {
   staticBytes: arrayConstructor({
     type: DataType.U8Array,
     length: person.staticBytes.length,
-    dynamicArray: false
+    ffiTypeTag: DataType.StackArray
   }),
   boolTrue: DataType.Boolean,
   boolFalse: DataType.Boolean,

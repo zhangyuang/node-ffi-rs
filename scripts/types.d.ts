@@ -47,7 +47,10 @@ export const enum DataType {
    As params will be transformed to i64, as return value will be created from i64
   */
   BigInt = 16,
-  StackStruct = 999 // reserve keyword
+  StackStruct = 999, // reserve keyword
+  StackArray = 996,
+  Function = 998,
+  Array = 997,
 }
 
 type DataTypeToType<T extends DataType> = T extends DataType.String
@@ -88,7 +91,7 @@ type DataTypeToType<T extends DataType> = T extends DataType.String
 export type ArrayConstructorOptions = {
   type: DataType;
   length: number;
-  ffiTypeTag?: string;
+  ffiTypeTag?: DataType;
   dynamicArray?: boolean
 };
 

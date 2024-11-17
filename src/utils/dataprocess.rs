@@ -48,6 +48,9 @@ pub fn get_ffi_tag(obj: &IndexMap<String, RsArgsValue>) -> FFITypeTag {
     if ffitypetag == &FFITypeTag::StackStruct.into() {
       return FFITypeTag::StackStruct;
     }
+    if ffitypetag == &FFITypeTag::StackArray.into() {
+      return FFITypeTag::StackArray;
+    }
     if ffitypetag == &FFITypeTag::Function.into() {
       return FFITypeTag::Function;
     }
@@ -57,21 +60,17 @@ pub fn get_ffi_tag(obj: &IndexMap<String, RsArgsValue>) -> FFITypeTag {
   }
 }
 pub fn get_array_desc(obj: &IndexMap<String, RsArgsValue>) -> FFIARRARYDESC {
-  let (mut array_len, mut array_type, mut array_dynamic) = (0, 0, true);
+  let (mut array_len, mut array_type) = (0, 0);
   if let RsArgsValue::I32(number) = obj.get(ARRAY_LENGTH_TAG).unwrap() {
     array_len = *number as usize
   }
   if let RsArgsValue::I32(number) = obj.get(ARRAY_TYPE_TAG).unwrap() {
     array_type = *number
   }
-  if let RsArgsValue::Boolean(val) = obj.get(ARRAY_DYNAMIC_TAG).unwrap() {
-    array_dynamic = *val
-  }
   let array_type = array_type.to_ref_data_type();
 
   FFIARRARYDESC {
     array_len,
-    dynamic_array: array_dynamic,
     array_type,
   }
 }
@@ -81,10 +80,11 @@ pub fn get_array_value(obj: &mut IndexMap<String, RsArgsValue>) -> Option<RsArgs
 }
 
 pub fn get_func_desc(obj: &IndexMap<String, RsArgsValue>) -> FFIFUNCDESC {
-  let mut need_free = false;
-  if let RsArgsValue::Boolean(val) = obj.get(FUNCTION_FREE_TAG).unwrap() {
-    need_free = *val
-  }
+  let need_free = if let RsArgsValue::Boolean(val) = obj.get(FUNCTION_FREE_TAG).unwrap() {
+    *val
+  } else {
+    false
+  };
   FFIFUNCDESC { need_free }
 }
 
@@ -173,7 +173,7 @@ pub unsafe fn get_arg_types_values(
         }
         RsArgsValue::Object(params_type_object_rs) => {
           let arg_type = &mut ffi_type_pointer as *mut ffi_type;
-          if let FFITypeTag::Array = get_ffi_tag(&params_type_object_rs) {
+          if let FFITypeTag::Array | FFITypeTag::StackArray = get_ffi_tag(&params_type_object_rs) {
             let array_desc = get_array_desc(&params_type_object_rs);
             let FFIARRARYDESC { array_type, .. } = array_desc;
             match array_type {
@@ -612,7 +612,7 @@ pub unsafe fn get_params_value_rs_struct(
 
           RsArgsValue::Object(mut params_type_rs_value) => {
             let params_value: JsObject = params_value_object.get_named_property(&field)?;
-            if let FFITypeTag::Array = get_ffi_tag(&params_type_rs_value) {
+            if let FFITypeTag::Array | FFITypeTag::StackArray = get_ffi_tag(&params_type_rs_value) {
               let array_desc = get_array_desc(&params_type_rs_value);
               let FFIARRARYDESC { array_type, .. } = array_desc;
               let array_value = match array_type {
@@ -783,7 +783,7 @@ pub unsafe fn get_js_unknown_from_pointer(
       }
     }
     RsArgsValue::Object(sub_obj_type) => {
-      if let FFITypeTag::Array = get_ffi_tag(&sub_obj_type) {
+      if let FFITypeTag::Array | FFITypeTag::StackArray = get_ffi_tag(&sub_obj_type) {
         let array_desc = get_array_desc(&sub_obj_type);
         // array
         let FFIARRARYDESC {

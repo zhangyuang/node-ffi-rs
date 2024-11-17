@@ -309,7 +309,7 @@ const { DataType, createPointer, restorePointer, unwrapPointer, wrapPointer, fre
 DataType.StackStruct = 999
 DataType.Function = 998
 DataType.Array = 997
-
+DataType.StackArray = 996
 module.exports.DataType = DataType
 module.exports.PointerType = nativeBinding.PointerType
 module.exports.open = open
@@ -319,9 +319,8 @@ module.exports.isNullPointer = isNullPointer
 
 const arrayDataType = [DataType.I32Array, DataType.StringArray, DataType.DoubleArray, DataType.U8Array, DataType.FloatArray]
 const arrayConstructor = (options) => ({
-  dynamicArray: true,
-  ...options,
-  ffiTypeTag: DataType.Array
+  ffiTypeTag: DataType.Array,
+  ...options
 })
 
 const processParamsTypeForArray = (params) => {

@@ -125,20 +125,19 @@ pub unsafe fn generate_c_struct(
         size
       }
       RsArgsValue::Object(mut obj_value) => {
-        if let FFITypeTag::Array = get_ffi_tag(&obj_value) {
+        if let FFITypeTag::Array | FFITypeTag::StackArray = get_ffi_tag(&obj_value) {
           let array_desc = get_array_desc(&obj_value);
           let array_value = get_array_value(&mut obj_value).unwrap();
           let FFIARRARYDESC {
             array_type,
             array_len,
-            dynamic_array,
             ..
           } = array_desc;
           let field_size = match array_type {
             RefDataType::U8Array => {
               if let RsArgsValue::U8Array(buffer, _) = array_value {
                 let buffer = buffer.unwrap();
-                if !dynamic_array {
+                if get_ffi_tag(&obj_value) == FFITypeTag::StackArray {
                   let (size, align) = get_size_align::<u8>();
                   let field_size = size * array_len;
                   let padding = (align - (offset % align)) % align;
@@ -160,7 +159,7 @@ pub unsafe fn generate_c_struct(
             }
             RefDataType::I32Array => {
               if let RsArgsValue::I32Array(arr) = array_value {
-                if !dynamic_array {
+                if get_ffi_tag(&obj_value) == FFITypeTag::StackArray {
                   let (size, align) = get_size_align::<i32>();
                   let field_size = size * array_len;
                   let padding = (align - (offset % align)) % align;
@@ -183,7 +182,7 @@ pub unsafe fn generate_c_struct(
             }
             RefDataType::DoubleArray => {
               if let RsArgsValue::DoubleArray(arr) = array_value {
-                if !dynamic_array {
+                if get_ffi_tag(&obj_value) == FFITypeTag::StackArray {
                   let (size, align) = get_size_align::<f64>();
                   let field_size = size * array_len;
                   let padding = (align - (offset % align)) % align;
@@ -206,7 +205,7 @@ pub unsafe fn generate_c_struct(
             }
             RefDataType::FloatArray => {
               if let RsArgsValue::FloatArray(arr) = array_value {
-                if !dynamic_array {
+                if get_ffi_tag(&obj_value) == FFITypeTag::StackArray {
                   let (size, align) = get_size_align::<f32>();
                   let field_size = size * array_len;
                   let padding = (align - (offset % align)) % align;
@@ -229,7 +228,7 @@ pub unsafe fn generate_c_struct(
             }
             RefDataType::StringArray => {
               if let RsArgsValue::StringArray(arr) = array_value {
-                if !dynamic_array {
+                if get_ffi_tag(&obj_value) == FFITypeTag::StackArray {
                   panic!(
                     "write {:?} to static array in struct is unsupported",
                     array_type

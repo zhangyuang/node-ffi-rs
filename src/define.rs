@@ -85,7 +85,6 @@ where
 }
 #[derive(Debug)]
 pub struct FFIARRARYDESC {
-  pub dynamic_array: bool,
   pub array_type: RefDataType,
   pub array_len: usize,
 }
@@ -446,7 +445,6 @@ impl Drop for FFITypeCleanup {
 
 pub const ARRAY_LENGTH_TAG: &str = "length";
 pub const ARRAY_TYPE_TAG: &str = "type";
-pub const ARRAY_DYNAMIC_TAG: &str = "dynamicArray";
 pub const ARRAY_VALUE_TAG: &str = "value";
 
 pub const FFI_TAG_FIELD: &str = "ffiTypeTag";
@@ -459,16 +457,18 @@ pub const FREE_FUNCTION_TAG: &str = "freeCFuncParamsMemory";
 #[derive(PartialEq, Eq)]
 pub enum FFITypeTag {
   Unknown = 0,
-  Function = 998,
+  StackArray = 996,
   Array = 997,
+  Function = 998,
   StackStruct = 999,
 }
 impl From<FFITypeTag> for i32 {
   fn from(tag: FFITypeTag) -> i32 {
     match tag {
       FFITypeTag::Unknown => 0,
-      FFITypeTag::Function => 998,
+      FFITypeTag::StackArray => 996,
       FFITypeTag::Array => 997,
+      FFITypeTag::Function => 998,
       FFITypeTag::StackStruct => 999,
     }
   }
