@@ -328,7 +328,7 @@ pub unsafe fn get_value_pointer(
         let c_double = Box::new(val);
         Ok(Box::into_raw(c_double) as *mut c_void)
       }
-      RsArgsValue::U8Array(buffer, v) => {
+      RsArgsValue::U8Array(buffer, _) => {
         let buffer = buffer.unwrap();
         let ptr = buffer.as_ptr();
         std::mem::forget(buffer);
@@ -385,6 +385,7 @@ pub unsafe fn get_value_pointer(
         let func_ret_type = if func_desc.get(RET_TYPE).is_some() {
             func_desc.get(RET_TYPE).unwrap().clone()
         }  else {
+          // void type
             RsArgsValue::I32(7)
         };
         let free_c_params_memory = func_desc.get(FREE_FUNCTION_TAG).unwrap().clone();

@@ -378,8 +378,7 @@ pub struct FFICALLPARAMS {
   pub errno: Option<bool>,
   pub free_result_memory: bool,
   pub params_type_rs: Rc<Vec<RsArgsValue>>,
-  pub r_type: *mut ffi_type,
-  pub arg_types: Vec<*mut ffi_type>,
+  pub ffi_type_cleanup: FFITypeCleanup,
 }
 pub struct BarePointerWrap(pub *mut c_void);
 unsafe impl Send for FFICALL {}
@@ -429,8 +428,19 @@ pub struct OpenParams {
 pub struct FFITypeCleanup {
   pub struct_type_box: Option<*mut ffi_type>,
   pub elements_box: Option<*mut Vec<*mut ffi_type>>,
+  pub r_type: Option<*mut ffi_type>,
+  pub arg_types: Vec<*mut ffi_type>,
 }
-
+impl FFITypeCleanup {
+  pub fn new() -> Self {
+    Self {
+      struct_type_box: None,
+      elements_box: None,
+      r_type: None,
+      arg_types: vec![],
+    }
+  }
+}
 impl Drop for FFITypeCleanup {
   fn drop(&mut self) {
     unsafe {

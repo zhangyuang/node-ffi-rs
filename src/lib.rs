@@ -220,13 +220,11 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
       .collect(),
   );
 
-  let (mut arg_types, arg_values) = get_arg_types_values(Rc::clone(&params_type_rs), params_value)?;
+  let (arg_types, arg_values) = get_arg_types_values(Rc::clone(&params_type_rs), params_value)?;
   let mut arg_values_c_void = get_value_pointer(&env, Rc::clone(&params_type_rs), arg_values)?;
   let ret_type_rs = type_define_to_rs_args(&env, ret_type)?;
-  let mut ffi_type_cleanup = FFITypeCleanup {
-    struct_type_box: None,
-    elements_box: None,
-  };
+  let mut ffi_type_cleanup = FFITypeCleanup::new();
+
   unsafe fn get_ffi_type(
     ret_type_rs: &RsArgsValue,
     ffi_type_cleanup: &mut FFITypeCleanup,
@@ -275,6 +273,12 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
   }
 
   let r_type = get_ffi_type(&ret_type_rs, &mut ffi_type_cleanup);
+  ffi_type_cleanup.r_type = Some(r_type);
+  ffi_type_cleanup.arg_types = arg_types;
+
+  let FFITypeCleanup {
+    ref mut arg_types, ..
+  } = &mut ffi_type_cleanup;
 
   let mut cif = ffi_cif {
     abi: ffi_abi_FFI_DEFAULT_ABI,
@@ -319,7 +323,6 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
         let FFICALLPARAMS {
           arg_values_c_void, ..
         } = &mut self.data;
-
         unsafe {
           let result = libc::malloc(std::mem::size_of::<*mut c_void>());
           ffi_call(
@@ -372,8 +375,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
       errno,
       free_result_memory,
       params_type_rs,
-      r_type,
-      arg_types,
+      ffi_type_cleanup,
     });
     let async_work_promise = env.spawn(task)?;
     Ok(async_work_promise.promise_object().into_unknown())
