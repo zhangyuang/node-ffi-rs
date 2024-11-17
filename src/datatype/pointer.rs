@@ -160,7 +160,6 @@ unsafe fn free_struct_memory(
           let FFIARRARYDESC {
             array_type,
             array_len,
-            ..
           } = array_desc;
           let dynamic_array = get_ffi_tag(&obj) == FFITypeTag::Array;
           match array_type {
@@ -318,7 +317,6 @@ pub unsafe fn free_rs_pointer_memory(
         let FFIARRARYDESC {
           array_type,
           array_len,
-          ..
         } = array_desc;
         match array_type {
           RefDataType::U8Array => {}
@@ -383,7 +381,6 @@ pub unsafe fn free_c_pointer_memory(
         let FFIARRARYDESC {
           array_type,
           array_len,
-          ..
         } = array_desc;
         match array_type {
           RefDataType::U8Array => free_dynamic_u8_array(ptr, array_len),

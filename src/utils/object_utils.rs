@@ -60,7 +60,6 @@ pub fn calculate_struct_size(struct_type: &IndexMap<String, RsArgsValue>) -> (us
           let FFIARRARYDESC {
             array_type,
             array_len,
-            ..
           } = array_desc;
           let (mut type_size, type_align) = match array_type {
             RefDataType::U8Array => get_size_align::<u8>(),
@@ -108,7 +107,6 @@ pub unsafe fn create_static_array_from_pointer(
   let FFIARRARYDESC {
     array_type,
     array_len,
-    ..
   } = array_desc;
   match array_type {
     RefDataType::U8Array => {
@@ -126,9 +124,22 @@ pub unsafe fn create_static_array_from_pointer(
       let arr = (0..*array_len).map(|n| *(ptr.offset(n as isize))).collect();
       RsArgsValue::DoubleArray(arr)
     }
-    _ => panic!(
-      "{:?} type transform to static array is unsupported at now",
-      array_type
-    ),
+    RefDataType::FloatArray => {
+      let ptr = ptr as *mut f32;
+      let arr = (0..*array_len).map(|n| *(ptr.offset(n as isize))).collect();
+      RsArgsValue::FloatArray(arr)
+    }
+    RefDataType::StringArray => {
+      panic!("string array is not supported for static array");
+      // let ptr = ptr as *mut *const c_char;
+      // let arr = (0..*array_len)
+      //   .map(|n| {
+      //     std::ffi::CStr::from_ptr(*(ptr.offset(n as isize)))
+      //       .to_string_lossy()
+      //       .to_string()
+      //   })
+      //   .collect();
+      // RsArgsValue::StringArray(arr)
+    }
   }
 }

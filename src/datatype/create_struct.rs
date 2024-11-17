@@ -131,7 +131,6 @@ pub unsafe fn generate_c_struct(
           let FFIARRARYDESC {
             array_type,
             array_len,
-            ..
           } = array_desc;
           let field_size = match array_type {
             RefDataType::U8Array => {
