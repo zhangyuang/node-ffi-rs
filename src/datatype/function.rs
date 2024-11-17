@@ -20,19 +20,13 @@ pub unsafe fn get_rs_value_from_pointer(
     RsArgsValue::I32(number) => {
       let data = match number.to_basic_data_type() {
         BasicDataType::U8 => RsArgsValue::U8(*(pointer as *mut u8)),
-        BasicDataType::I32 => {
-          return RsArgsValue::I32(*(pointer as *mut i32));
-        }
+        BasicDataType::I32 => RsArgsValue::I32(*(pointer as *mut i32)),
         BasicDataType::I64 => RsArgsValue::I64(*(pointer as *mut i64)),
         BasicDataType::BigInt => RsArgsValue::BigInt(*(pointer as *mut i64)),
         BasicDataType::U64 => RsArgsValue::U64(*(pointer as *mut u64)),
         BasicDataType::Float => RsArgsValue::Float(*(pointer as *mut f32)),
         BasicDataType::Double => RsArgsValue::Double(*(pointer as *mut f64)),
-        BasicDataType::Boolean => RsArgsValue::Boolean(if *(pointer as *mut i32) == 0 {
-          false
-        } else {
-          true
-        }),
+        BasicDataType::Boolean => RsArgsValue::Boolean(!*(pointer as *mut i32) == 0),
         BasicDataType::String => {
           RsArgsValue::String(create_c_string_from_ptr(*(pointer as *mut *mut c_char)))
         }

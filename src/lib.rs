@@ -265,7 +265,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
           let struct_type_ptr = Box::into_raw(Box::new(struct_type_box));
           ffi_type_cleanup.elements_box = Some(elements_ptr);
           ffi_type_cleanup.struct_type_box = Some(struct_type_ptr);
-          struct_type_ptr as *mut ffi_type
+          struct_type_ptr
         } else {
           &mut ffi_type_pointer as *mut ffi_type
         }
