@@ -18,6 +18,8 @@ libffi-sys = { version = "^2.3.0" }
 libc = "0.2"
 indexmap = "2.0"
 widestring = "1.1.0"
+strum = "0.26"
+strum_macros = "0.26"
 
 [build-dependencies]
 napi-build = "2.0.1"
