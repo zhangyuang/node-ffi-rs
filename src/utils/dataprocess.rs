@@ -10,8 +10,8 @@ use crate::define::*;
 use indexmap::IndexMap;
 use libc::{c_char, c_double, c_float, c_int, c_uchar, c_void};
 use libffi_sys::{
-  ffi_type, ffi_type_double, ffi_type_float, ffi_type_pointer, ffi_type_sint32, ffi_type_sint64,
-  ffi_type_uint64, ffi_type_uint8, ffi_type_void,
+  ffi_type, ffi_type_double, ffi_type_float, ffi_type_pointer, ffi_type_sint16, ffi_type_sint32,
+  ffi_type_sint64, ffi_type_uint64, ffi_type_uint8, ffi_type_void,
 };
 use napi::threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi::{
@@ -108,15 +108,20 @@ pub unsafe fn get_arg_types_values(
         RsArgsValue::I32(number) => {
           let param_data_type = number.to_basic_data_type();
           match param_data_type {
-            BasicDataType::I32 => {
-              let arg_type = &mut ffi_type_sint32 as *mut ffi_type;
-              let arg_val: i32 = create_js_value_unchecked::<JsNumber>(value)?.try_into()?;
-              (arg_type, RsArgsValue::I32(arg_val))
-            }
             BasicDataType::U8 => {
               let arg_type = &mut ffi_type_sint32 as *mut ffi_type;
               let arg_val: u32 = create_js_value_unchecked::<JsNumber>(value)?.try_into()?;
               (arg_type, RsArgsValue::U8(arg_val as u8))
+            }
+            BasicDataType::I16 => {
+              let arg_type = &mut ffi_type_sint16 as *mut ffi_type;
+              let arg_val: i32 = create_js_value_unchecked::<JsNumber>(value)?.try_into()?;
+              (arg_type, RsArgsValue::I16(arg_val as i16))
+            }
+            BasicDataType::I32 => {
+              let arg_type = &mut ffi_type_sint32 as *mut ffi_type;
+              let arg_val: i32 = create_js_value_unchecked::<JsNumber>(value)?.try_into()?;
+              (arg_type, RsArgsValue::I32(arg_val))
             }
             BasicDataType::I64 => {
               let arg_type = &mut ffi_type_sint64 as *mut ffi_type;
@@ -299,6 +304,7 @@ pub unsafe fn get_value_pointer(
         Ok(Box::into_raw(Box::new(get_js_external_wrap_data(&env, val)?)) as *mut c_void)
       }
       RsArgsValue::U8(val) => Ok(Box::into_raw(Box::new(val)) as *mut c_void),
+      RsArgsValue::I16(val) => Ok(Box::into_raw(Box::new(val)) as *mut c_void),
       RsArgsValue::I32(val) => Ok(Box::into_raw(Box::new(val)) as *mut c_void),
       RsArgsValue::I64(val) | RsArgsValue::BigInt(val) => {
         Ok(Box::into_raw(Box::new(val)) as *mut c_void)
@@ -538,6 +544,11 @@ pub unsafe fn get_params_value_rs_struct(
                 let val: u32 = val.try_into()?;
                 RsArgsValue::U8(val as u8)
               }
+              DataType::I16 => {
+                let val: JsNumber = params_value_object.get_named_property(&field)?;
+                let val: i32 = val.try_into()?;
+                RsArgsValue::I16(val as i16)
+              }
               DataType::I32 => {
                 let val: JsNumber = params_value_object.get_named_property(&field)?;
                 let val: i32 = val.try_into()?;
@@ -762,6 +773,7 @@ pub unsafe fn get_js_unknown_from_pointer(
           rs_value_to_js_unknown(&env, RsArgsValue::WString(ptr_str))
         }
         BasicDataType::U8 => rs_value_to_js_unknown(env, RsArgsValue::U8(*(ptr as *mut u8))),
+        BasicDataType::I16 => rs_value_to_js_unknown(env, RsArgsValue::I16(*(ptr as *mut i16))),
         BasicDataType::I32 => rs_value_to_js_unknown(env, RsArgsValue::I32(*(ptr as *mut i32))),
         BasicDataType::I64 => rs_value_to_js_unknown(env, RsArgsValue::I64(*(ptr as *mut i64))),
         BasicDataType::U64 => rs_value_to_js_unknown(env, RsArgsValue::U64(*(ptr as *mut u64))),
@@ -839,6 +851,7 @@ unsafe fn write_rs_ptr_to_c(ret_type: &RsArgsValue, src: *mut c_void, dst: *mut 
       let ret_data_type = number.to_basic_data_type();
       match ret_data_type {
         BasicDataType::U8 => std::ptr::copy(src, dst, std::mem::size_of::<u8>()),
+        BasicDataType::I16 => std::ptr::copy(src, dst, std::mem::size_of::<i16>()),
         BasicDataType::I32 => std::ptr::copy(src, dst, std::mem::size_of::<i32>()),
         BasicDataType::I64 | BasicDataType::BigInt => {
           std::ptr::copy(src, dst, std::mem::size_of::<i64>())

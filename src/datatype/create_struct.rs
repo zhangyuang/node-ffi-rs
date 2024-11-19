@@ -8,7 +8,9 @@ use crate::RefDataType;
 use indexmap::IndexMap;
 use napi::{Env, Result};
 use std::alloc::{alloc, Layout};
-use std::ffi::{c_char, c_double, c_float, c_int, c_longlong, c_uchar, c_ulonglong, c_void};
+use std::ffi::{
+  c_char, c_double, c_float, c_int, c_longlong, c_short, c_uchar, c_ulonglong, c_void,
+};
 use widestring::WideChar;
 
 pub unsafe fn generate_c_struct(
@@ -37,6 +39,14 @@ pub unsafe fn generate_c_struct(
         let padding = (align - (offset % align)) % align;
         field_ptr = field_ptr.offset(padding as isize);
         (field_ptr as *mut c_uchar).write(number);
+        offset += size + padding;
+        size
+      }
+      RsArgsValue::I16(number) => {
+        let (size, align) = get_size_align::<c_short>();
+        let padding = (align - (offset % align)) % align;
+        field_ptr = field_ptr.offset(padding as isize);
+        (field_ptr as *mut c_short).write(number);
         offset += size + padding;
         size
       }

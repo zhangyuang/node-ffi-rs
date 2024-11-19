@@ -2,7 +2,7 @@ use super::dataprocess::{get_array_desc, get_ffi_tag};
 use crate::define::*;
 use crate::{RefDataType, RsArgsValue, FFIARRARYDESC};
 use indexmap::IndexMap;
-use std::ffi::{c_char, c_double, c_float, c_int, c_longlong, c_uchar, c_void};
+use std::ffi::{c_char, c_double, c_float, c_int, c_longlong, c_short, c_uchar, c_void};
 use widestring::WideChar;
 pub fn get_size_align<T: Sized>() -> (usize, usize) {
   (std::mem::size_of::<T>(), std::mem::align_of::<T>())
@@ -22,6 +22,7 @@ macro_rules! calculate_layout_for {
   };
 }
 calculate_layout_for!(calculate_u8, c_uchar);
+calculate_layout_for!(calculate_i16, c_short);
 calculate_layout_for!(calculate_i32, c_int);
 calculate_layout_for!(calculate_i64, c_longlong);
 calculate_layout_for!(calculate_float, c_float);
@@ -42,6 +43,7 @@ pub fn calculate_struct_size(struct_type: &IndexMap<String, RsArgsValue>) -> (us
       if let RsArgsValue::I32(number) = field_type {
         return match number.to_basic_data_type() {
           BasicDataType::U8 => calculate_u8(size, align, offset),
+          BasicDataType::I16 => calculate_i16(size, align, offset),
           BasicDataType::I32 => calculate_i32(size, align, offset),
           BasicDataType::I64 | BasicDataType::U64 | BasicDataType::BigInt => {
             calculate_i64(size, align, offset)

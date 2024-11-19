@@ -7,8 +7,7 @@ use crate::utils::*;
 use indexmap::IndexMap;
 use libc::c_float;
 use napi::{Env, JsObject, JsUnknown, Result};
-use std::ffi::c_void;
-use std::ffi::{c_char, c_double, c_int, c_longlong, c_uchar, c_ulonglong};
+use std::ffi::{c_char, c_double, c_int, c_longlong, c_short, c_uchar, c_ulonglong, c_void};
 use widestring::WideChar;
 
 pub unsafe fn create_rs_struct_from_pointer(
@@ -34,6 +33,15 @@ pub unsafe fn create_rs_struct_from_pointer(
           field_ptr = field_ptr.offset(padding as isize);
           let type_field_ptr = field_ptr as *mut c_uchar;
           rs_struct.insert(field, RsArgsValue::U8(*type_field_ptr));
+          offset += size + padding;
+          field_size = size
+        }
+        BasicDataType::I16 => {
+          let (size, align) = get_size_align::<c_short>();
+          let padding = (align - (offset % align)) % align;
+          field_ptr = field_ptr.offset(padding as isize);
+          let type_field_ptr = field_ptr as *mut c_short;
+          rs_struct.insert(field, RsArgsValue::I16(*type_field_ptr));
           offset += size + padding;
           field_size = size
         }
@@ -304,6 +312,7 @@ pub fn create_js_object_from_rs_map(
 pub fn rs_value_to_js_unknown(env: &Env, data: RsArgsValue) -> Result<JsUnknown> {
   let res = match data {
     RsArgsValue::U8(number) => env.create_uint32(number as u32)?.into_unknown(),
+    RsArgsValue::I16(number) => env.create_int32(number as i32)?.into_unknown(),
     RsArgsValue::I32(number) => env.create_int32(number)?.into_unknown(),
     RsArgsValue::I64(number) => env.create_int64(number)?.into_unknown(),
     RsArgsValue::U64(number) => env.create_int64(number as i64)?.into_unknown(),

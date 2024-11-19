@@ -113,6 +113,7 @@ pub enum DataType {
   Float = 14,
   WString = 15,
   BigInt = 16,
+  I16 = 17,
 }
 
 #[derive(Debug)]
@@ -129,6 +130,7 @@ pub enum BasicDataType {
   Float = 14,
   WString = 15,
   BigInt = 16,
+  I16 = 17,
 }
 
 #[derive(Debug)]
@@ -165,6 +167,7 @@ impl ToDataType for i32 {
       14 => DataType::Float,
       15 => DataType::WString,
       16 => DataType::BigInt,
+      17 => DataType::I16,
       _ => panic!("unknow DataType"),
     }
   }
@@ -187,6 +190,7 @@ impl ToDataType for i32 {
       14 => BasicDataType::Float,
       15 => BasicDataType::WString,
       16 => BasicDataType::BigInt,
+      17 => BasicDataType::I16,
       _ => panic!("unknow DataType"),
     }
   }
@@ -222,6 +226,7 @@ impl RsArgsTrait for RsArgsValue {
           BasicDataType::Double => Type::f64(),
           BasicDataType::Void => Type::void(),
           BasicDataType::External => Type::pointer(),
+          BasicDataType::I16 => Type::i16(),
         }
       }
       RsArgsValue::Object(_) => Type::pointer(),
@@ -241,6 +246,7 @@ pub enum RsArgsValue {
   String(String),
   WString(String),
   U8(u8),
+  I16(i16),
   I32(i32),
   I64(i64),
   BigInt(i64),
@@ -264,6 +270,7 @@ impl Clone for RsArgsValue {
       RsArgsValue::String(s) => RsArgsValue::String(s.clone()),
       RsArgsValue::WString(s) => RsArgsValue::WString(s.clone()),
       RsArgsValue::U8(u) => RsArgsValue::U8(*u),
+      RsArgsValue::I16(i) => RsArgsValue::I16(*i),
       RsArgsValue::I32(i) => RsArgsValue::I32(*i),
       RsArgsValue::I64(i) => RsArgsValue::I64(*i),
       RsArgsValue::BigInt(u) => RsArgsValue::BigInt(*u),
@@ -322,6 +329,7 @@ impl std::fmt::Debug for RsArgsValue {
       RsArgsValue::String(s) => write!(f, "String({})", s),
       RsArgsValue::WString(s) => write!(f, "WString({})", s),
       RsArgsValue::U8(i) => write!(f, "U8({})", i),
+      RsArgsValue::I16(i) => write!(f, "I16({})", i),
       RsArgsValue::I32(i) => write!(f, "I32({})", i),
       RsArgsValue::I64(i) => write!(f, "I64({})", i),
       RsArgsValue::U64(i) => write!(f, "U64({})", i),

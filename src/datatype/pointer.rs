@@ -2,7 +2,7 @@ use crate::utils::{
   calculate_struct_size, get_array_desc, get_ffi_tag, get_func_desc, get_size_align,
 };
 use indexmap::IndexMap;
-use libc::{c_double, c_float, c_int, c_void, free};
+use libc::{c_double, c_float, c_int, c_short, c_void, free};
 use std::ffi::{c_char, c_longlong, c_uchar, c_ulonglong, CStr, CString};
 use widestring::{WideCString, WideChar};
 
@@ -61,6 +61,13 @@ unsafe fn free_struct_memory(
       match data_type {
         BasicDataType::U8 => {
           let (size, align) = get_size_align::<c_uchar>();
+          let padding = (align - (offset % align)) % align;
+          field_ptr = field_ptr.offset(padding as isize);
+          offset += size + padding;
+          field_size = size
+        }
+        BasicDataType::I16 => {
+          let (size, align) = get_size_align::<c_short>();
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           offset += size + padding;
@@ -292,6 +299,7 @@ pub unsafe fn free_rs_pointer_memory(
           let _ = WideCString::from_raw(*(ptr as *mut *mut WideChar));
         }
         BasicDataType::U8
+        | BasicDataType::I16
         | BasicDataType::I32
         | BasicDataType::I64
         | BasicDataType::BigInt

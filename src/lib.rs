@@ -9,8 +9,8 @@ use define::*;
 use dlopen::symbor::{Library, Symbol};
 use libffi_sys::{
   ffi_abi_FFI_DEFAULT_ABI, ffi_call, ffi_cif, ffi_prep_cif, ffi_type, ffi_type_double,
-  ffi_type_enum_STRUCT, ffi_type_float, ffi_type_pointer, ffi_type_sint32, ffi_type_sint64,
-  ffi_type_uint64, ffi_type_uint8, ffi_type_void,
+  ffi_type_enum_STRUCT, ffi_type_float, ffi_type_pointer, ffi_type_sint16, ffi_type_sint32,
+  ffi_type_sint64, ffi_type_uint64, ffi_type_uint8, ffi_type_void,
 };
 use napi::{Env, JsExternal, JsUnknown, Result};
 use std::collections::HashMap;
@@ -235,6 +235,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
         match ret_data_type {
           BasicDataType::U8 => &mut ffi_type_uint8 as *mut ffi_type,
           BasicDataType::I32 => &mut ffi_type_sint32 as *mut ffi_type,
+          BasicDataType::I16 => &mut ffi_type_sint16 as *mut ffi_type,
           BasicDataType::I64 | BasicDataType::BigInt => &mut ffi_type_sint64 as *mut ffi_type,
           BasicDataType::U64 => &mut ffi_type_uint64 as *mut ffi_type,
           BasicDataType::String | BasicDataType::WString => &mut ffi_type_pointer as *mut ffi_type,
