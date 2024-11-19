@@ -57,7 +57,7 @@ unsafe fn free_struct_memory(
       continue;
     }
     if let RsArgsValue::I32(number) = val {
-      let data_type = number.to_basic_data_type();
+      let data_type = (*number).try_into().unwrap();
       match data_type {
         BasicDataType::U8 => {
           let (size, align) = get_size_align::<c_uchar>();
@@ -176,8 +176,6 @@ unsafe fn free_struct_memory(
               field_ptr = field_ptr.offset(padding as isize);
               if dynamic_array {
                 free_dynamic_string_array(field_ptr, array_len);
-              } else {
-                //
               }
               offset += size + padding;
               field_size = size
@@ -193,8 +191,6 @@ unsafe fn free_struct_memory(
               field_ptr = field_ptr.offset(padding as isize);
               if dynamic_array {
                 free_dynamic_double_array(field_ptr, array_len);
-              } else {
-                //
               }
               offset += size + padding;
               field_size = size
@@ -210,8 +206,6 @@ unsafe fn free_struct_memory(
               field_ptr = field_ptr.offset(padding as isize);
               if dynamic_array {
                 free_dynamic_float_array(field_ptr, array_len);
-              } else {
-                //
               }
               offset += size + padding;
               field_size = size
@@ -267,6 +261,7 @@ unsafe fn free_struct_memory(
             let (size, align) = calculate_struct_size(&obj);
             let padding = (align - (offset % align)) % align;
             field_ptr = field_ptr.offset(padding as isize);
+            free_struct_memory(field_ptr, obj, ptr_type);
             offset += size + padding;
             field_size = size
           } else {
@@ -290,7 +285,7 @@ pub unsafe fn free_rs_pointer_memory(
 ) {
   match ptr_desc {
     RsArgsValue::I32(number) => {
-      let basic_data_type = number.to_basic_data_type();
+      let basic_data_type = (*number).try_into().unwrap();
       match basic_data_type {
         BasicDataType::String => {
           let _ = CString::from_raw(*(ptr as *mut *mut c_char));
@@ -365,7 +360,7 @@ pub unsafe fn free_c_pointer_memory(
 ) {
   match ptr_desc {
     RsArgsValue::I32(number) => {
-      let basic_data_type = number.to_basic_data_type();
+      let basic_data_type = (*number).try_into().unwrap();
       match basic_data_type {
         BasicDataType::String => {
           free(*(ptr as *mut *mut i8) as *mut c_void);

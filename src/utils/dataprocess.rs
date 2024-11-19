@@ -67,7 +67,7 @@ pub fn get_array_desc(obj: &IndexMap<String, RsArgsValue>) -> FFIARRARYDESC {
   if let RsArgsValue::I32(number) = obj.get(ARRAY_TYPE_TAG).unwrap() {
     array_type = *number
   }
-  let array_type = array_type.to_ref_data_type();
+  let array_type = array_type.try_into().unwrap();
 
   FFIARRARYDESC {
     array_len,
@@ -106,7 +106,7 @@ pub unsafe fn get_arg_types_values(
     .map(|(param, value)| {
       let res = match param {
         RsArgsValue::I32(number) => {
-          let param_data_type = number.to_basic_data_type();
+          let param_data_type = (*number).try_into()?;
           match param_data_type {
             BasicDataType::U8 => {
               let arg_type = &mut ffi_type_sint32 as *mut ffi_type;
@@ -527,7 +527,7 @@ pub unsafe fn get_params_value_rs_struct(
         let field = field.clone();
         match field_type.clone() {
           RsArgsValue::I32(data_type_number) => {
-            let data_type: DataType = data_type_number.to_data_type();
+            let data_type: DataType = data_type_number.try_into()?;
             let val = match data_type {
               DataType::String => {
                 let val: JsString = params_value_object.get_named_property(&field)?;
@@ -760,7 +760,7 @@ pub unsafe fn get_js_unknown_from_pointer(
 ) -> Result<JsUnknown> {
   match ret_type_rs {
     RsArgsValue::I32(number) => {
-      let ret_data_type = number.to_basic_data_type();
+      let ret_data_type = (*number).try_into()?;
       match ret_data_type {
         BasicDataType::String => {
           let ptr_str = CStr::from_ptr(*(ptr as *mut *const c_char))
@@ -848,7 +848,7 @@ pub unsafe fn get_js_unknown_from_pointer(
 unsafe fn write_rs_ptr_to_c(ret_type: &RsArgsValue, src: *mut c_void, dst: *mut c_void) {
   match &ret_type {
     RsArgsValue::I32(number) => {
-      let ret_data_type = number.to_basic_data_type();
+      let ret_data_type = (*number).try_into().unwrap();
       match ret_data_type {
         BasicDataType::U8 => std::ptr::copy(src, dst, std::mem::size_of::<u8>()),
         BasicDataType::I16 => std::ptr::copy(src, dst, std::mem::size_of::<i16>()),

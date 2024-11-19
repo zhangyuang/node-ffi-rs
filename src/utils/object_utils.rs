@@ -40,8 +40,8 @@ pub fn calculate_struct_size(struct_type: &IndexMap<String, RsArgsValue>) -> (us
       if field_name == FFI_TAG_FIELD {
         return (size, align, offset);
       }
-      if let RsArgsValue::I32(number) = field_type {
-        return match number.to_basic_data_type() {
+      if let RsArgsValue::I32(field_type_number) = field_type {
+        return match (*field_type_number).try_into().unwrap() {
           BasicDataType::U8 => calculate_u8(size, align, offset),
           BasicDataType::I16 => calculate_i16(size, align, offset),
           BasicDataType::I32 => calculate_i32(size, align, offset),

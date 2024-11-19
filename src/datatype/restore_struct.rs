@@ -26,7 +26,7 @@ pub unsafe fn create_rs_struct_from_pointer(
     }
     if let RsArgsValue::I32(number) = val {
       let field = field.clone();
-      match number.to_basic_data_type() {
+      match (*number).try_into().unwrap() {
         BasicDataType::U8 => {
           let (size, align) = get_size_align::<c_uchar>();
           let padding = (align - (offset % align)) % align;

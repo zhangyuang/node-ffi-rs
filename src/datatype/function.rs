@@ -18,7 +18,7 @@ pub unsafe fn get_rs_value_from_pointer(
 ) -> RsArgsValue {
   match type_desc {
     RsArgsValue::I32(number) => {
-      let data = match number.to_basic_data_type() {
+      let data = match (*number).try_into().unwrap() {
         BasicDataType::U8 => RsArgsValue::U8(*(pointer as *mut u8)),
         BasicDataType::I16 => RsArgsValue::I16(*(pointer as *mut i16)),
         BasicDataType::I32 => RsArgsValue::I32(*(pointer as *mut i32)),

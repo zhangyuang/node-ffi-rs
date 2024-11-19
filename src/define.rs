@@ -9,7 +9,11 @@ use napi::{Env, JsExternal, JsObject, JsUnknown};
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::rc::Rc;
+use strum_macros::{EnumIter, FromRepr};
 
+type StandardResult<T, E> = std::result::Result<T, E>;
+
+#[derive(Debug)]
 pub enum FFIError {
   NapiError(Error<NapiStatus>),
   UnExpectedError,
@@ -94,7 +98,7 @@ pub struct FFIFUNCDESC {
 }
 
 #[napi]
-#[derive(Debug)]
+#[derive(Debug, FromRepr)]
 pub enum DataType {
   String = 0,
   I32 = 1,
@@ -115,8 +119,7 @@ pub enum DataType {
   BigInt = 16,
   I16 = 17,
 }
-
-#[derive(Debug)]
+#[derive(Debug, FromRepr)]
 pub enum BasicDataType {
   String = 0,
   I32 = 1,
@@ -133,7 +136,7 @@ pub enum BasicDataType {
   I16 = 17,
 }
 
-#[derive(Debug)]
+#[derive(Debug, FromRepr)]
 pub enum RefDataType {
   I32Array = 3,
   StringArray = 4,
@@ -142,67 +145,37 @@ pub enum RefDataType {
   FloatArray = 13,
 }
 
-pub trait ToDataType {
-  fn to_data_type(self) -> DataType;
-  fn to_basic_data_type(self) -> BasicDataType;
-  fn to_ref_data_type(self) -> RefDataType;
+impl TryFrom<i32> for DataType {
+  type Error = FFIError;
+  fn try_from(value: i32) -> StandardResult<Self, Self::Error> {
+    DataType::from_repr(value as usize).ok_or(FFIError::UnsupportedValueType(format!(
+      "Invalid DataType value: {}",
+      value
+    )))
+  }
 }
-impl ToDataType for i32 {
-  fn to_data_type(self) -> DataType {
-    match self {
-      0 => DataType::String,
-      1 => DataType::I32,
-      2 => DataType::Double,
-      3 => DataType::I32Array,
-      4 => DataType::StringArray,
-      5 => DataType::DoubleArray,
-      6 => DataType::Boolean,
-      7 => DataType::Void,
-      8 => DataType::I64,
-      9 => DataType::U8,
-      10 => DataType::U8Array,
-      11 => DataType::External,
-      12 => DataType::U64,
-      13 => DataType::FloatArray,
-      14 => DataType::Float,
-      15 => DataType::WString,
-      16 => DataType::BigInt,
-      17 => DataType::I16,
-      _ => panic!("unknow DataType"),
-    }
-  }
-  fn to_basic_data_type(self) -> BasicDataType {
-    if is_array_type(&self) {
-      panic!(
+
+impl TryFrom<i32> for BasicDataType {
+  type Error = FFIError;
+  fn try_from(value: i32) -> StandardResult<Self, Self::Error> {
+    if let Ok(_) = value.try_into() as StandardResult<RefDataType, FFIError> {
+      return Err(FFIError::UnsupportedValueType(format!(
         "In the latest ffi-rs version, please use ffi-rs.arrayConstrutor to describe array type"
-      )
+      )));
     }
-    match self {
-      0 => BasicDataType::String,
-      1 => BasicDataType::I32,
-      2 => BasicDataType::Double,
-      6 => BasicDataType::Boolean,
-      7 => BasicDataType::Void,
-      8 => BasicDataType::I64,
-      9 => BasicDataType::U8,
-      11 => BasicDataType::External,
-      12 => BasicDataType::U64,
-      14 => BasicDataType::Float,
-      15 => BasicDataType::WString,
-      16 => BasicDataType::BigInt,
-      17 => BasicDataType::I16,
-      _ => panic!("unknow DataType"),
-    }
+    BasicDataType::from_repr(value as usize).ok_or(FFIError::UnsupportedValueType(format!(
+      "Invalid BasicDataType value: {}",
+      value
+    )))
   }
-  fn to_ref_data_type(self) -> RefDataType {
-    match self {
-      3 => RefDataType::I32Array,
-      4 => RefDataType::StringArray,
-      5 => RefDataType::DoubleArray,
-      10 => RefDataType::U8Array,
-      13 => RefDataType::FloatArray,
-      _ => panic!("unknow DataType"),
-    }
+}
+impl TryFrom<i32> for RefDataType {
+  type Error = FFIError;
+  fn try_from(value: i32) -> StandardResult<Self, Self::Error> {
+    RefDataType::from_repr(value as usize).ok_or(FFIError::UnsupportedValueType(format!(
+      "Invalid RefDataType value: {}",
+      value
+    )))
   }
 }
 use libffi::middle::Type;
@@ -214,7 +187,7 @@ impl RsArgsTrait for RsArgsValue {
   fn to_ffi_type(&self) -> Type {
     match self {
       RsArgsValue::I32(number) => {
-        let data_type = number.to_basic_data_type();
+        let data_type = (*number).try_into().unwrap();
         match data_type {
           BasicDataType::String => Type::pointer(),
           BasicDataType::WString => Type::pointer(),
@@ -232,13 +205,6 @@ impl RsArgsTrait for RsArgsValue {
       RsArgsValue::Object(_) => Type::pointer(),
       _ => panic!("parse function params type err {:?}", self),
     }
-  }
-}
-
-pub fn is_array_type(value: &i32) -> bool {
-  match value {
-    3 | 4 | 5 | 10 | 13 => true,
-    _ => false,
   }
 }
 
