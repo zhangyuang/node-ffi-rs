@@ -1,3 +1,13 @@
+## [1.1.1](https://github.com/zhangyuang/node-ffi-rs/compare/v1.1.0...v1.1.1) (2024-11-19)
+
+
+### Features
+
+* support create staic float array  from pointer ([5f89094](https://github.com/zhangyuang/node-ffi-rs/commit/5f89094f84418d0306f1707b20c39192c2d5cf9b))
+* support DataType.I16 ([3b1cb28](https://github.com/zhangyuang/node-ffi-rs/commit/3b1cb2888e3234c9d6fbe8234a3ead9da3dde004))
+
+
+
 # [1.1.0](https://github.com/zhangyuang/node-ffi-rs/compare/v1.0.99...v1.1.0) (2024-11-17)
 
 
