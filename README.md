@@ -110,7 +110,7 @@ Note: You need to make sure that the compilation environment of the dynamic libr
 
 ## Usage
 
-View [test.ts](./test.ts) for the latest usage
+View [tests/index.ts](./tests/index.ts) for the latest usage
 
 Here is an example of how to use ffi-rs:
 
