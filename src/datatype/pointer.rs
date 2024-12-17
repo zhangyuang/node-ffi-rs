@@ -3,6 +3,7 @@ use crate::utils::{
 };
 use indexmap::IndexMap;
 use libc::{c_double, c_float, c_int, c_short, c_void, free};
+use std::alloc::{dealloc, Layout};
 use std::ffi::{c_char, c_longlong, c_uchar, c_ulonglong, CStr, CString};
 use widestring::{WideCString, WideChar};
 
@@ -334,23 +335,20 @@ pub unsafe fn free_rs_pointer_memory(
           RefDataType::FloatArray => free_dynamic_float_array(ptr, array_len),
           RefDataType::StringArray => free_dynamic_string_array(ptr, array_len),
           RefDataType::StructArray => {
-            use std::alloc::{dealloc, Layout};
-            let (size, align) = calculate_struct_size(&obj);
-            let layout = if size > 0 {
-              Layout::from_size_align(size, align).unwrap()
-            } else {
-              Layout::new::<i32>()
-            };
-            let mut start_ptr = ptr;
-            for i in 0..array_len {
-              free_struct_memory(
-                *(start_ptr as *mut *mut c_void),
-                obj,
-                PointerType::RsPointer,
-              );
-              start_ptr = start_ptr.offset(size as isize);
+            let (size, align) = calculate_struct_size(&struct_item_type.as_ref().unwrap());
+            if size > 0 {
+              let layout = Layout::from_size_align(size, align).unwrap();
+              let mut start_ptr = ptr;
+              (0..array_len).for_each(|_| {
+                free_struct_memory(
+                  *(start_ptr as *mut *mut c_void),
+                  struct_item_type.as_ref().unwrap(),
+                  PointerType::RsPointer,
+                );
+                start_ptr = start_ptr.offset(size as isize);
+              });
+              dealloc(*(ptr as *mut *mut u8), layout);
             }
-            dealloc(*(ptr as *mut *mut u8), layout);
           }
         }
       } else if let FFITypeTag::Function = ffi_tag {
@@ -359,15 +357,12 @@ pub unsafe fn free_rs_pointer_memory(
           free_closure(ptr)
         }
       } else {
-        use std::alloc::{dealloc, Layout};
         let (size, align) = calculate_struct_size(&obj);
-        let layout = if size > 0 {
-          Layout::from_size_align(size, align).unwrap()
-        } else {
-          Layout::new::<i32>()
-        };
-        free_struct_memory(*(ptr as *mut *mut c_void), obj, PointerType::RsPointer);
-        dealloc(*(ptr as *mut *mut u8), layout);
+        if size > 0 {
+          let layout = Layout::from_size_align(size, align).unwrap();
+          free_struct_memory(*(ptr as *mut *mut c_void), obj, PointerType::RsPointer);
+          dealloc(*(ptr as *mut *mut u8), layout);
+        }
       }
     }
     _ => panic!("free rust pointer memory error"),
