@@ -1,5 +1,6 @@
 use super::get_array_desc;
 use super::js_value::create_js_value_unchecked;
+use super::object_utils::calculate_struct_size;
 use crate::datatype::array::ToRsArray;
 use crate::datatype::buffer::get_safe_buffer;
 use crate::datatype::create_struct::generate_c_struct;
@@ -376,7 +377,7 @@ pub unsafe fn get_value_pointer(
         let (start_ptr, end_ptr) = generate_c_struct(&env, &item_type, item, next_ptr).unwrap();
           if ptr.is_none() {
             ptr = Some(start_ptr);
-          } 
+          }
           next_ptr = Some(end_ptr.offset(1));
         });
         Ok(Box::into_raw(Box::new(ptr.unwrap())) as *mut c_void)
@@ -796,6 +797,7 @@ pub unsafe fn get_js_unknown_from_pointer(
         let FFIARRARYDESC {
           array_type,
           array_len,
+          struct_item_type,
           ..
         } = array_desc;
         match array_type {
@@ -820,7 +822,21 @@ pub unsafe fn get_js_unknown_from_pointer(
             rs_value_to_js_unknown(env, RsArgsValue::StringArray(arr))
           }
           RefDataType::StructArray => {
-            panic!("struct array not supported");
+            let mut start_ptr = *(ptr as *mut *mut c_void);
+            let v = (0..array_len)
+              .map(|_| {
+                let rs_struct = create_rs_struct_from_pointer(
+                  env,
+                  start_ptr,
+                  &struct_item_type.as_ref().unwrap(),
+                  false,
+                );
+                let (struct_size, _) = calculate_struct_size(&struct_item_type.as_ref().unwrap());
+                start_ptr = start_ptr.offset(struct_size as isize);
+                rs_struct
+              })
+              .collect();
+            rs_value_to_js_unknown(env, RsArgsValue::StructArray(vec![], v))
           }
         }
       } else {

@@ -11,13 +11,40 @@ import { logGreen } from "./utils"
 import { person, personType } from "./types"
 
 export const testObject = () => {
-  load({
+  const structArray = [{
+    x: 1,
+    y: 2,
+    dir: 3,
+    kind: 4,
+  },
+  {
+    x: 5,
+    y: 6,
+    dir: 7,
+    kind: 8,
+  },
+  {
+    x: 9,
+    y: 10,
+    dir: 11,
+    kind: 12,
+  }]
+  const res = load({
     library: "libsum",
     funcName: "printAndReturnMinutiae",
-    retType: DataType.Void,
+    retType: arrayConstructor({
+      type: DataType.StructArray,
+      structItemType: {
+        x: DataType.I16,
+        y: DataType.I16,
+        dir: DataType.I16,
+        kind: DataType.U8,
+        ffiTypeTag: DataType.StackStruct,
+      },
+      length: 3,
+    }),
     paramsType: [
       arrayConstructor({
-        // @ts-ignore
         type: DataType.StructArray,
         structItemType: {
           x: DataType.I16,
@@ -28,28 +55,10 @@ export const testObject = () => {
         length: 3,
       })
     ],
-    paramsValue: [[
-      {
-        x: 1,
-        y: 2,
-        dir: 3,
-        kind: 4,
-      },
-      {
-        x: 5,
-        y: 6,
-        dir: 7,
-        kind: 8,
-      },
-      {
-        x: 9,
-        y: 10,
-        dir: 11,
-        kind: 12,
-      },
-    ]],
+    paramsValue: [structArray],
     freeResultMemory: false
   })
+  deepStrictEqual(res, structArray)
   // load({
   //   library: "libsum",
   //   funcName: "printAndReturnMinutiae",

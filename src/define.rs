@@ -228,7 +228,9 @@ pub enum RsArgsValue {
   DoubleArray(Vec<f64>),
   FloatArray(Vec<f32>),
   StructArray(
+    // item type
     Vec<IndexMap<String, RsArgsValue>>,
+    // item value
     Vec<IndexMap<String, RsArgsValue>>,
   ),
   Object(IndexMap<String, RsArgsValue>),

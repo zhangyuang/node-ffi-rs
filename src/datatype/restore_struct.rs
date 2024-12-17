@@ -333,8 +333,15 @@ pub fn rs_value_to_js_unknown(env: &Env, data: RsArgsValue) -> Result<JsUnknown>
     RsArgsValue::I32Array(val) => val.to_js_array(env)?.into_unknown(),
     RsArgsValue::StringArray(val) => val.to_js_array(env)?.into_unknown(),
     RsArgsValue::DoubleArray(val) => val.to_js_array(env)?.into_unknown(),
-    RsArgsValue::StructArray(_, _) => {
-      panic!("struct array is not supported for static array");
+    RsArgsValue::StructArray(_, val) => {
+      let mut js_array = env.create_array_with_length(val.len())?;
+      for (index, item) in val.into_iter().enumerate() {
+        js_array.set_element(
+          index as u32,
+          rs_value_to_js_unknown(env, RsArgsValue::Object(item))?,
+        )?;
+      }
+      js_array.into_unknown()
     }
     RsArgsValue::Object(obj) => create_js_object_from_rs_map(env, obj)?.into_unknown(),
     RsArgsValue::External(val) => val.into_unknown(),
