@@ -333,7 +333,7 @@ pub fn rs_value_to_js_unknown(env: &Env, data: RsArgsValue) -> Result<JsUnknown>
     RsArgsValue::I32Array(val) => val.to_js_array(env)?.into_unknown(),
     RsArgsValue::StringArray(val) => val.to_js_array(env)?.into_unknown(),
     RsArgsValue::DoubleArray(val) => val.to_js_array(env)?.into_unknown(),
-    RsArgsValue::StructArray(_, val) => {
+    RsArgsValue::StructArray(val) => {
       let mut js_array = env.create_array_with_length(val.len())?;
       for (index, item) in val.into_iter().enumerate() {
         js_array.set_element(

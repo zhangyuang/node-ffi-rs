@@ -231,17 +231,17 @@ pub unsafe fn get_arg_types_values(
               RefDataType::StructArray => {
                 let arg_type = &mut ffi_type_pointer as *mut ffi_type;
                 let js_object = create_js_value_unchecked::<JsObject>(value)?;
-                let (arg_types, arg_values) = vec![0; js_object.get_array_length()? as usize]
+                let arg_values = vec![0; js_object.get_array_length()? as usize]
                   .iter()
                   .enumerate()
                   .map(|(index, _)| {
                     let js_element: JsObject = js_object.get_element(index as u32).unwrap();
                     let struct_item_type = struct_item_type.as_ref().unwrap();
                     let index_map = get_params_value_rs_struct(struct_item_type, &js_element);
-                    (struct_item_type.clone(), index_map.unwrap())
+                    index_map.unwrap()
                   })
                   .collect();
-                (arg_type, RsArgsValue::StructArray(arg_types, arg_values))
+                (arg_type, RsArgsValue::StructArray(arg_values))
               }
             }
           } else if let FFITypeTag::Function = get_ffi_tag(&params_type_object_rs) {
@@ -371,7 +371,7 @@ pub unsafe fn get_value_pointer(
         std::mem::forget(c_char_vec);
         Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
       }
-      RsArgsValue::StructArray(_, values) => {
+      RsArgsValue::StructArray(val) => {
         if let RsArgsValue::Object(arg_type) = arg_type {
         let array_desc = get_array_desc(arg_type);
         // array
@@ -380,7 +380,7 @@ pub unsafe fn get_value_pointer(
           ..
         } = &array_desc;
         let (mut ptr, mut next_ptr) = (None, None);
-        values.into_iter().for_each(|item| {
+        val.into_iter().for_each(|item| {
         let (start_ptr, end_ptr) = generate_c_struct(&env, struct_item_type.as_ref().unwrap(), item, next_ptr).unwrap();
           if ptr.is_none() {
             ptr = Some(start_ptr);
@@ -833,6 +833,10 @@ pub unsafe fn get_js_unknown_from_pointer(
           }
           RefDataType::StructArray => {
             let mut start_ptr = *(ptr as *mut *mut c_void);
+            let is_stack_struct = get_ffi_tag(&sub_obj_type) == FFITypeTag::StackStruct;
+            if !is_stack_struct {
+              panic!("not supported dynamic struct array");
+            }
             let v = (0..array_len)
               .map(|_| {
                 let rs_struct = create_rs_struct_from_pointer(
@@ -846,7 +850,7 @@ pub unsafe fn get_js_unknown_from_pointer(
                 rs_struct
               })
               .collect();
-            rs_value_to_js_unknown(env, RsArgsValue::StructArray(vec![], v))
+            rs_value_to_js_unknown(env, RsArgsValue::StructArray(v))
           }
         }
       } else {

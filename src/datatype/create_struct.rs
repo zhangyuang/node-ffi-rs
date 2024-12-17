@@ -308,7 +308,7 @@ pub unsafe fn generate_c_struct(
       | RsArgsValue::FloatArray(_)
       | RsArgsValue::I32Array(_)
       | RsArgsValue::DoubleArray(_)
-      | RsArgsValue::StructArray(_, _)
+      | RsArgsValue::StructArray(_)
       | RsArgsValue::U8Array(_, _) => {
         return Err(
           FFIError::Panic(format!(

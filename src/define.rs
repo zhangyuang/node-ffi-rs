@@ -227,12 +227,7 @@ pub enum RsArgsValue {
   StringArray(Vec<String>),
   DoubleArray(Vec<f64>),
   FloatArray(Vec<f32>),
-  StructArray(
-    // item type
-    Vec<IndexMap<String, RsArgsValue>>,
-    // item value
-    Vec<IndexMap<String, RsArgsValue>>,
-  ),
+  StructArray(Vec<IndexMap<String, RsArgsValue>>),
   Object(IndexMap<String, RsArgsValue>),
   Boolean(bool),
   Void(()),
@@ -256,9 +251,7 @@ impl Clone for RsArgsValue {
       RsArgsValue::StringArray(vec) => RsArgsValue::StringArray(vec.clone()),
       RsArgsValue::DoubleArray(vec) => RsArgsValue::DoubleArray(vec.clone()),
       RsArgsValue::FloatArray(vec) => RsArgsValue::FloatArray(vec.clone()),
-      RsArgsValue::StructArray(types, values) => {
-        RsArgsValue::StructArray(types.clone(), values.clone())
-      }
+      RsArgsValue::StructArray(vec) => RsArgsValue::StructArray(vec.clone()),
       RsArgsValue::Object(map) => RsArgsValue::Object(map.clone()),
       RsArgsValue::Boolean(b) => RsArgsValue::Boolean(*b),
       RsArgsValue::Void(()) => RsArgsValue::Void(()),
@@ -315,19 +308,18 @@ impl std::fmt::Debug for RsArgsValue {
       RsArgsValue::Float(d) => write!(f, "Float({})", d),
       RsArgsValue::Double(d) => write!(f, "Double({})", d),
       RsArgsValue::U8Array(buffer, v) => {
-        if buffer.is_some() {
-          write!(f, "U8Array({:?})", buffer.as_ref().unwrap().as_ref())
-        } else {
-          write!(f, "U8Array({:?})", v.as_ref().unwrap())
-        }
+        write!(
+          f,
+          "U8Array({:?}, {:?})",
+          buffer.as_ref().unwrap().as_ref(),
+          v
+        )
       }
       RsArgsValue::I32Array(arr) => write!(f, "I32Array({:?})", arr),
       RsArgsValue::StringArray(arr) => write!(f, "StringArray({:?})", arr),
       RsArgsValue::DoubleArray(arr) => write!(f, "DoubleArray({:?})", arr),
       RsArgsValue::FloatArray(arr) => write!(f, "FloatArray({:?})", arr),
-      RsArgsValue::StructArray(types, values) => {
-        write!(f, "StructArray({:?}, {:?})", types, values)
-      }
+      RsArgsValue::StructArray(arr) => write!(f, "StructArray({:?})", arr),
       RsArgsValue::Object(obj) => write!(f, "Object({:?})", obj),
       RsArgsValue::Boolean(b) => write!(f, "Boolean({})", b),
       RsArgsValue::Void(_) => write!(f, "Void"),
