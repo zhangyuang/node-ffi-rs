@@ -18,7 +18,7 @@ pub unsafe fn generate_c_struct(
   struct_type: &IndexMap<String, RsArgsValue>,
   struct_val: IndexMap<String, RsArgsValue>,
   initial_ptr: Option<*mut c_void>,
-) -> Result<*mut c_void> {
+) -> Result<(*mut c_void, *mut c_void)> {
   let ptr = if initial_ptr.is_none() {
     let (size, align) = calculate_struct_size(&struct_type);
     let layout = if size > 0 {
@@ -141,6 +141,7 @@ pub unsafe fn generate_c_struct(
           let FFIARRARYDESC {
             array_type,
             array_len,
+            ..
           } = array_desc;
           let field_size = match array_type {
             RefDataType::U8Array => {
@@ -264,6 +265,9 @@ pub unsafe fn generate_c_struct(
                 return Err(FFIError::Panic(format!("error array type {:?}", array_type)).into());
               }
             }
+            RefDataType::StructArray => {
+              panic!("struct array not supported");
+            }
           };
           field_size
         } else {
@@ -291,8 +295,8 @@ pub unsafe fn generate_c_struct(
             let padding = (align - (offset % align)) % align;
             field_ptr = field_ptr.offset(padding as isize);
             if let RsArgsValue::Object(val_type) = struct_type.get(&field).unwrap() {
-              let obj_ptr = generate_c_struct(env, val_type, obj_value, None)?;
-              (field_ptr as *mut *const c_void).write(obj_ptr);
+              let (start_ptr, _) = generate_c_struct(env, val_type, obj_value, None)?;
+              (field_ptr as *mut *const c_void).write(start_ptr);
             }
             offset += size + padding;
             size
@@ -304,6 +308,7 @@ pub unsafe fn generate_c_struct(
       | RsArgsValue::FloatArray(_)
       | RsArgsValue::I32Array(_)
       | RsArgsValue::DoubleArray(_)
+      | RsArgsValue::StructArray(_, _)
       | RsArgsValue::U8Array(_, _) => {
         return Err(
           FFIError::Panic(format!(
@@ -315,5 +320,5 @@ pub unsafe fn generate_c_struct(
     };
     field_ptr = field_ptr.offset(field_size as isize);
   }
-  Ok(ptr)
+  Ok((ptr, field_ptr))
 }

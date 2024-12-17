@@ -232,6 +232,9 @@ pub unsafe fn create_rs_struct_from_pointer(
             offset += size + padding;
             field_size = size
           }
+          RefDataType::StructArray => {
+            panic!("struct array not supported");
+          }
           RefDataType::U8Array => {
             let (size, align) = if dynamic_array {
               get_size_align::<*const c_void>()
@@ -330,6 +333,9 @@ pub fn rs_value_to_js_unknown(env: &Env, data: RsArgsValue) -> Result<JsUnknown>
     RsArgsValue::I32Array(val) => val.to_js_array(env)?.into_unknown(),
     RsArgsValue::StringArray(val) => val.to_js_array(env)?.into_unknown(),
     RsArgsValue::DoubleArray(val) => val.to_js_array(env)?.into_unknown(),
+    RsArgsValue::StructArray(_, _) => {
+      panic!("struct array is not supported for static array");
+    }
     RsArgsValue::Object(obj) => create_js_object_from_rs_map(env, obj)?.into_unknown(),
     RsArgsValue::External(val) => val.into_unknown(),
     RsArgsValue::Void(_) => env.get_undefined()?.into_unknown(),

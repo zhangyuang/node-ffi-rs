@@ -219,7 +219,6 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
       .map(|param| type_define_to_rs_args(&env, param).unwrap())
       .collect(),
   );
-
   let (arg_types, arg_values) = get_arg_types_values(Rc::clone(&params_type_rs), params_value)?;
   let mut arg_values_c_void = get_value_pointer(&env, Rc::clone(&params_type_rs), arg_values)?;
   let ret_type_rs = type_define_to_rs_args(&env, ret_type)?;

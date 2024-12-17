@@ -167,6 +167,7 @@ unsafe fn free_struct_memory(
           let FFIARRARYDESC {
             array_type,
             array_len,
+            ..
           } = array_desc;
           let dynamic_array = get_ffi_tag(&obj) == FFITypeTag::Array;
           match array_type {
@@ -224,6 +225,9 @@ unsafe fn free_struct_memory(
               }
               offset += size + padding;
               field_size = size
+            }
+            RefDataType::StructArray => {
+              panic!("struct array not supported");
             }
             RefDataType::U8Array => {
               let (size, align) = if dynamic_array {
@@ -320,6 +324,8 @@ pub unsafe fn free_rs_pointer_memory(
         let FFIARRARYDESC {
           array_type,
           array_len,
+          struct_item_type,
+          ..
         } = array_desc;
         match array_type {
           RefDataType::U8Array => {}
@@ -327,6 +333,25 @@ pub unsafe fn free_rs_pointer_memory(
           RefDataType::DoubleArray => free_dynamic_double_array(ptr, array_len),
           RefDataType::FloatArray => free_dynamic_float_array(ptr, array_len),
           RefDataType::StringArray => free_dynamic_string_array(ptr, array_len),
+          RefDataType::StructArray => {
+            use std::alloc::{dealloc, Layout};
+            let (size, align) = calculate_struct_size(&obj);
+            let layout = if size > 0 {
+              Layout::from_size_align(size, align).unwrap()
+            } else {
+              Layout::new::<i32>()
+            };
+            let mut start_ptr = ptr;
+            for i in 0..array_len {
+              free_struct_memory(
+                *(start_ptr as *mut *mut c_void),
+                obj,
+                PointerType::RsPointer,
+              );
+              start_ptr = start_ptr.offset(size as isize);
+            }
+            dealloc(*(ptr as *mut *mut u8), layout);
+          }
         }
       } else if let FFITypeTag::Function = ffi_tag {
         let func_desc = get_func_desc(&obj);
@@ -384,6 +409,7 @@ pub unsafe fn free_c_pointer_memory(
         let FFIARRARYDESC {
           array_type,
           array_len,
+          ..
         } = array_desc;
         match array_type {
           RefDataType::U8Array => free_dynamic_u8_array(ptr, array_len),
@@ -391,6 +417,9 @@ pub unsafe fn free_c_pointer_memory(
           RefDataType::DoubleArray => free_dynamic_double_array(ptr, array_len),
           RefDataType::FloatArray => free_dynamic_float_array(ptr, array_len),
           RefDataType::StringArray => free_dynamic_string_array(ptr, array_len),
+          RefDataType::StructArray => {
+            panic!("struct array not supported");
+          }
         }
       } else if let FFITypeTag::Function = ffi_tag {
         let func_desc = get_func_desc(&obj);

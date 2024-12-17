@@ -9,7 +9,7 @@ use napi::{Env, JsExternal, JsObject, JsUnknown};
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::rc::Rc;
-use strum_macros::{EnumIter, FromRepr};
+use strum_macros::FromRepr;
 
 type StandardResult<T, E> = std::result::Result<T, E>;
 
@@ -91,6 +91,7 @@ where
 pub struct FFIARRARYDESC {
   pub array_type: RefDataType,
   pub array_len: usize,
+  pub struct_item_type: Option<IndexMap<String, RsArgsValue>>,
 }
 
 pub struct FFIFUNCDESC {
@@ -118,6 +119,7 @@ pub enum DataType {
   WString = 15,
   BigInt = 16,
   I16 = 17,
+  StructArray = 18,
 }
 #[derive(Debug, FromRepr)]
 pub enum BasicDataType {
@@ -143,6 +145,7 @@ pub enum RefDataType {
   DoubleArray = 5,
   U8Array = 10,
   FloatArray = 13,
+  StructArray = 18,
 }
 
 impl TryFrom<i32> for DataType {
@@ -224,6 +227,10 @@ pub enum RsArgsValue {
   StringArray(Vec<String>),
   DoubleArray(Vec<f64>),
   FloatArray(Vec<f32>),
+  StructArray(
+    Vec<IndexMap<String, RsArgsValue>>,
+    Vec<IndexMap<String, RsArgsValue>>,
+  ),
   Object(IndexMap<String, RsArgsValue>),
   Boolean(bool),
   Void(()),
@@ -247,6 +254,9 @@ impl Clone for RsArgsValue {
       RsArgsValue::StringArray(vec) => RsArgsValue::StringArray(vec.clone()),
       RsArgsValue::DoubleArray(vec) => RsArgsValue::DoubleArray(vec.clone()),
       RsArgsValue::FloatArray(vec) => RsArgsValue::FloatArray(vec.clone()),
+      RsArgsValue::StructArray(types, values) => {
+        RsArgsValue::StructArray(types.clone(), values.clone())
+      }
       RsArgsValue::Object(map) => RsArgsValue::Object(map.clone()),
       RsArgsValue::Boolean(b) => RsArgsValue::Boolean(*b),
       RsArgsValue::Void(()) => RsArgsValue::Void(()),
@@ -313,6 +323,9 @@ impl std::fmt::Debug for RsArgsValue {
       RsArgsValue::StringArray(arr) => write!(f, "StringArray({:?})", arr),
       RsArgsValue::DoubleArray(arr) => write!(f, "DoubleArray({:?})", arr),
       RsArgsValue::FloatArray(arr) => write!(f, "FloatArray({:?})", arr),
+      RsArgsValue::StructArray(types, values) => {
+        write!(f, "StructArray({:?}, {:?})", types, values)
+      }
       RsArgsValue::Object(obj) => write!(f, "Object({:?})", obj),
       RsArgsValue::Boolean(b) => write!(f, "Boolean({})", b),
       RsArgsValue::Void(_) => write!(f, "Void"),
@@ -419,6 +432,7 @@ impl Drop for FFITypeCleanup {
 
 pub const ARRAY_LENGTH_TAG: &str = "length";
 pub const ARRAY_TYPE_TAG: &str = "type";
+pub const ARRAY_STRUCT_ITEM_TYPE_TAG: &str = "structItemType";
 pub const ARRAY_VALUE_TAG: &str = "value";
 
 pub const FFI_TAG_FIELD: &str = "ffiTypeTag";
