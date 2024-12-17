@@ -1,4 +1,7 @@
+use super::get_array_desc;
 use super::js_value::create_js_value_unchecked;
+use super::object_utils::calculate_struct_size;
+use super::pointer::get_ffi_type;
 use crate::datatype::array::ToRsArray;
 use crate::datatype::buffer::get_safe_buffer;
 use crate::datatype::create_struct::generate_c_struct;
@@ -57,21 +60,6 @@ pub fn get_ffi_tag(obj: &IndexMap<String, RsArgsValue>) -> FFITypeTag {
     FFITypeTag::Unknown
   } else {
     FFITypeTag::Unknown
-  }
-}
-pub fn get_array_desc(obj: &IndexMap<String, RsArgsValue>) -> FFIARRARYDESC {
-  let (mut array_len, mut array_type) = (0, 0);
-  if let RsArgsValue::I32(number) = obj.get(ARRAY_LENGTH_TAG).unwrap() {
-    array_len = *number as usize
-  }
-  if let RsArgsValue::I32(number) = obj.get(ARRAY_TYPE_TAG).unwrap() {
-    array_type = *number
-  }
-  let array_type = array_type.try_into().unwrap();
-
-  FFIARRARYDESC {
-    array_len,
-    array_type,
   }
 }
 
@@ -180,7 +168,11 @@ pub unsafe fn get_arg_types_values(
           let arg_type = &mut ffi_type_pointer as *mut ffi_type;
           if let FFITypeTag::Array | FFITypeTag::StackArray = get_ffi_tag(&params_type_object_rs) {
             let array_desc = get_array_desc(&params_type_object_rs);
-            let FFIARRARYDESC { array_type, .. } = array_desc;
+            let FFIARRARYDESC {
+              array_type,
+              struct_item_type,
+              ..
+            } = array_desc;
             match array_type {
               RefDataType::U8Array => {
                 let arg_type = &mut ffi_type_pointer as *mut ffi_type;
@@ -237,6 +229,21 @@ pub unsafe fn get_arg_types_values(
                 let arg_val = js_object.to_rs_array()?;
                 (arg_type, RsArgsValue::StringArray(arg_val))
               }
+              RefDataType::StructArray => {
+                let arg_type = &mut ffi_type_pointer as *mut ffi_type;
+                let js_object = create_js_value_unchecked::<JsObject>(value)?;
+                let arg_values = vec![0; js_object.get_array_length()? as usize]
+                  .iter()
+                  .enumerate()
+                  .map(|(index, _)| {
+                    let js_element: JsObject = js_object.get_element(index as u32).unwrap();
+                    let struct_item_type = struct_item_type.as_ref().unwrap();
+                    let index_map = get_params_value_rs_struct(struct_item_type, &js_element);
+                    index_map.unwrap()
+                  })
+                  .collect();
+                (arg_type, RsArgsValue::StructArray(arg_values))
+              }
             }
           } else if let FFITypeTag::Function = get_ffi_tag(&params_type_object_rs) {
             let params_val_function: JsFunction = value.try_into()?;
@@ -246,6 +253,17 @@ pub unsafe fn get_arg_types_values(
               RsArgsValue::Function(params_type_object_rs.clone(), params_val_function),
             )
           } else {
+            // struct
+            let is_stack_struct = get_ffi_tag(&params_type_object_rs) == FFITypeTag::StackStruct;
+            let mut ffi_type_cleanup = FFITypeCleanup::new();
+            let arg_type = if is_stack_struct {
+              get_ffi_type(
+                &RsArgsValue::Object(params_type_object_rs.clone()),
+                &mut ffi_type_cleanup,
+              )
+            } else {
+              &mut ffi_type_pointer as *mut ffi_type
+            };
             let params_value_object = create_js_value_unchecked::<JsObject>(value)?;
             let index_map = get_params_value_rs_struct(params_type_object_rs, &params_value_object);
             (arg_type, RsArgsValue::Object(index_map.unwrap()))
@@ -365,6 +383,41 @@ pub unsafe fn get_value_pointer(
         std::mem::forget(c_char_vec);
         Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
       }
+      RsArgsValue::StructArray(val) => {
+        if let RsArgsValue::Object(arg_type) = arg_type {
+            let array_desc = get_array_desc(arg_type);
+            let struct_item_type = array_desc.struct_item_type.as_ref()
+                .ok_or_else(|| FFIError::Panic("Missing struct item type".to_string()))?;
+
+            let is_stack_struct = get_ffi_tag(struct_item_type) == FFITypeTag::StackStruct;
+
+            if is_stack_struct {
+              let (struct_size, _) = calculate_struct_size(struct_item_type);
+                let mut ptr = None;
+                let mut next_ptr = None;
+
+                for item in val {
+                    let struct_ptr = generate_c_struct(&env, struct_item_type, item, next_ptr)?;
+                    if ptr.is_none() {
+                        ptr = Some(struct_ptr);
+                    }
+                    next_ptr = Some(struct_ptr.offset(struct_size as isize));
+                }
+
+                Ok(Box::into_raw(Box::new(ptr.unwrap())) as *mut c_void)
+            } else {
+                let struct_ptrs: Vec<_> = val.into_iter()
+                    .map(|item| generate_c_struct(&env, struct_item_type, item, None))
+                    .collect::<Result<Vec<_>>>()?;
+                let ptr = struct_ptrs.as_ptr();
+                std::mem::forget(struct_ptrs);
+
+                Ok(Box::into_raw(Box::new(ptr as *mut c_void)) as *mut c_void)
+            }
+      } else {
+       Err(FFIError::Panic(format!("uncorrect params type {:?}", arg_type)).into())
+      }
+      }
       RsArgsValue::Boolean(val) => {
         let c_bool = Box::new(val);
         Ok(Box::into_raw(c_bool) as *mut c_void)
@@ -372,9 +425,14 @@ pub unsafe fn get_value_pointer(
       RsArgsValue::Void(_) => Ok(Box::into_raw(Box::new(std::ptr::null_mut() as *mut c_void)) as *mut c_void),
       RsArgsValue::Object(val) => {
         if let RsArgsValue::Object(arg_type_rs) = arg_type {
+          let is_stack_struct = get_ffi_tag(arg_type_rs) == FFITypeTag::StackStruct;
           Ok(
-            Box::into_raw(Box::new(generate_c_struct(&env, &arg_type_rs, val, None)?))
-              as *mut c_void,
+            if is_stack_struct {
+              generate_c_struct(&env, &arg_type_rs, val, None)?
+            }  else {
+              Box::into_raw(Box::new(generate_c_struct(&env, &arg_type_rs, val, None)?))
+              as *mut c_void
+            }
           )
         } else {
           Err(FFIError::Panic(format!("uncorrect params type {:?}", arg_type)).into())
@@ -584,39 +642,12 @@ pub unsafe fn get_params_value_rs_struct(
                 let val: f64 = val.try_into()?;
                 RsArgsValue::Double(val)
               }
-              DataType::StringArray => {
-                let js_array: JsObject = params_value_object.get_named_property(&field)?;
-                let arg_val = js_array.to_rs_array()?;
-                RsArgsValue::StringArray(arg_val)
-              }
-              DataType::DoubleArray => {
-                let js_array: JsObject = params_value_object.get_named_property(&field)?;
-                let arg_val: Vec<f64> = js_array.to_rs_array()?;
-                RsArgsValue::DoubleArray(arg_val)
-              }
-              DataType::FloatArray => {
-                let js_array: JsObject = params_value_object.get_named_property(&field)?;
-                let arg_val: Vec<f32> = js_array
-                  .to_rs_array()?
-                  .into_iter()
-                  .map(|item: f64| item as f32)
-                  .collect();
-                RsArgsValue::FloatArray(arg_val)
-              }
-              DataType::I32Array => {
-                let js_array: JsObject = params_value_object.get_named_property(&field)?;
-                let arg_val = js_array.to_rs_array()?;
-                RsArgsValue::I32Array(arg_val)
-              }
-              DataType::U8Array => {
-                let js_buffer: JsBuffer = params_value_object.get_named_property(&field)?;
-                RsArgsValue::U8Array(Some(js_buffer.into_value()?), None)
-              }
               DataType::External => {
                 let val: JsExternal = params_value_object.get_named_property(&field)?;
                 RsArgsValue::External(val)
               }
               DataType::Void => RsArgsValue::Void(()),
+              _ => panic!("unsupport data type: {:?}", data_type),
             };
             index_map.insert(field, val);
           }
@@ -625,7 +656,11 @@ pub unsafe fn get_params_value_rs_struct(
             let params_value: JsObject = params_value_object.get_named_property(&field)?;
             if let FFITypeTag::Array | FFITypeTag::StackArray = get_ffi_tag(&params_type_rs_value) {
               let array_desc = get_array_desc(&params_type_rs_value);
-              let FFIARRARYDESC { array_type, .. } = array_desc;
+              let FFIARRARYDESC {
+                array_type,
+                struct_item_type,
+                ..
+              } = array_desc;
               let array_value = match array_type {
                 RefDataType::U8Array => {
                   let js_buffer: JsBuffer = params_value_object.get_named_property(&field)?;
@@ -654,6 +689,20 @@ pub unsafe fn get_params_value_rs_struct(
                   let js_array: JsObject = params_value_object.get_named_property(&field)?;
                   let arg_val = js_array.to_rs_array()?;
                   RsArgsValue::StringArray(arg_val)
+                }
+                RefDataType::StructArray => {
+                  let js_array: JsObject = params_value_object.get_named_property(&field)?;
+                  let arg_val = vec![0; js_array.get_array_length()? as usize]
+                    .iter()
+                    .enumerate()
+                    .map(|(index, _)| {
+                      let js_element: JsObject = js_array.get_element(index as u32).unwrap();
+                      let struct_item_type = struct_item_type.as_ref().unwrap();
+                      let index_map = get_params_value_rs_struct(struct_item_type, &js_element);
+                      index_map.unwrap()
+                    })
+                    .collect();
+                  RsArgsValue::StructArray(arg_val)
                 }
               };
               params_type_rs_value.insert(ARRAY_VALUE_TAG.to_string(), array_value);
@@ -801,6 +850,7 @@ pub unsafe fn get_js_unknown_from_pointer(
         let FFIARRARYDESC {
           array_type,
           array_len,
+          struct_item_type,
           ..
         } = array_desc;
         match array_type {
@@ -823,6 +873,29 @@ pub unsafe fn get_js_unknown_from_pointer(
           RefDataType::StringArray => {
             let arr = create_array_from_pointer(*(ptr as *mut *mut *mut c_char), array_len);
             rs_value_to_js_unknown(env, RsArgsValue::StringArray(arr))
+          }
+          RefDataType::StructArray => {
+            let mut safe_ptr = std::ptr::read(ptr as *const *mut c_void);
+            let is_stack_struct =
+              get_ffi_tag(struct_item_type.as_ref().unwrap()) == FFITypeTag::StackStruct;
+            let v = (0..array_len)
+              .map(|_| {
+                let rs_struct = create_rs_struct_from_pointer(
+                  env,
+                  safe_ptr,
+                  struct_item_type.as_ref().unwrap(),
+                  false,
+                );
+                let (struct_size, _) = calculate_struct_size(&struct_item_type.as_ref().unwrap());
+                if is_stack_struct {
+                  safe_ptr = safe_ptr.offset(struct_size as isize);
+                } else {
+                  safe_ptr = safe_ptr.offset(1);
+                }
+                rs_struct
+              })
+              .collect();
+            rs_value_to_js_unknown(env, RsArgsValue::StructArray(v))
           }
         }
       } else {

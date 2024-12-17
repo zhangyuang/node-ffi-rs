@@ -11,23 +11,27 @@ extern "C" double doubleSum(double a, double b) { return a + b; }
 
 extern "C" double floatSum(float a, float b) { return a + b; }
 
-extern "C" int64_t testbigint(int64_t a) {
-   return a;
+extern "C" int64_t testbigint(int64_t a)
+{
+  return a;
 }
 
-extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
+extern "C" const char *concatenateStrings(const char *str1, const char *str2)
+{
   std::string result = std::string(str1) + std::string(str2);
   char *cstr = new char[result.length() + 1];
   strcpy(cstr, result.c_str());
   return cstr;
 }
 
-extern "C" void* returnNullPointer() {
-    return NULL;
+extern "C" void *returnNullPointer()
+{
+  return NULL;
 }
 
 extern "C" const wchar_t *concatenateWideStrings(const wchar_t *str1,
-                                                 const wchar_t *str2) {
+                                                 const wchar_t *str2)
+{
   std::wstring result = std::wstring(str1) + std::wstring(str2);
   wchar_t *wcstr = new wchar_t[result.length() + 1];
   wcscpy(wcstr, result.c_str());
@@ -40,48 +44,59 @@ extern "C" int getValueFromDoublePointer(int **ptr) { return *ptr[0]; };
 
 extern "C" void noRet() { printf("%s", "hello world\n"); }
 
-extern "C" int *createArrayi32(const int *arr, int size) {
+extern "C" int *createArrayi32(const int *arr, int size)
+{
   int *vec = (int *)malloc((size) * sizeof(int));
-  for (int i = 0; i < size; i++) {
+  for (int i = 0; i < size; i++)
+  {
     vec[i] = arr[i];
   }
   return vec;
 }
 
-extern "C" double *createArrayDouble(const double *arr, int size) {
+extern "C" double *createArrayDouble(const double *arr, int size)
+{
   double *vec = (double *)malloc((size) * sizeof(double));
-  for (int i = 0; i < size; i++) {
+  for (int i = 0; i < size; i++)
+  {
     vec[i] = arr[i];
   }
   return vec;
 }
 
-extern "C" double *createArrayFloat(const float *arr, int size) {
+extern "C" double *createArrayFloat(const float *arr, int size)
+{
   double *vec = (double *)malloc((size) * sizeof(double));
-  for (int i = 0; i < size; i++) {
+  for (int i = 0; i < size; i++)
+  {
     vec[i] = arr[i];
   }
   return vec;
 }
 
-extern "C" char **createArrayString(char **arr, int size) {
+extern "C" char **createArrayString(char **arr, int size)
+{
   char **vec = (char **)malloc(size * sizeof(char *));
-  if (vec == NULL) {
+  if (vec == NULL)
+  {
     return NULL;
   }
 
-  for (int i = 0; i < size; i++) {
+  for (int i = 0; i < size; i++)
+  {
     vec[i] = strdup(arr[i]);
   }
   return vec;
 }
 extern "C" bool return_opposite(bool input) { return !input; }
 
-typedef struct stackStruct {
+typedef struct stackStruct
+{
   int age;
 } stackStruct;
 
-typedef struct Person {
+typedef struct Person
+{
   int age;
   double *doubleArray;
   Person *parent;
@@ -100,7 +115,8 @@ typedef struct Person {
 
 extern "C" Person *getStruct(Person *person) { return person; }
 
-extern "C" Person *createPerson() {
+extern "C" Person *createPerson()
+{
   Person *person = (Person *)malloc(sizeof(Person));
 
   // Allocate and initialize doubleArray
@@ -175,7 +191,8 @@ extern "C" Person *createPerson() {
 typedef const int (*FunctionPointer)(int a, bool b, char *c, double d, char **e,
                                      int *f, Person *g);
 
-extern "C" void callFunction(FunctionPointer func) {
+extern "C" void callFunction(FunctionPointer func)
+{
   int a = 100;
   bool b = false;
   double d = 100.11;
@@ -199,27 +216,63 @@ extern "C" void callFunction(FunctionPointer func) {
 }
 
 // 定义 C++ 类
-class MyClass {
+class MyClass
+{
 public:
   std::string name;
   int age;
 
   MyClass(std::string n, int a) : name(n), age(a) {}
 
-  void print() {
+  void print()
+  {
     std::cout << "Name: " << name << ", Age: " << age << std::endl;
   }
 };
 
-MyClass *createMyClass(std::string name, int age) {
+MyClass *createMyClass(std::string name, int age)
+{
   return new MyClass(name, age);
 }
 
-extern "C" MyClass *createMyClassFromC(const char *name, int age) {
+extern "C" MyClass *createMyClassFromC(const char *name, int age)
+{
   return createMyClass(std::string(name), age);
 }
 
 extern "C" void printMyClass(MyClass *instance) { instance->print(); }
+
+typedef struct
+{
+  short x;
+  short y;
+  short dir;
+  unsigned char kind;
+} MINUTIA;
+
+typedef struct
+{
+  short nNumber;
+  MINUTIA item[3];
+} MINUTIAE;
+
+extern "C" MINUTIAE *printAndReturnMinutiae(MINUTIAE *minutiae)
+{
+
+  MINUTIAE *result = new MINUTIAE;
+  result->nNumber = minutiae->nNumber;
+  printf("nNumber=%d\n", minutiae->nNumber);
+
+  for (int i = 0; i < result->nNumber; i++)
+  {
+    result->item[i] = minutiae->item[i];
+    printf("Result item[%d]: x=%d, y=%d, dir=%d, kind=%d\n",
+           i, result->item[i].x, result->item[i].y,
+           result->item[i].dir, (int)result->item[i].kind);
+  }
+
+  return result;
+}
 
 // typedef void (*CallbackType)(const char *);
 // extern "C" void call_callback_async() {

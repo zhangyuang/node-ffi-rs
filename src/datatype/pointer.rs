@@ -3,6 +3,7 @@ use crate::utils::{
 };
 use indexmap::IndexMap;
 use libc::{c_double, c_float, c_int, c_short, c_void, free};
+use std::alloc::{dealloc, Layout};
 use std::ffi::{c_char, c_longlong, c_uchar, c_ulonglong, CStr, CString};
 use widestring::{WideCString, WideChar};
 
@@ -167,6 +168,8 @@ unsafe fn free_struct_memory(
           let FFIARRARYDESC {
             array_type,
             array_len,
+            struct_item_type,
+            ..
           } = array_desc;
           let dynamic_array = get_ffi_tag(&obj) == FFITypeTag::Array;
           match array_type {
@@ -221,6 +224,27 @@ unsafe fn free_struct_memory(
               field_ptr = field_ptr.offset(padding as isize);
               if dynamic_array {
                 free_dynamic_i32_array(field_ptr, array_len)
+              }
+              offset += size + padding;
+              field_size = size
+            }
+            RefDataType::StructArray => {
+              let (size, align) = if dynamic_array {
+                get_size_align::<*const c_void>()
+              } else {
+                let (size, align) = calculate_struct_size(&struct_item_type.as_ref().unwrap());
+                (size * array_len, align)
+              };
+              let padding = (align - (offset % align)) % align;
+              field_ptr = field_ptr.offset(padding as isize);
+              if dynamic_array {
+                // need to review
+                let (size, _) = calculate_struct_size(&struct_item_type.as_ref().unwrap());
+                let mut target_ptr = *(field_ptr as *mut *mut c_void);
+                (0..array_len).for_each(|_| {
+                  free_struct_memory(target_ptr, struct_item_type.as_ref().unwrap(), ptr_type);
+                  target_ptr = target_ptr.offset(size as isize);
+                });
               }
               offset += size + padding;
               field_size = size
@@ -320,6 +344,8 @@ pub unsafe fn free_rs_pointer_memory(
         let FFIARRARYDESC {
           array_type,
           array_len,
+          struct_item_type,
+          ..
         } = array_desc;
         match array_type {
           RefDataType::U8Array => {}
@@ -327,6 +353,26 @@ pub unsafe fn free_rs_pointer_memory(
           RefDataType::DoubleArray => free_dynamic_double_array(ptr, array_len),
           RefDataType::FloatArray => free_dynamic_float_array(ptr, array_len),
           RefDataType::StringArray => free_dynamic_string_array(ptr, array_len),
+          RefDataType::StructArray => {
+            let is_stack_struct =
+              get_ffi_tag(struct_item_type.as_ref().unwrap()) == FFITypeTag::StackStruct;
+            if !is_stack_struct {
+              let (size, align) = calculate_struct_size(&struct_item_type.as_ref().unwrap());
+              if size > 0 {
+                let layout = Layout::from_size_align(size, align).unwrap();
+                let mut start_ptr = ptr;
+                (0..array_len).for_each(|_| {
+                  free_struct_memory(
+                    *(start_ptr as *mut *mut c_void),
+                    struct_item_type.as_ref().unwrap(),
+                    PointerType::RsPointer,
+                  );
+                  start_ptr = start_ptr.offset(size as isize);
+                });
+                dealloc(*(ptr as *mut *mut u8), layout);
+              }
+            }
+          }
         }
       } else if let FFITypeTag::Function = ffi_tag {
         let func_desc = get_func_desc(&obj);
@@ -334,15 +380,17 @@ pub unsafe fn free_rs_pointer_memory(
           free_closure(ptr)
         }
       } else {
-        use std::alloc::{dealloc, Layout};
+        let is_stack_struct = get_ffi_tag(&obj) == FFITypeTag::StackStruct;
         let (size, align) = calculate_struct_size(&obj);
-        let layout = if size > 0 {
-          Layout::from_size_align(size, align).unwrap()
-        } else {
-          Layout::new::<i32>()
-        };
-        free_struct_memory(*(ptr as *mut *mut c_void), obj, PointerType::RsPointer);
-        dealloc(*(ptr as *mut *mut u8), layout);
+        if size > 0 {
+          let layout = Layout::from_size_align(size, align).unwrap();
+          if !is_stack_struct {
+            free_struct_memory(*(ptr as *mut *mut c_void), obj, PointerType::RsPointer);
+            dealloc(*(ptr as *mut *mut u8), layout);
+          } else {
+            free_struct_memory(ptr, obj, PointerType::RsPointer);
+          }
+        }
       }
     }
     _ => panic!("free rust pointer memory error"),
@@ -384,6 +432,8 @@ pub unsafe fn free_c_pointer_memory(
         let FFIARRARYDESC {
           array_type,
           array_len,
+          struct_item_type,
+          ..
         } = array_desc;
         match array_type {
           RefDataType::U8Array => free_dynamic_u8_array(ptr, array_len),
@@ -391,6 +441,18 @@ pub unsafe fn free_c_pointer_memory(
           RefDataType::DoubleArray => free_dynamic_double_array(ptr, array_len),
           RefDataType::FloatArray => free_dynamic_float_array(ptr, array_len),
           RefDataType::StringArray => free_dynamic_string_array(ptr, array_len),
+          RefDataType::StructArray => {
+            let mut target_ptr = *(ptr as *mut *mut c_void);
+            let (size, _) = calculate_struct_size(struct_item_type.as_ref().unwrap());
+            (0..array_len).for_each(|_| {
+              free_struct_memory(
+                target_ptr,
+                struct_item_type.as_ref().unwrap(),
+                PointerType::CPointer,
+              );
+              target_ptr = target_ptr.offset(size as isize);
+            });
+          }
         }
       } else if let FFITypeTag::Function = ffi_tag {
         let func_desc = get_func_desc(&obj);
@@ -399,7 +461,13 @@ pub unsafe fn free_c_pointer_memory(
         }
       } else {
         // struct
-        free_struct_memory(*(ptr as *mut *mut c_void), obj, PointerType::CPointer);
+        let is_stack_struct = get_ffi_tag(&obj) == FFITypeTag::StackStruct;
+        let target_ptr = if is_stack_struct {
+          ptr
+        } else {
+          *(ptr as *mut *mut c_void)
+        };
+        free_struct_memory(target_ptr, obj, PointerType::CPointer);
         free(*(ptr as *mut *mut c_void))
       }
     }

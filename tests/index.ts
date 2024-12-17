@@ -419,11 +419,11 @@ const unitTest = () => {
   testFunction()
   testCpp()
   logGreen('test cpp succeed')
-  testObject()
-  logGreen('test object succeed')
   testPointer()
   logGreen('test createPointer succeed')
   testRunInNewThread()
+  testObject()
+  logGreen('test object succeed')
 };
 
 unitTest();

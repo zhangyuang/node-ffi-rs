@@ -1,4 +1,6 @@
-use super::dataprocess::{get_array_desc, get_ffi_tag};
+use super::dataprocess::get_ffi_tag;
+use super::get_array_desc;
+
 use crate::define::*;
 use crate::{RefDataType, RsArgsValue, FFIARRARYDESC};
 use indexmap::IndexMap;
@@ -62,6 +64,8 @@ pub fn calculate_struct_size(struct_type: &IndexMap<String, RsArgsValue>) -> (us
           let FFIARRARYDESC {
             array_type,
             array_len,
+            struct_item_type,
+            ..
           } = array_desc;
           let (mut type_size, type_align) = match array_type {
             RefDataType::U8Array => get_size_align::<u8>(),
@@ -69,6 +73,7 @@ pub fn calculate_struct_size(struct_type: &IndexMap<String, RsArgsValue>) -> (us
             RefDataType::FloatArray => get_size_align::<f32>(),
             RefDataType::StringArray => get_size_align::<*const c_char>(),
             RefDataType::DoubleArray => get_size_align::<f64>(),
+            RefDataType::StructArray => calculate_struct_size(struct_item_type.as_ref().unwrap()),
           };
           type_size = type_size * array_len;
           let align = align.max(type_align);
@@ -109,6 +114,7 @@ pub unsafe fn create_static_array_from_pointer(
   let FFIARRARYDESC {
     array_type,
     array_len,
+    ..
   } = array_desc;
   match array_type {
     RefDataType::U8Array => {
@@ -130,6 +136,9 @@ pub unsafe fn create_static_array_from_pointer(
       let ptr = ptr as *mut f32;
       let arr = (0..*array_len).map(|n| *(ptr.offset(n as isize))).collect();
       RsArgsValue::FloatArray(arr)
+    }
+    RefDataType::StructArray => {
+      panic!("struct array is not supported for static array");
     }
     RefDataType::StringArray => {
       panic!("string array is not supported for static array");

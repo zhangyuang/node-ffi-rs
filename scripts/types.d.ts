@@ -48,6 +48,7 @@ export const enum DataType {
   */
   BigInt = 16,
   I16 = 17,
+  StructArray = 18,
   StackStruct = 999, // reserve keyword
   StackArray = 996,
   Function = 998,

@@ -136,11 +136,13 @@ pub unsafe fn generate_c_struct(
       }
       RsArgsValue::Object(mut obj_value) => {
         if let FFITypeTag::Array | FFITypeTag::StackArray = get_ffi_tag(&obj_value) {
-          let array_desc = get_array_desc(&obj_value);
+          let array_desc = get_array_desc(&mut obj_value);
           let array_value = get_array_value(&mut obj_value).unwrap();
           let FFIARRARYDESC {
             array_type,
             array_len,
+            struct_item_type,
+            ..
           } = array_desc;
           let field_size = match array_type {
             RefDataType::U8Array => {
@@ -264,35 +266,67 @@ pub unsafe fn generate_c_struct(
                 return Err(FFIError::Panic(format!("error array type {:?}", array_type)).into());
               }
             }
+            RefDataType::StructArray => {
+              let is_stack_struct =
+                get_ffi_tag(struct_item_type.as_ref().unwrap()) == FFITypeTag::StackStruct;
+              if let RsArgsValue::StructArray(arr) = array_value {
+                if is_stack_struct {
+                  let (size, align) = calculate_struct_size(struct_item_type.as_ref().unwrap());
+                  let field_size = size * array_len;
+                  for i in 0..array_len {
+                    let padding = (align - (offset % align)) % align;
+                    field_ptr = field_ptr.offset(padding as isize);
+                    generate_c_struct(
+                      env,
+                      struct_item_type.as_ref().unwrap(),
+                      arr[i].clone(),
+                      Some(field_ptr),
+                    )
+                    .unwrap();
+                    field_ptr = field_ptr.offset(size as isize);
+                    offset += size;
+                  }
+                  field_size
+                } else {
+                  panic!("!struct array not supported");
+                }
+              } else {
+                return Err(FFIError::Panic(format!("error array type {:?}", array_type)).into());
+              }
+            }
           };
           field_size
         } else {
-          let is_stack_struct =
-            if let Some(RsArgsValue::Object(field_type)) = struct_type.get(&field) {
+          let is_stack_struct = match struct_type.get(&field) {
+            Some(RsArgsValue::Object(field_type)) => {
               get_ffi_tag(field_type) == FFITypeTag::StackStruct
-            } else {
-              false
-            };
+            }
+            _ => get_ffi_tag(struct_type) == FFITypeTag::StackStruct,
+          };
           // struct
           if is_stack_struct {
             // stack struct
-            if let RsArgsValue::Object(val_type) = struct_type.get(&field).unwrap() {
-              let (size, align) = calculate_struct_size(val_type);
-              let padding = (align - (offset % align)) % align;
-              field_ptr = field_ptr.offset(padding as isize);
-              generate_c_struct(env, val_type, obj_value, Some(field_ptr))?;
-              offset += size + padding;
-              size
+            let target_type = if let Some(RsArgsValue::Object(val_type)) = struct_type.get(&field) {
+              val_type
+            } else if get_ffi_tag(struct_type) == FFITypeTag::StackStruct {
+              struct_type
             } else {
               return Err(FFIError::Panic(format!("unknown field type {:?}", struct_type)).into());
-            }
+            };
+
+            let (size, align) = calculate_struct_size(target_type);
+            let padding = (align - (offset % align)) % align;
+            field_ptr = field_ptr.offset(padding as isize);
+            generate_c_struct(env, target_type, obj_value, Some(field_ptr))?;
+            offset += size + padding;
+            size
           } else {
             let (size, align) = get_size_align::<*mut c_void>();
             let padding = (align - (offset % align)) % align;
             field_ptr = field_ptr.offset(padding as isize);
             if let RsArgsValue::Object(val_type) = struct_type.get(&field).unwrap() {
-              let obj_ptr = generate_c_struct(env, val_type, obj_value, None)?;
-              (field_ptr as *mut *const c_void).write(obj_ptr);
+              let start_ptr = generate_c_struct(env, val_type, obj_value, None)?;
+              (field_ptr as *mut *const c_void).write(start_ptr);
             }
             offset += size + padding;
             size
@@ -304,6 +338,7 @@ pub unsafe fn generate_c_struct(
       | RsArgsValue::FloatArray(_)
       | RsArgsValue::I32Array(_)
       | RsArgsValue::DoubleArray(_)
+      | RsArgsValue::StructArray(_)
       | RsArgsValue::U8Array(_, _) => {
         return Err(
           FFIError::Panic(format!(

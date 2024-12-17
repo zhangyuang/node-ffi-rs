@@ -7,11 +7,7 @@ mod utils;
 use datatype::pointer::{free_c_pointer_memory, free_rs_pointer_memory};
 use define::*;
 use dlopen::symbor::{Library, Symbol};
-use libffi_sys::{
-  ffi_abi_FFI_DEFAULT_ABI, ffi_call, ffi_cif, ffi_prep_cif, ffi_type, ffi_type_double,
-  ffi_type_enum_STRUCT, ffi_type_float, ffi_type_pointer, ffi_type_sint16, ffi_type_sint32,
-  ffi_type_sint64, ffi_type_uint64, ffi_type_uint8, ffi_type_void,
-};
+use libffi_sys::{ffi_abi_FFI_DEFAULT_ABI, ffi_call, ffi_cif, ffi_prep_cif};
 use napi::{Env, JsExternal, JsUnknown, Result};
 use std::collections::HashMap;
 use std::ffi::c_void;
@@ -20,6 +16,7 @@ use utils::dataprocess::{
   get_arg_types_values, get_ffi_tag, get_js_external_wrap_data, get_js_unknown_from_pointer,
   get_value_pointer, type_define_to_rs_args,
 };
+use utils::pointer::get_ffi_type;
 
 static mut LIBRARY_MAP: Option<
   HashMap<
@@ -219,59 +216,10 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
       .map(|param| type_define_to_rs_args(&env, param).unwrap())
       .collect(),
   );
-
   let (arg_types, arg_values) = get_arg_types_values(Rc::clone(&params_type_rs), params_value)?;
   let mut arg_values_c_void = get_value_pointer(&env, Rc::clone(&params_type_rs), arg_values)?;
   let ret_type_rs = type_define_to_rs_args(&env, ret_type)?;
   let mut ffi_type_cleanup = FFITypeCleanup::new();
-
-  unsafe fn get_ffi_type(
-    ret_type_rs: &RsArgsValue,
-    ffi_type_cleanup: &mut FFITypeCleanup,
-  ) -> *mut ffi_type {
-    match ret_type_rs {
-      RsArgsValue::I32(number) => {
-        let ret_data_type = (*number).try_into().unwrap();
-        match ret_data_type {
-          BasicDataType::U8 => &mut ffi_type_uint8 as *mut ffi_type,
-          BasicDataType::I32 => &mut ffi_type_sint32 as *mut ffi_type,
-          BasicDataType::I16 => &mut ffi_type_sint16 as *mut ffi_type,
-          BasicDataType::I64 | BasicDataType::BigInt => &mut ffi_type_sint64 as *mut ffi_type,
-          BasicDataType::U64 => &mut ffi_type_uint64 as *mut ffi_type,
-          BasicDataType::String | BasicDataType::WString => &mut ffi_type_pointer as *mut ffi_type,
-          BasicDataType::Void => &mut ffi_type_void as *mut ffi_type,
-          BasicDataType::Float => &mut ffi_type_float as *mut ffi_type,
-          BasicDataType::Double => &mut ffi_type_double as *mut ffi_type,
-          BasicDataType::Boolean => &mut ffi_type_uint8 as *mut ffi_type,
-          BasicDataType::External => &mut ffi_type_pointer as *mut ffi_type,
-        }
-      }
-      RsArgsValue::Object(struct_type) => {
-        if get_ffi_tag(struct_type) == FFITypeTag::StackStruct {
-          let mut elements: Vec<*mut ffi_type> = struct_type
-            .iter()
-            .filter(|(field_name, _)| field_name != &FFI_TAG_FIELD)
-            .map(|(_, field_type)| get_ffi_type(field_type, ffi_type_cleanup))
-            .collect();
-          elements.push(std::ptr::null_mut());
-          let struct_type_box = ffi_type {
-            size: 0,
-            alignment: 0,
-            type_: ffi_type_enum_STRUCT as u16,
-            elements: elements.as_mut_ptr(),
-          };
-          let elements_ptr = Box::into_raw(Box::new(elements));
-          let struct_type_ptr = Box::into_raw(Box::new(struct_type_box));
-          ffi_type_cleanup.elements_box = Some(elements_ptr);
-          ffi_type_cleanup.struct_type_box = Some(struct_type_ptr);
-          struct_type_ptr
-        } else {
-          &mut ffi_type_pointer as *mut ffi_type
-        }
-      }
-      _ => &mut ffi_type_void as *mut ffi_type,
-    }
-  }
 
   let r_type = get_ffi_type(&ret_type_rs, &mut ffi_type_cleanup);
   ffi_type_cleanup.r_type = Some(r_type);

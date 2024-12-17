@@ -149,8 +149,7 @@ pub unsafe fn create_rs_struct_from_pointer(
           field_size = size
         }
       };
-    }
-    if let RsArgsValue::Object(sub_obj_type) = val {
+    } else if let RsArgsValue::Object(sub_obj_type) = val {
       let field = field.clone();
       if let FFITypeTag::Array | FFITypeTag::StackArray = get_ffi_tag(sub_obj_type) {
         let array_desc = get_array_desc(sub_obj_type);
@@ -158,6 +157,7 @@ pub unsafe fn create_rs_struct_from_pointer(
         let FFIARRARYDESC {
           array_type,
           array_len,
+          struct_item_type,
           ..
         } = &array_desc;
         let dynamic_array = get_ffi_tag(sub_obj_type) == FFITypeTag::Array;
@@ -231,6 +231,37 @@ pub unsafe fn create_rs_struct_from_pointer(
             }
             offset += size + padding;
             field_size = size
+          }
+          RefDataType::StructArray => {
+            let is_stack_struct =
+              get_ffi_tag(struct_item_type.as_ref().unwrap()) == FFITypeTag::StackStruct;
+            let (size, align) = if is_stack_struct {
+              calculate_struct_size(struct_item_type.as_ref().unwrap())
+            } else {
+              let (size, align) = get_size_align::<*const c_void>();
+              (size, align)
+            };
+            let arr = (0..*array_len)
+              .map(|_| {
+                let padding = (align - (offset % align)) % align;
+                field_ptr = field_ptr.offset(padding as isize);
+                let rs_struct = create_rs_struct_from_pointer(
+                  env,
+                  field_ptr,
+                  struct_item_type.as_ref().unwrap(),
+                  need_thread_safe,
+                );
+                if is_stack_struct {
+                  field_ptr = field_ptr.offset(size as isize);
+                } else {
+                  field_ptr = field_ptr.offset(1);
+                }
+                offset += size;
+                rs_struct
+              })
+              .collect::<Vec<_>>();
+            field_size = size * (*array_len);
+            rs_struct.insert(field, RsArgsValue::StructArray(arr));
           }
           RefDataType::U8Array => {
             let (size, align) = if dynamic_array {
@@ -330,6 +361,16 @@ pub fn rs_value_to_js_unknown(env: &Env, data: RsArgsValue) -> Result<JsUnknown>
     RsArgsValue::I32Array(val) => val.to_js_array(env)?.into_unknown(),
     RsArgsValue::StringArray(val) => val.to_js_array(env)?.into_unknown(),
     RsArgsValue::DoubleArray(val) => val.to_js_array(env)?.into_unknown(),
+    RsArgsValue::StructArray(val) => {
+      let mut js_array = env.create_array_with_length(val.len())?;
+      for (index, item) in val.into_iter().enumerate() {
+        js_array.set_element(
+          index as u32,
+          rs_value_to_js_unknown(env, RsArgsValue::Object(item))?,
+        )?;
+      }
+      js_array.into_unknown()
+    }
     RsArgsValue::Object(obj) => create_js_object_from_rs_map(env, obj)?.into_unknown(),
     RsArgsValue::External(val) => val.into_unknown(),
     RsArgsValue::Void(_) => env.get_undefined()?.into_unknown(),

@@ -70,6 +70,9 @@ pub unsafe fn get_rs_value_from_pointer(
             let arr = create_array_from_pointer(*(pointer as *mut *mut c_float), array_len);
             RsArgsValue::FloatArray(arr)
           }
+          RefDataType::StructArray => {
+            panic!("struct array not supported");
+          }
         }
       } else {
         // function | raw object
