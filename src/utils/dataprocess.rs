@@ -371,16 +371,26 @@ pub unsafe fn get_value_pointer(
         std::mem::forget(c_char_vec);
         Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
       }
-      RsArgsValue::StructArray(types, values) => {
+      RsArgsValue::StructArray(_, values) => {
+        if let RsArgsValue::Object(arg_type) = arg_type {
+        let array_desc = get_array_desc(arg_type);
+        // array
+        let FFIARRARYDESC {
+        struct_item_type,
+          ..
+        } = &array_desc;
         let (mut ptr, mut next_ptr) = (None, None);
-        types.into_iter().zip(values.into_iter()).for_each(|(item_type, item)| {
-        let (start_ptr, end_ptr) = generate_c_struct(&env, &item_type, item, next_ptr).unwrap();
+        values.into_iter().for_each(|item| {
+        let (start_ptr, end_ptr) = generate_c_struct(&env, struct_item_type.as_ref().unwrap(), item, next_ptr).unwrap();
           if ptr.is_none() {
             ptr = Some(start_ptr);
           }
           next_ptr = Some(end_ptr.offset(1));
         });
         Ok(Box::into_raw(Box::new(ptr.unwrap())) as *mut c_void)
+      } else {
+       Err(FFIError::Panic(format!("uncorrect params type {:?}", arg_type)).into())
+      }
       }
       RsArgsValue::Boolean(val) => {
         let c_bool = Box::new(val);
