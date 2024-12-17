@@ -48,7 +48,7 @@ jobs:
             build: |-
               set -e &&
               target=x86_64-unknown-linux-gnu yarn build &&
-              strip *.node &&
+              strip *.node && yarn test &&
               ls
           - host: macos-latest
             target: aarch64-apple-darwin
@@ -72,7 +72,7 @@ jobs:
               ls
           # - host: ubuntu-latest
           #   target: arm-unknown-linux-gnueabihf
-            
+
           - host: ubuntu-latest
             target: arm-unknown-linux-gnueabihf
             docker: ghcr.io/catthehacker/ubuntu:custom-20.04-dev
@@ -86,7 +86,7 @@ jobs:
               ls
           - host: ubuntu-latest
             target: x86_64-unknown-linux-musl
-            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:stable-2023-09-17-alpine
+            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
             build: |
               set -e && uname -a && apk update &&
               apk add linux-headers &&

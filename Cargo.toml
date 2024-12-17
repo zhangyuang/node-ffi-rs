@@ -9,25 +9,27 @@ crate-type = ["cdylib"]
 [dependencies]
 
 # Default enable napi4 feature, see https://nodejs.org/api/n-api.html#node-api-version-matrix
-napi = { version = "2.16.13", default-features = false, features = ["napi4", "napi6"] }
+napi = { version = "2.16.13", default-features = false, features = [
+  "napi4",
+  "napi6",
+] }
 napi-derive = "2.13.0"
 napi-derive-backend = "1.0.52"
 dlopen = "0.1.8"
 libffi = { version = "3.2.0" }
 libffi-sys = { version = "^2.3.0" }
 libc = "0.2"
-indexmap = "2.0"
+indexmap = "2.7.0"
 widestring = "1.1.0"
 strum = "0.26"
 strum_macros = "0.26"
 
 [build-dependencies]
-napi-build = "2.0.1"
-bindgen = "^0.66.0"
+napi-build = "=2.0.1"
 
 
 [profile.release]
 lto = true
 
 [lints.rust]
-static-mut-refs="allow"
+static-mut-refs = "allow"
