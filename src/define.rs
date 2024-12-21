@@ -121,7 +121,7 @@ pub enum DataType {
   I16 = 17,
   StructArray = 18,
 }
-#[derive(Debug, FromRepr)]
+#[derive(Debug, FromRepr, Eq, PartialEq)]
 pub enum BasicDataType {
   String = 0,
   I32 = 1,

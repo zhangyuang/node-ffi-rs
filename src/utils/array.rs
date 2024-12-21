@@ -15,7 +15,6 @@ pub fn get_array_desc(obj: &IndexMap<String, RsArgsValue>) -> FFIARRARYDESC {
     struct_item_type = Some(item_type.clone());
   }
   let array_type = array_type.try_into().unwrap();
-
   FFIARRARYDESC {
     array_len,
     array_type,

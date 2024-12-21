@@ -268,23 +268,17 @@ extern "C" void printMyClass(MyClass *instance) { instance->print(); }
 
 typedef struct
 {
-  short x, y, dir;
+  short x;
+  short y;
+  short dir;
   unsigned char kind;
 } MINUTIA;
 
 extern "C" MINUTIA *printAndReturnMinutiae(MINUTIA item[3])
 {
-  for (int i = 0; i < 3; i++)
-  {
-    MINUTIA m = item[i];
-    printf("Minutia %d:\n", i);
-    printf("  x: %d\n", m.x);
-    printf("  y: %d\n", m.y);
-    printf("  direction: %d\n", m.dir);
-    printf("  kind: %u\n", m.kind);
-  }
-  return item;
-};
+  // return item;
+  return NULL;
+}
 
 // typedef void (*CallbackType)(const char *);
 // extern "C" void call_callback_async() {

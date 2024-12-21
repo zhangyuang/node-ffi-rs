@@ -1,3 +1,13 @@
 {
-  "editor.formatOnSave": true
+  "editor.formatOnSave": true,
+  "files.associations": {
+    "*.vue": "vue",
+    "*.wpy": "vue",
+    "*.html": "html",
+    "*.wxml": "html",
+    "*.cjson": "jsonc",
+    "*.wxss": "css",
+    "*.wxs": "javascript",
+    "__locale": "cpp"
+  }
 }

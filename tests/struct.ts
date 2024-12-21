@@ -56,7 +56,6 @@ export const testObject = () => {
       })
     ],
     paramsValue: [structArray],
-    freeResultMemory: false
   })
   deepStrictEqual(res, structArray)
   // load({

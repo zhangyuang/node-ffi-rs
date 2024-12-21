@@ -802,7 +802,9 @@ pub unsafe fn get_js_unknown_from_pointer(
     }
     RsArgsValue::Object(sub_obj_type) => {
       if let FFITypeTag::Array | FFITypeTag::StackArray = get_ffi_tag(&sub_obj_type) {
+        println!("XX");
         let array_desc = get_array_desc(&sub_obj_type);
+        println!("33");
         // array
         let FFIARRARYDESC {
           array_type,
@@ -832,25 +834,33 @@ pub unsafe fn get_js_unknown_from_pointer(
             rs_value_to_js_unknown(env, RsArgsValue::StringArray(arr))
           }
           RefDataType::StructArray => {
-            let mut start_ptr = *(ptr as *mut *mut c_void);
-            let is_stack_struct = get_ffi_tag(&sub_obj_type) == FFITypeTag::StackStruct;
-            if !is_stack_struct {
-              panic!("not supported dynamic struct array");
-            }
-            let v = (0..array_len)
-              .map(|_| {
-                let rs_struct = create_rs_struct_from_pointer(
-                  env,
-                  start_ptr,
-                  &struct_item_type.as_ref().unwrap(),
-                  false,
-                );
-                let (struct_size, _) = calculate_struct_size(&struct_item_type.as_ref().unwrap());
-                start_ptr = start_ptr.offset(struct_size as isize);
-                rs_struct
-              })
-              .collect();
-            rs_value_to_js_unknown(env, RsArgsValue::StructArray(v))
+            // let mut safe_ptr = std::ptr::read_unaligned(ptr as *const *mut c_void);
+            // println!("safe_ptr: {:#?}", *(safe_ptr as *mut i16));
+
+            // let rs_struct =
+            //   create_rs_struct_from_pointer(env, safe_ptr, &struct_item_type.unwrap(), false);
+            // println!("rs_struct: {:#?}", rs_struct);
+            // let is_stack_struct =
+            //   get_ffi_tag(&struct_item_type.as_ref().unwrap()) == FFITypeTag::StackStruct;
+            // let v = (0..1)
+            //   .map(|_| {
+            //     let rs_struct = create_rs_struct_from_pointer(
+            //       env,
+            //       safe_ptr,
+            //       &struct_item_type.as_ref().unwrap(),
+            //       false,
+            //     );
+            //     println!("rs_struct: {:#?}", rs_struct);
+            //     let (struct_size, _) = calculate_struct_size(&struct_item_type.as_ref().unwrap());
+            //     if is_stack_struct {
+            //       safe_ptr = safe_ptr.offset(struct_size as isize);
+            //     } else {
+            //       safe_ptr = safe_ptr.offset(1);
+            //     }
+            //     rs_struct
+            //   })
+            //   .collect();
+            rs_value_to_js_unknown(env, RsArgsValue::StructArray(vec![]))
           }
         }
       } else {

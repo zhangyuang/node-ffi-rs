@@ -9,7 +9,7 @@ const options = {
 };
 const target = process.env.target;
 execSync(
-  `yarn build:c && napi build --platform --release --js-package-name @yuuang/ffi-rs ${target ? `--target ${target}` : ""}`,
+  `yarn build:c && napi build --platform --js-package-name @yuuang/ffi-rs ${target ? `--target ${target}` : ""}`,
   options,
 );
 cp(resolve(cwd, './scripts/type.js'), resolve(cwd, './index.js'))
