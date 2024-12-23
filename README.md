@@ -18,15 +18,15 @@ This module aims to provide similar functionality to the node-ffi module but wit
 
 ## Features
 
-- High performance ✨
-- Better type hints 🧐
-- Simpler data description and API interface 💗
-- Support more different data types between `Node.js` and `C` 😊
-- Support modifying data in place 🥸
-- Provide many ways to handle pointer type directly 🐮
-- Support running ffi task [in a new thread](#runInNewThread) 🤩️
-- Support output [errno](#errno) info 🤔️
-- No need to use [ref](https://www.npmjs.com/package/ref) to handle pointer 🤫
+* High performance ✨
+* Better type hints 🧐
+* Simpler data description and API interface 💗
+* Support more different data types between `Node.js` and `C` 😊
+* Support modifying data in place 🥸
+* Provide many ways to handle pointer type directly 🐮
+* Support running ffi task [in a new thread](#runInNewThread) 🤩️
+* Support output [errno](#errno) info 🤔️
+* No need to use [ref](https://www.npmjs.com/package/ref) to handle pointer 🤫
 
 ## Benchmark
 
@@ -65,29 +65,31 @@ $ npm i ffi-rs
 Currently, ffi-rs only supports these types of parameters and return values. However, support for more types may be added in the future based on actual usage scenarios.
 
 ### Basic Types
-- [string](#basic-types)
-- [wideString](#basic-types)
-- [u8](#basic-types)
-- [i16](#basic-types)
-- [i32](#basic-types)
-- [i64](#basic-types)
-- [bigInt](#basic-types)
-- [u64](#basic-types)
-- [void](#basic-types) (like js undefined)
-- [float](#basic-types) (can only be used as paramsType instead of retType)
-- [double](#basic-types)
-- [boolean](#basic-types)
+
+* [string](#basic-types)
+* [wideString](#basic-types)
+* [u8](#basic-types)
+* [i16](#basic-types)
+* [i32](#basic-types)
+* [i64](#basic-types)
+* [bigInt](#basic-types)
+* [u64](#basic-types)
+* [void](#basic-types) (like js undefined)
+* [float](#basic-types) (can only be used as paramsType instead of retType)
+* [double](#basic-types)
+* [boolean](#basic-types)
 
 ### Reference Types
 
-- [pointer](#pointer)
-- [u8Array](#buffer) (buffer)
-- [i32Array](#array)
-- [stringArray](#array)
-- [doubleArray](#array)
-- [floatArray](#array) (can only be used as paramsType instead of retType)
-- [object](#struct) (Nested object is also supported in the latest version)
-- [function](#function)
+* [pointer](#pointer)
+* [u8Array](#buffer) (buffer)
+* [i32Array](#array)
+* [stringArray](#array)
+* [doubleArray](#array)
+* [floatArray](#array) (can only be used as paramsType instead of retType)
+* [structArray](#array)
+* [object](#struct) (Nested object is also supported in the latest version)
+* [function](#function)
 
 ### C++ Class
 
@@ -97,16 +99,16 @@ If you want to call a C++ function whose argument type is a class, you can use t
 
 Note: You need to make sure that the compilation environment of the dynamic library is the same as the installation and runtime environment of the `ffi-rs` call.
 
-- darwin-x64
-- darwin-arm64
-- linux-x64-gnu
-- linux-x64-musl
-- win32-x64-msvc
-- win32-ia32-msvc
-- win32-arm64-msvc
-- linux-arm64-gnu
-- linux-arm64-musl
-- linux-arm-gnueabihf
+* darwin-x64
+* darwin-arm64
+* linux-x64-gnu
+* linux-x64-musl
+* win32-x64-msvc
+* win32-ia32-msvc
+* win32-arm64-msvc
+* linux-arm64-gnu
+* linux-arm64-musl
+* linux-arm-gnueabihf
 
 ## Usage
 
@@ -158,24 +160,33 @@ Then you can use `ffi-rs` to invoke the dynamic library file that contains funct
 It's suggested to develop with TypeScript to get type hints
 
 ```js
-const { equal } = require('assert')
-const { load, DataType, open, close, arrayConstructor, define } = require('ffi-rs')
+const {
+    equal
+} = require('assert')
+const {
+    load,
+    DataType,
+    open,
+    close,
+    arrayConstructor,
+    define
+} = require('ffi-rs')
 const a = 1
 const b = 100
 const dynamicLib = platform === 'win32' ? './sum.dll' : "./libsum.so"
 // First open dynamic library with key for close
 // It only needs to be opened once.
 open({
-  library: 'libsum', // key
-  path: dynamicLib // path
+    library: 'libsum', // key
+    path: dynamicLib // path
 })
 const r = load({
-  library: "libsum", // path to the dynamic library file
-  funcName: 'sum', // the name of the function to call
-  retType: DataType.I32, // the return value type
-  paramsType: [DataType.I32, DataType.I32], // the parameter types
-  paramsValue: [a, b] // the actual parameter values
-  // freeResultMemory: true, // whether or not need to free the result of return value memory automatically, default is false
+    library: "libsum", // path to the dynamic library file
+    funcName: 'sum', // the name of the function to call
+    retType: DataType.I32, // the return value type
+    paramsType: [DataType.I32, DataType.I32], // the parameter types
+    paramsValue: [a, b] // the actual parameter values
+    // freeResultMemory: true, // whether or not need to free the result of return value memory automatically, default is false
 })
 equal(r, a + b)
 // Release library memory when you're not using it.
@@ -183,16 +194,16 @@ close('libsum')
 
 // Use define function to define a function signature
 const res = define({
-  sum: {
-    library: "libsum",
-    retType: DataType.I32,
-    paramsType: [DataType.I32, DataType.I32],
-  },
-  atoi: {
-    library: "libnative",
-    retType: DataType.I32,
-    paramsType: [DataType.String],
-  }
+    sum: {
+        library: "libsum",
+        retType: DataType.I32,
+        paramsType: [DataType.I32, DataType.I32],
+    },
+    atoi: {
+        library: "libnative",
+        retType: DataType.I32,
+        paramsType: [DataType.String],
+    }
 })
 equal(res.sum([1, 2]), 3)
 equal(res.atoi(["1000"]), 1000)
@@ -204,19 +215,19 @@ You can also pass an empty path string in the `open` function like [ffi-napi](ht
 
 ```js
 open({
-  library: "libnative",
-  path: "",
+    library: "libnative",
+    path: "",
 });
 // In Darwin/Linux, you can call the atoi function which is included in the basic C library
 equal(
-  load({
-    library: "libnative",
-    funcName: "atoi",
-    retType: DataType.I32,
-    paramsType: [DataType.String],
-    paramsValue: ["1000"],
-  }),
-  1000,
+    load({
+        library: "libnative",
+        funcName: "atoi",
+        retType: DataType.I32,
+        paramsType: [DataType.String],
+        paramsValue: ["1000"],
+    }),
+    1000,
 );
 ```
 
@@ -229,35 +240,35 @@ const c = "foo"
 const d = c.repeat(200)
 
 equal(c + d, load({
-  library: 'libsum',
-  funcName: 'concatenateStrings',
-  retType: DataType.String,
-  paramsType: [DataType.String, DataType.String],
-  paramsValue: [c, d]
+    library: 'libsum',
+    funcName: 'concatenateStrings',
+    retType: DataType.String,
+    paramsType: [DataType.String, DataType.String],
+    paramsValue: [c, d]
 }))
 
 equal(undefined, load({
-  library: 'libsum',
-  funcName: 'noRet',
-  retType: DataType.Void,
-  paramsType: [],
-  paramsValue: []
+    library: 'libsum',
+    funcName: 'noRet',
+    retType: DataType.Void,
+    paramsType: [],
+    paramsValue: []
 }))
 
 equal(1.1 + 2.2, load({
-  library: 'libsum',
-  funcName: 'doubleSum',
-  retType: DataType.Double,
-  paramsType: [DataType.Double, DataType.Double],
-  paramsValue: [1.1, 2.2]
+    library: 'libsum',
+    funcName: 'doubleSum',
+    retType: DataType.Double,
+    paramsType: [DataType.Double, DataType.Double],
+    paramsValue: [1.1, 2.2]
 }))
 const bool_val = true
 equal(!bool_val, load({
-  library: 'libsum',
-  funcName: 'return_opposite',
-  retType: DataType.Boolean,
-  paramsType: [DataType.Boolean],
-  paramsValue: [bool_val],
+    library: 'libsum',
+    funcName: 'return_opposite',
+    retType: DataType.Boolean,
+    paramsType: [DataType.Boolean],
+    paramsValue: [bool_val],
 }))
 ```
 
@@ -276,20 +287,20 @@ extern int modifyData(char* buffer) {
 ```js
 const arr = Buffer.alloc(200) // create buffer
 const res = load({
-  library: "libsum",
-  funcName: "modifyData",
-  retType: DataType.I32,
-  paramsType: [
-    DataType.U8Array
-  ],
-  paramsValue: [arr]
+    library: "libsum",
+    funcName: "modifyData",
+    retType: DataType.I32,
+    paramsType: [
+        DataType.U8Array
+    ],
+    paramsValue: [arr]
 })
 console.log(arr) // buffer data can be updated
 ```
 
 ### Array
 
-When using `array` as `retType`, you should use `arrayConstructor` to specify the array type with a legal length which is important.
+When using `array` as `retType` , you should use `arrayConstructor` to specify the array type with a legal length which is important.
 
 If the length is incorrect, the program may exit abnormally
 
@@ -322,37 +333,46 @@ extern "C" char **createArrayString(char **arr, int size) {
 ```js
 let bigArr = new Array(100).fill(100)
 deepStrictEqual(bigArr, load({
-  library: 'libsum',
-  funcName: 'createArrayi32',
-  retType: arrayConstructor({ type: DataType.I32Array, length: bigArr.length }),
-  paramsType: [DataType.I32Array, DataType.I32],
-  paramsValue: [bigArr, bigArr.length],
+    library: 'libsum',
+    funcName: 'createArrayi32',
+    retType: arrayConstructor({
+        type: DataType.I32Array,
+        length: bigArr.length
+    }),
+    paramsType: [DataType.I32Array, DataType.I32],
+    paramsValue: [bigArr, bigArr.length],
 }))
 
 let bigDoubleArr = new Array(5).fill(1.1)
 deepStrictEqual(bigDoubleArr, load({
-  library: 'libsum',
-  funcName: 'createArrayDouble',
-  retType: arrayConstructor({ type: DataType.DoubleArray, length: bigDoubleArr.length }),
-  paramsType: [DataType.DoubleArray, DataType.I32],
-  paramsValue: [bigDoubleArr, bigDoubleArr.length],
+    library: 'libsum',
+    funcName: 'createArrayDouble',
+    retType: arrayConstructor({
+        type: DataType.DoubleArray,
+        length: bigDoubleArr.length
+    }),
+    paramsType: [DataType.DoubleArray, DataType.I32],
+    paramsValue: [bigDoubleArr, bigDoubleArr.length],
 }))
 let stringArr = [c, c.repeat(20)]
 
 deepStrictEqual(stringArr, load({
-  library: 'libsum',
-  funcName: 'createArrayString',
-  retType: arrayConstructor({ type: DataType.StringArray, length: stringArr.length }),
-  paramsType: [DataType.StringArray, DataType.I32],
-  paramsValue: [stringArr, stringArr.length],
+    library: 'libsum',
+    funcName: 'createArrayString',
+    retType: arrayConstructor({
+        type: DataType.StringArray,
+        length: stringArr.length
+    }),
+    paramsType: [DataType.StringArray, DataType.I32],
+    paramsValue: [stringArr, stringArr.length],
 }))
 ```
 
 ### Pointer
 
-In `ffi-rs`, we use [DataType.External](https://nodejs.org/api/n-api.html#napi_create_external) for wrapping the `pointer` which enables it to be passed between `Node.js` and `C`.
+In `ffi-rs` , we use [DataType. External](https://nodejs.org/api/n-api.html#napi_create_external) for wrapping the `pointer` which enables it to be passed between `Node.js` and `C` .
 
-`Pointer` is complicated and underlying, `ffi-rs` provides four functions to handle this pointer including `createPointer`, `restorePointer`, `unwrapPointer`, `wrapPointer`, `freePointer`, `isNullPointer` for different scenes.
+`Pointer` is complicated and underlying, `ffi-rs` provides four functions to handle this pointer including `createPointer` , `restorePointer` , `unwrapPointer` , `wrapPointer` , `freePointer` , `isNullPointer` for different scenes.
 
 ```cpp
 extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
@@ -368,20 +388,20 @@ extern "C" char *getStringFromPtr(void *ptr) { return (char *)ptr; };
 ```js
 // get pointer
 const ptr = load({
-  library: "libsum",
-  funcName: "concatenateStrings",
-  retType: DataType.External,
-  paramsType: [DataType.String, DataType.String],
-  paramsValue: [c, d],
+    library: "libsum",
+    funcName: "concatenateStrings",
+    retType: DataType.External,
+    paramsType: [DataType.String, DataType.String],
+    paramsValue: [c, d],
 })
 
 // send pointer
 const string = load({
-  library: "libsum",
-  funcName: "getStringFromPtr",
-  retType: DataType.String,
-  paramsType: [DataType.External],
-  paramsValue: [ptr],
+    library: "libsum",
+    funcName: "getStringFromPtr",
+    retType: DataType.String,
+    paramsType: [DataType.External],
+    paramsValue: [ptr],
 })
 ```
 
@@ -389,24 +409,24 @@ const string = load({
 
 `createPointer` function is used for creating a pointer pointing to a specified type. In order to avoid mistakes, developers have to understand what type this pointer is.
 
-For numeric types like `i32|u8|i64|f64`, createPointer will create a pointer like `*mut i32` pointing to these numbers.
+For numeric types like `i32|u8|i64|f64` , createPointer will create a pointer like `*mut i32` pointing to these numbers.
 
-For types that are originally pointer types like `char *` representing `string` type in `C`, createPointer will create a dual pointer like `*mut *mut c_char` pointing to `*mut c_char`. Developers can use `unwrapPointer` to get the internal pointer `*mut c_char`.
+For types that are originally pointer types like `char *` representing `string` type in `C` , createPointer will create a dual pointer like `*mut *mut c_char` pointing to `*mut c_char` . Developers can use `unwrapPointer` to get the internal pointer `*mut c_char` .
 
 ```js
 let bigDoubleArr = new Array(5).fill(1.1);
 deepStrictEqual(
-  bigDoubleArr,
-  load({
-    library: "libsum",
-    funcName: "createArrayDouble",
-    retType: arrayConstructor({
-      type: DataType.DoubleArray,
-      length: bigDoubleArr.length,
+    bigDoubleArr,
+    load({
+        library: "libsum",
+        funcName: "createArrayDouble",
+        retType: arrayConstructor({
+            type: DataType.DoubleArray,
+            length: bigDoubleArr.length,
+        }),
+        paramsType: [DataType.DoubleArray, DataType.I32],
+        paramsValue: [bigDoubleArr, bigDoubleArr.length],
     }),
-    paramsType: [DataType.DoubleArray, DataType.I32],
-    paramsValue: [bigDoubleArr, bigDoubleArr.length],
-  }),
 );
 ```
 
@@ -414,19 +434,21 @@ For the code above, we can use `createPointer` function to wrap a pointer data a
 
 ```js
 const ptrArr: unknown[] = createPointer({
-  paramsType: [DataType.DoubleArray],
-  paramsValue: [[1.1,2.2]]
+    paramsType: [DataType.DoubleArray],
+    paramsValue: [
+        [1.1, 2.2]
+    ]
 })
 
 load({
-  library: "libsum",
-  funcName: "createArrayDouble",
-  retType: arrayConstructor({
-    type: DataType.DoubleArray,
-    length: bigDoubleArr.length,
-  }),
-  paramsType: [DataType.External, DataType.I32],
-  paramsValue: [unwrapPointer(ptrArr)[0], bigDoubleArr.length],
+    library: "libsum",
+    funcName: "createArrayDouble",
+    retType: arrayConstructor({
+        type: DataType.DoubleArray,
+        length: bigDoubleArr.length,
+    }),
+    paramsType: [DataType.External, DataType.I32],
+    paramsValue: [unwrapPointer(ptrArr)[0], bigDoubleArr.length],
 })
 ```
 
@@ -438,17 +460,21 @@ Similarly, you can use `restorePointer` to restore data from a `pointer` which i
 
 ```js
 const pointerArr = createPointer({
-  paramsType: [DataType.DoubleArray],
-  paramsValue: [[1.1, 2.2]]
+    paramsType: [DataType.DoubleArray],
+    paramsValue: [
+        [1.1, 2.2]
+    ]
 })
 const restoreData = restorePointer({
-  retType: [arrayConstructor({
-    type: DataType.DoubleArray,
-    length: 2
-  })],
-  paramsValue: pointerArr
+    retType: [arrayConstructor({
+        type: DataType.DoubleArray,
+        length: 2
+    })],
+    paramsValue: pointerArr
 })
-deepStrictEqual(restoreData, [[1.1, 2.2]])
+deepStrictEqual(restoreData, [
+    [1.1, 2.2]
+])
 ```
 
 #### freePointer
@@ -457,11 +483,11 @@ deepStrictEqual(restoreData, [[1.1, 2.2]])
 
 By default, `ffi-rs` will free data memory for ffi call args and return result to prevent memory leaks. Except in the following cases:
 
-- set `freeResultMemory: false` when calling `load` method
+* set `freeResultMemory: false` when calling `load` method
 
 If you set freeResultMemory to false, `ffi-rs` will not release the return result memory which was allocated in the C environment
 
-- Use `DataType.External` as paramsType or retType
+* Use `DataType.External` as paramsType or retType
 
 If developers use `DataType.External` as paramsType or retType, please use `freePointer` to release the memory of the pointer. ref [test.ts](./test.ts#170)
 
@@ -472,14 +498,16 @@ If developers use `DataType.External` as paramsType or retType, please use `free
 For example, developers can use `wrapPointer` to create a pointer pointing to other existing pointers.
 
 ```js
-const { wrapPointer } = require('ffi-rs')
+const {
+    wrapPointer
+} = require('ffi-rs')
 // ptr type is *mut c_char
 const ptr = load({
-  library: "libsum",
-  funcName: "concatenateStrings",
-  retType: DataType.External,
-  paramsType: [DataType.String, DataType.String],
-  paramsValue: [c, d],
+    library: "libsum",
+    funcName: "concatenateStrings",
+    retType: DataType.External,
+    paramsType: [DataType.String, DataType.String],
+    paramsValue: [c, d],
 })
 
 // wrapPtr type is *mut *mut c_char
@@ -491,11 +519,14 @@ const wrapPtr = wrapPointer([ptr])[0]
 `unwrapPointer` is opposite to `wrapPointer` which is used to get the internal pointer for multiple pointers
 
 ```js
-const { unwrapPointer, createPointer } = require('ffi-rs')
+const {
+    unwrapPointer,
+    createPointer
+} = require('ffi-rs')
 // ptr type is *mut *mut c_char
 let ptr = createPointer({
-  paramsType: [DataType.String],
-  paramsValue: ["foo"]
+    paramsType: [DataType.String],
+    paramsValue: ["foo"]
 })
 
 // unwrapPtr type is *mut c_char
@@ -576,60 +607,72 @@ Corresponding to the code above, you can use `ffi-rs` like this:
 
 ```js
 const testFunction = () => {
-  const func = (a, b, c, d, e, f, g) => {
-    equal(a, 100);
-    equal(b, false);
-    equal(c, "Hello, World!");
-    equal(d, "100.11");
-    deepStrictEqual(e, ["Hello", "world"]);
-    deepStrictEqual(f, [101, 202, 303]);
-    deepStrictEqual(g, person);
-    logGreen("test function succeed");
-    // free function memory when it is not in use
-    freePointer({
-      paramsType: [funcConstructor({
-        paramsType: [
-          DataType.I32,
-          DataType.Boolean,
-          DataType.String,
-          DataType.Double,
-          arrayConstructor({ type: DataType.StringArray, length: 2 }),
-          arrayConstructor({ type: DataType.I32Array, length: 3 }),
-          personType,
-        ],
-        retType: DataType.Void,
-      })],
-      paramsValue: funcExternal
+    const func = (a, b, c, d, e, f, g) => {
+        equal(a, 100);
+        equal(b, false);
+        equal(c, "Hello, World!");
+        equal(d, "100.11");
+        deepStrictEqual(e, ["Hello", "world"]);
+        deepStrictEqual(f, [101, 202, 303]);
+        deepStrictEqual(g, person);
+        logGreen("test function succeed");
+        // free function memory when it is not in use
+        freePointer({
+            paramsType: [funcConstructor({
+                paramsType: [
+                    DataType.I32,
+                    DataType.Boolean,
+                    DataType.String,
+                    DataType.Double,
+                    arrayConstructor({
+                        type: DataType.StringArray,
+                        length: 2
+                    }),
+                    arrayConstructor({
+                        type: DataType.I32Array,
+                        length: 3
+                    }),
+                    personType,
+                ],
+                retType: DataType.Void,
+            })],
+            paramsValue: funcExternal
+        })
+        if (!process.env.MEMORY) {
+            close("libsum");
+        }
+    };
+    // suggest using createPointer to create a function pointer for manual memory management
+    const funcExternal = createPointer({
+        paramsType: [funcConstructor({
+            paramsType: [
+                DataType.I32,
+                DataType.Boolean,
+                DataType.String,
+                DataType.Double,
+                arrayConstructor({
+                    type: DataType.StringArray,
+                    length: 2
+                }),
+                arrayConstructor({
+                    type: DataType.I32Array,
+                    length: 3
+                }),
+                personType,
+            ],
+            retType: DataType.Void,
+        })],
+        paramsValue: [func]
     })
-    if (!process.env.MEMORY) {
-      close("libsum");
-    }
-  };
-  // suggest using createPointer to create a function pointer for manual memory management
-  const funcExternal = createPointer({
-    paramsType: [funcConstructor({
-      paramsType: [
-        DataType.I32,
-        DataType.Boolean,
-        DataType.String,
-        DataType.Double,
-        arrayConstructor({ type: DataType.StringArray, length: 2 }),
-        arrayConstructor({ type: DataType.I32Array, length: 3 }),
-        personType,
-      ],
-      retType: DataType.Void,
-    })],
-    paramsValue: [func]
-  })
-  load({
-    library: "libsum",
-    funcName: "callFunction",
-    retType: DataType.Void,
-    paramsType: [
-      DataType.External,
-    ],
-    paramsValue: unwrapPointer(funcExternal),
-  });
+    load({
+        library: "libsum",
+        funcName: "callFunction",
+        retType: DataType.Void,
+        paramsType: [
+            DataType.External,
+        ],
+        paramsValue: unwrapPointer(funcExternal),
+    });
 }
 ```
 
@@ -663,28 +706,28 @@ And then, it can be called by the following code:
 
 ```js
 const classPointer = load({
-  library: "libsum",
-  funcName: "createMyClassFromC",
-  retType: DataType.External,
-  paramsType: [
-    DataType.String,
-    DataType.I32
-  ],
-  paramsValue: ["classString", 26],
+    library: "libsum",
+    funcName: "createMyClassFromC",
+    retType: DataType.External,
+    paramsType: [
+        DataType.String,
+        DataType.I32
+    ],
+    paramsValue: ["classString", 26],
 });
 load({
-  library: "libsum",
-  funcName: "printMyClass",
-  retType: DataType.External,
-  paramsType: [
-    DataType.External,
-  ],
-  paramsValue: [classPointer],
+    library: "libsum",
+    funcName: "printMyClass",
+    retType: DataType.External,
+    paramsType: [
+        DataType.External,
+    ],
+    paramsValue: [classPointer],
 })
 freePointer({
-  paramsType: [DataType.External],
-  paramsValue: [classPointer],
-  pointerType: PointerType.CPointer
+    paramsType: [DataType.External],
+    paramsValue: [classPointer],
+    pointerType: PointerType.CPointer
 })
 ```
 
@@ -694,12 +737,12 @@ By default, `ffi-rs` will not output [errno](https://man7.org/linux/man-pages/ma
 
 ```js
 load({
-   library: 'libnative',
-   funcName: 'setsockopt',
-   retType: DataType.I32,
-   paramsType: [DataType.I32, DataType.I32, DataType.I32, DataType.External, DataType.I32],
-   paramsValue: [socket._handle.fd, level, option, pointer[0], 4],
-   errno: true // set errno as true
+    library: 'libnative',
+    funcName: 'setsockopt',
+    retType: DataType.I32,
+    paramsType: [DataType.I32, DataType.I32, DataType.I32, DataType.External, DataType.I32],
+    paramsValue: [socket._handle.fd, level, option, pointer[0], 4],
+    errno: true // set errno as true
 })
 
 // The above code will return an object including three fields: errnoCode, errnoMessage, and the foreign function return value
@@ -712,8 +755,8 @@ It's important to free the memory allocations during a single ffi call to preven
 
 What kinds of data memory are allocated in this?
 
-- Call parameters in the Rust environment which are allocated in the heap like `String`
-- Return value which in the C environment which are allocated in the heap like `char*`
+* Call parameters in the Rust environment which are allocated in the heap like `String`
+* Return value which in the C environment which are allocated in the heap like `char*`
 
 By default, `ffi-rs` will free call parameters memory which are allocated in Rust.
 
@@ -721,11 +764,11 @@ But it will not free the return value from the C side since some C dynamic libra
 
 There are two ways to prevent `ffi-rs` from releasing memory:
 
-- Set `freeResultMemory: false` when calling `load` method, the default value is false
+* Set `freeResultMemory: false` when calling `load` method, the default value is false
 
 If you set freeResultMemory to false, `ffi-rs` will not release the return result memory which was allocated in the C environment
 
-- Use `DataType.External` as paramsType or retType
+* Use `DataType.External` as paramsType or retType
 
 If developers use `DataType.External` as paramsType or retType, please use `freePointer` to release the memory of the pointer when this memory is no longer in use. ref [test.ts](./test.ts#170)
 
@@ -737,16 +780,16 @@ To use this feature, you can pass the `runInNewThread` option to the load method
 
 ```js
 const testRunInNewThread = async () => {
-  // will return a promise but the task will run in a new thread
-  load({
-    library: "libsum",
-    funcName: "sum",
-    retType: DataType.I32,
-    paramsType: [DataType.I32, DataType.I32],
-    paramsValue: [1, 2],
-    runInNewThread: true,
-  }).then(res => {
-    equal(res, 3)
-  })
+    // will return a promise but the task will run in a new thread
+    load({
+        library: "libsum",
+        funcName: "sum",
+        retType: DataType.I32,
+        paramsType: [DataType.I32, DataType.I32],
+        paramsValue: [1, 2],
+        runInNewThread: true,
+    }).then(res => {
+        equal(res, 3)
+    })
 }
 ```
