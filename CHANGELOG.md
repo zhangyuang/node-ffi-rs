@@ -1,3 +1,13 @@
+# [1.2.0](https://github.com/zhangyuang/node-ffi-rs/compare/v1.1.1...v1.2.0) (2024-12-23)
+
+
+### Features
+
+* support struct array ([e60faf7](https://github.com/zhangyuang/node-ffi-rs/commit/e60faf7d6bcefbe0e3aa3a2f585f8b7b29fefa55))
+* update get_arg_types_values ([ee3f3a0](https://github.com/zhangyuang/node-ffi-rs/commit/ee3f3a09309eb9a4dc3c376e300bae7801d0e6d5))
+
+
+
 ## [1.1.1](https://github.com/zhangyuang/node-ffi-rs/compare/v1.1.0...v1.1.1) (2024-11-19)
 
 
