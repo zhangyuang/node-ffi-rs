@@ -13,7 +13,7 @@ use std::collections::HashMap;
 use std::ffi::c_void;
 use std::rc::Rc;
 use utils::dataprocess::{
-  get_arg_types_values, get_ffi_tag, get_js_external_wrap_data, get_js_unknown_from_pointer,
+  get_arg_values, get_ffi_tag, get_js_external_wrap_data, get_js_unknown_from_pointer,
   get_value_pointer, type_define_to_rs_args,
 };
 use utils::pointer::get_ffi_type;
@@ -40,7 +40,7 @@ unsafe fn create_pointer(env: Env, params: CreatePointerParams) -> Result<Vec<Js
       .map(|param| type_define_to_rs_args(&env, param).unwrap())
       .collect(),
   );
-  let (_, arg_values) = get_arg_types_values(Rc::clone(&params_type_rs), params_value)?;
+  let arg_values = get_arg_values(Rc::clone(&params_type_rs), params_value)?;
   let arg_values_c_void = get_value_pointer(&env, Rc::clone(&params_type_rs), arg_values)?;
 
   arg_values_c_void
@@ -216,7 +216,14 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
       .map(|param| type_define_to_rs_args(&env, param).unwrap())
       .collect(),
   );
-  let (arg_types, arg_values) = get_arg_types_values(Rc::clone(&params_type_rs), params_value)?;
+  let arg_types = params_type_rs
+    .iter()
+    .map(|arg| {
+      let mut ffi_type_cleanup = FFITypeCleanup::new();
+      get_ffi_type(arg, &mut ffi_type_cleanup)
+    })
+    .collect();
+  let arg_values = get_arg_values(Rc::clone(&params_type_rs), params_value)?;
   let mut arg_values_c_void = get_value_pointer(&env, Rc::clone(&params_type_rs), arg_values)?;
   let ret_type_rs = type_define_to_rs_args(&env, ret_type)?;
   let mut ffi_type_cleanup = FFITypeCleanup::new();
