@@ -1,3 +1,12 @@
+## [1.2.1](https://github.com/zhangyuang/node-ffi-rs/compare/v1.2.0...v1.2.1) (2024-12-24)
+
+
+### Features
+
+* update create struct for struct array ([ae9f8d8](https://github.com/zhangyuang/node-ffi-rs/commit/ae9f8d8eea567f3b30450544a288edd36cb8d27a))
+
+
+
 # [1.2.0](https://github.com/zhangyuang/node-ffi-rs/compare/v1.1.1...v1.2.0) (2024-12-23)
 
 
