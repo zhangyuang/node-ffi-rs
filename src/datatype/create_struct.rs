@@ -273,22 +273,36 @@ pub unsafe fn generate_c_struct(
                 if is_stack_struct {
                   let (size, align) = calculate_struct_size(struct_item_type.as_ref().unwrap());
                   let field_size = size * array_len;
-                  for i in 0..array_len {
+                  arr.into_iter().for_each(|struct_val| {
                     let padding = (align - (offset % align)) % align;
                     field_ptr = field_ptr.offset(padding as isize);
                     generate_c_struct(
                       env,
                       struct_item_type.as_ref().unwrap(),
-                      arr[i].clone(),
+                      struct_val,
                       Some(field_ptr),
                     )
                     .unwrap();
                     field_ptr = field_ptr.offset(size as isize);
                     offset += size;
-                  }
+                  });
                   field_size
                 } else {
-                  panic!("!struct array not supported");
+                  let (size, align) = get_size_align::<*mut c_void>();
+                  arr.into_iter().for_each(|struct_val| {
+                    let padding = (align - (offset % align)) % align;
+                    field_ptr = field_ptr.offset(padding as isize);
+                    generate_c_struct(
+                      env,
+                      struct_item_type.as_ref().unwrap(),
+                      struct_val,
+                      Some(field_ptr),
+                    )
+                    .unwrap();
+                    field_ptr = field_ptr.offset(1);
+                    offset += size;
+                  });
+                  array_len * std::mem::size_of::<*mut c_void>()
                 }
               } else {
                 return Err(FFIError::Panic(format!("error array type {:?}", array_type)).into());
