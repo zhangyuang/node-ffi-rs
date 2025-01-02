@@ -112,7 +112,7 @@ $ npm i ffi - rs
 
 ## 使用方法
 
-查看[test.ts](./test.ts)获取最新用法
+查看[tests/index.ts](./tests/index.ts)获取最新用法
 
 以下是如何使用ffi-rs的示例:
 
