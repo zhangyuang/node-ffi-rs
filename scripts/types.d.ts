@@ -5,7 +5,7 @@ export interface JsExternal {
   _externalDataPlaceholder: RawPointer;
 }
 
-export const enum DataType {
+export enum DataType {
   /**
    UTF-16 String, equivalent to char*
   */
