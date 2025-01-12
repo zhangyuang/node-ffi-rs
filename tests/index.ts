@@ -399,7 +399,7 @@ const testDefine = () => {
       paramsType: [DataType.I32, DataType.I32],
     }
   })
-  equal(res.sum([1, 2]), 3)
+  equal(res.sum(1, 2), 3)
 }
 const unitTest = () => {
   testNumber()
