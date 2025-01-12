@@ -1,3 +1,12 @@
+## [1.2.3](https://github.com/zhangyuang/node-ffi-rs/compare/v1.2.1...v1.2.3) (2025-01-12)
+
+
+### Features
+
+* update types about change const enum to enum close [#89](https://github.com/zhangyuang/node-ffi-rs/issues/89) ([98703af](https://github.com/zhangyuang/node-ffi-rs/commit/98703af2c596b6dd68fca5d6f815b592fe72a92e))
+
+
+
 ## [1.2.1](https://github.com/zhangyuang/node-ffi-rs/compare/v1.2.0...v1.2.1) (2024-12-24)
 
 
