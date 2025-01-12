@@ -198,5 +198,5 @@ type FuncObj<
 > = Record<string, Omit<FFIParams<T, U, RunInNewThread>, 'paramsValue' | 'funcName'>>
 
 export function define<T extends FuncObj<FieldType, boolean | undefined>>(funcs: T): {
-  [K in keyof T]: (...paramsValue: Array<unknown>) => ResultWithPromise<ResultWithErrno<FieldTypeToType<T[K]['retType']>, T[K]['errno']>, T[K]['runInNewThread']>;
+  [K in keyof T]: (paramsValue: Array<unknown>) => ResultWithPromise<ResultWithErrno<FieldTypeToType<T[K]['retType']>, T[K]['errno']>, T[K]['runInNewThread']>;
 }
