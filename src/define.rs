@@ -120,6 +120,7 @@ pub enum DataType {
   BigInt = 16,
   I16 = 17,
   StructArray = 18,
+  I16Array = 19,
 }
 #[derive(Debug, FromRepr)]
 pub enum BasicDataType {
@@ -146,6 +147,7 @@ pub enum RefDataType {
   U8Array = 10,
   FloatArray = 13,
   StructArray = 18,
+  I16Array = 19,
 }
 
 impl TryFrom<i32> for DataType {
@@ -223,6 +225,7 @@ pub enum RsArgsValue {
   Float(f32),
   Double(f64),
   U8Array(Option<JsBufferValue>, Option<Vec<u8>>),
+  I16Array(Vec<i16>),
   I32Array(Vec<i32>),
   StringArray(Vec<String>),
   DoubleArray(Vec<f64>),
@@ -247,6 +250,7 @@ impl Clone for RsArgsValue {
       RsArgsValue::U64(u) => RsArgsValue::U64(*u),
       RsArgsValue::Float(f) => RsArgsValue::Float(*f),
       RsArgsValue::Double(d) => RsArgsValue::Double(*d),
+      RsArgsValue::I16Array(vec) => RsArgsValue::I16Array(vec.clone()),
       RsArgsValue::I32Array(vec) => RsArgsValue::I32Array(vec.clone()),
       RsArgsValue::StringArray(vec) => RsArgsValue::StringArray(vec.clone()),
       RsArgsValue::DoubleArray(vec) => RsArgsValue::DoubleArray(vec.clone()),
@@ -275,6 +279,7 @@ impl PartialEq for RsArgsValue {
       (RsArgsValue::BigInt(a), RsArgsValue::BigInt(b)) => a == b,
       (RsArgsValue::Float(a), RsArgsValue::Float(b)) => a == b,
       (RsArgsValue::Double(a), RsArgsValue::Double(b)) => a == b,
+      (RsArgsValue::I16Array(a), RsArgsValue::I16Array(b)) => a == b,
       (RsArgsValue::I32Array(a), RsArgsValue::I32Array(b)) => a == b,
       (RsArgsValue::StringArray(a), RsArgsValue::StringArray(b)) => a == b,
       (RsArgsValue::DoubleArray(a), RsArgsValue::DoubleArray(b)) => a == b,
@@ -315,6 +320,7 @@ impl std::fmt::Debug for RsArgsValue {
           v
         )
       }
+      RsArgsValue::I16Array(arr) => write!(f, "I16Array({:?})", arr),
       RsArgsValue::I32Array(arr) => write!(f, "I32Array({:?})", arr),
       RsArgsValue::StringArray(arr) => write!(f, "StringArray({:?})", arr),
       RsArgsValue::DoubleArray(arr) => write!(f, "DoubleArray({:?})", arr),

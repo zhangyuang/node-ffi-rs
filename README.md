@@ -67,7 +67,7 @@ Currently, ffi-rs only supports these types of parameters and return values. How
 ### Basic Types
 
 * [string](#basic-types)
-* [wideString](#basic-types)
+* [wideString|wstring](#basic-types)
 * [u8](#basic-types)
 * [i16](#basic-types)
 * [i32](#basic-types)
@@ -83,6 +83,7 @@ Currently, ffi-rs only supports these types of parameters and return values. How
 
 * [pointer](#pointer)
 * [u8Array](#buffer) (buffer)
+* [i16Array](#array)
 * [i32Array](#array)
 * [stringArray](#array)
 * [doubleArray](#array)

@@ -53,6 +53,20 @@ impl ToRsArray<i32, JsNumber> for JsObject {
   }
 }
 
+impl ToRsArray<i16, JsNumber> for JsObject {
+  fn to_rs_array(self) -> Result<Vec<i16>>
+  where
+    JsNumber: TryFrom<JsUnknown> + NapiValue,
+  {
+    Ok(
+      convert_number_array::<i32, JsNumber>(self)?
+        .into_iter()
+        .map(|item| item as i16)
+        .collect(),
+    )
+  }
+}
+
 pub trait ToJsArray {
   fn to_js_array(self, env: &Env) -> Result<JsObject>;
 }
@@ -93,6 +107,15 @@ impl ToJsArray for Vec<i32> {
       .into_iter()
       .enumerate()
       .try_for_each(|(index, item)| js_array.set_element(index as u32, env.create_int32(item)?));
+    Ok(js_array)
+  }
+}
+impl ToJsArray for Vec<i16> {
+  fn to_js_array(self, env: &Env) -> Result<JsObject> {
+    let mut js_array = env.create_array_with_length(self.len())?;
+    let _ = self.into_iter().enumerate().try_for_each(|(index, item)| {
+      js_array.set_element(index as u32, env.create_int32(item as i32)?)
+    });
     Ok(js_array)
   }
 }

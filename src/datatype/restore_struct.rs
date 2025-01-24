@@ -212,6 +212,26 @@ pub unsafe fn create_rs_struct_from_pointer(
             offset += size + padding;
             field_size = size
           }
+          RefDataType::I16Array => {
+            let (size, align) = if dynamic_array {
+              get_size_align::<*const c_void>()
+            } else {
+              let (size, align) = get_size_align::<i16>();
+              (size * array_len, align)
+            };
+            let padding = (align - (offset % align)) % align;
+            field_ptr = field_ptr.offset(padding as isize);
+            if dynamic_array {
+              let type_field_ptr = field_ptr as *mut *mut i16;
+              let arr = create_array_from_pointer(*type_field_ptr, *array_len);
+              rs_struct.insert(field, RsArgsValue::I16Array(arr));
+            } else {
+              let arr = create_static_array_from_pointer(field_ptr as *mut c_void, &array_desc);
+              rs_struct.insert(field, arr);
+            }
+            offset += size + padding;
+            field_size = size
+          }
           RefDataType::I32Array => {
             let (size, align) = if dynamic_array {
               get_size_align::<*const c_void>()
@@ -358,6 +378,7 @@ pub fn rs_value_to_js_unknown(env: &Env, data: RsArgsValue) -> Result<JsUnknown>
         create_buffer_val(env, arr.unwrap()).into_unknown()
       }
     }
+    RsArgsValue::I16Array(val) => val.to_js_array(env)?.into_unknown(),
     RsArgsValue::I32Array(val) => val.to_js_array(env)?.into_unknown(),
     RsArgsValue::StringArray(val) => val.to_js_array(env)?.into_unknown(),
     RsArgsValue::DoubleArray(val) => val.to_js_array(env)?.into_unknown(),

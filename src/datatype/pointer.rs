@@ -26,6 +26,7 @@ macro_rules! impl_array_pointer {
   };
 }
 impl_array_pointer!(*mut u8, u8);
+impl_array_pointer!(*mut i16, i16);
 impl_array_pointer!(*mut i32, i32);
 impl_array_pointer!(*mut f64, f64);
 impl_array_pointer!(*mut f32, f32);
@@ -213,6 +214,21 @@ unsafe fn free_struct_memory(
               offset += size + padding;
               field_size = size
             }
+            RefDataType::I16Array => {
+              let (size, align) = if dynamic_array {
+                get_size_align::<*const c_void>()
+              } else {
+                let (size, align) = get_size_align::<i16>();
+                (size * array_len, align)
+              };
+              let padding = (align - (offset % align)) % align;
+              field_ptr = field_ptr.offset(padding as isize);
+              if dynamic_array {
+                free_dynamic_i16_array(field_ptr, array_len)
+              }
+              offset += size + padding;
+              field_size = size
+            }
             RefDataType::I32Array => {
               let (size, align) = if dynamic_array {
                 get_size_align::<*const c_void>()
@@ -349,6 +365,7 @@ pub unsafe fn free_rs_pointer_memory(
         } = array_desc;
         match array_type {
           RefDataType::U8Array => {}
+          RefDataType::I16Array => free_dynamic_i16_array(ptr, array_len),
           RefDataType::I32Array => free_dynamic_i32_array(ptr, array_len),
           RefDataType::DoubleArray => free_dynamic_double_array(ptr, array_len),
           RefDataType::FloatArray => free_dynamic_float_array(ptr, array_len),
@@ -437,6 +454,7 @@ pub unsafe fn free_c_pointer_memory(
         } = array_desc;
         match array_type {
           RefDataType::U8Array => free_dynamic_u8_array(ptr, array_len),
+          RefDataType::I16Array => free_dynamic_i16_array(ptr, array_len),
           RefDataType::I32Array => free_dynamic_i32_array(ptr, array_len),
           RefDataType::DoubleArray => free_dynamic_double_array(ptr, array_len),
           RefDataType::FloatArray => free_dynamic_float_array(ptr, array_len),
@@ -492,4 +510,7 @@ unsafe fn free_dynamic_float_array(ptr: *mut c_void, array_len: usize) {
 }
 unsafe fn free_dynamic_u8_array(ptr: *mut c_void, array_len: usize) {
   let _ = Vec::from_raw_parts(*(ptr as *mut *mut c_char), array_len, array_len);
+}
+unsafe fn free_dynamic_i16_array(ptr: *mut c_void, array_len: usize) {
+  let _ = Vec::from_raw_parts(*(ptr as *mut *mut i16), array_len, array_len);
 }

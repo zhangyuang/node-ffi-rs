@@ -69,6 +69,7 @@ pub fn calculate_struct_size(struct_type: &IndexMap<String, RsArgsValue>) -> (us
           } = array_desc;
           let (mut type_size, type_align) = match array_type {
             RefDataType::U8Array => get_size_align::<u8>(),
+            RefDataType::I16Array => get_size_align::<i16>(),
             RefDataType::I32Array => get_size_align::<i32>(),
             RefDataType::FloatArray => get_size_align::<f32>(),
             RefDataType::StringArray => get_size_align::<*const c_char>(),
@@ -121,6 +122,11 @@ pub unsafe fn create_static_array_from_pointer(
       let ptr = ptr as *mut u8;
       let arr = (0..*array_len).map(|n| *(ptr.offset(n as isize))).collect();
       RsArgsValue::U8Array(None, Some(arr))
+    }
+    RefDataType::I16Array => {
+      let ptr = ptr as *mut i16;
+      let arr = (0..*array_len).map(|n| *(ptr.offset(n as isize))).collect();
+      RsArgsValue::I16Array(arr)
     }
     RefDataType::I32Array => {
       let ptr = ptr as *mut i32;

@@ -1,7 +1,6 @@
 use super::get_array_desc;
 use super::js_value::create_js_value_unchecked;
 use super::object_utils::calculate_struct_size;
-use super::pointer::get_ffi_type;
 use crate::datatype::array::ToRsArray;
 use crate::datatype::buffer::get_safe_buffer;
 use crate::datatype::create_struct::generate_c_struct;
@@ -12,10 +11,7 @@ use crate::datatype::string::{js_string_to_string, string_to_c_string, string_to
 use crate::define::*;
 use indexmap::IndexMap;
 use libc::{c_char, c_double, c_float, c_int, c_uchar, c_void};
-use libffi_sys::{
-  ffi_type, ffi_type_double, ffi_type_float, ffi_type_pointer, ffi_type_sint16, ffi_type_sint32,
-  ffi_type_sint64, ffi_type_uint64, ffi_type_uint8, ffi_type_void,
-};
+
 use napi::threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi::{
   bindgen_prelude::*, Env, JsBigInt, JsBoolean, JsBuffer, JsExternal, JsNumber, JsObject, JsString,
@@ -162,6 +158,18 @@ pub unsafe fn get_arg_values(
                 let js_buffer: JsBuffer = value.try_into()?;
                 RsArgsValue::U8Array(Some(js_buffer.into_value()?), None)
               }
+              RefDataType::I16Array => {
+                let js_object = create_js_value_unchecked::<JsObject>(value)?;
+                let arg_val = vec![0; js_object.get_array_length()? as usize]
+                  .iter()
+                  .enumerate()
+                  .map(|(index, _)| {
+                    let js_element: JsNumber = js_object.get_element(index as u32).unwrap();
+                    js_element.get_int32().unwrap() as i16
+                  })
+                  .collect::<Vec<i16>>();
+                RsArgsValue::I16Array(arg_val)
+              }
               RefDataType::I32Array => {
                 let js_object = create_js_value_unchecked::<JsObject>(value)?;
                 let arg_val = vec![0; js_object.get_array_length()? as usize]
@@ -224,8 +232,9 @@ pub unsafe fn get_arg_values(
           } else {
             // struct
             let params_value_object = create_js_value_unchecked::<JsObject>(value)?;
-            let index_map = get_params_value_rs_struct(params_type_object_rs, &params_value_object);
-            RsArgsValue::Object(index_map.unwrap())
+            let index_map =
+              get_params_value_rs_struct(params_type_object_rs, &params_value_object)?;
+            RsArgsValue::Object(index_map)
           }
         }
         _ => panic!("unsupported params type {:?}", param),
@@ -307,6 +316,11 @@ pub unsafe fn get_value_pointer(
         let buffer = buffer.unwrap();
         let ptr = buffer.as_ptr();
         std::mem::forget(buffer);
+        Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
+      }
+      RsArgsValue::I16Array(val) => {
+        let ptr = val.as_ptr();
+        std::mem::forget(val);
         Ok(Box::into_raw(Box::new(ptr)) as *mut c_void)
       }
       RsArgsValue::I32Array(val) => {
@@ -621,6 +635,11 @@ pub unsafe fn get_params_value_rs_struct(
                   let js_buffer: JsBuffer = params_value_object.get_named_property(&field)?;
                   RsArgsValue::U8Array(Some(js_buffer.into_value()?), None)
                 }
+                RefDataType::I16Array => {
+                  let js_array: JsObject = params_value_object.get_named_property(&field)?;
+                  let arg_val = js_array.to_rs_array()?;
+                  RsArgsValue::I16Array(arg_val)
+                }
                 RefDataType::I32Array => {
                   let js_array: JsObject = params_value_object.get_named_property(&field)?;
                   let arg_val = js_array.to_rs_array()?;
@@ -812,6 +831,10 @@ pub unsafe fn get_js_unknown_from_pointer(
           RefDataType::U8Array => {
             let arr = create_array_from_pointer(*(ptr as *mut *mut c_uchar), array_len);
             rs_value_to_js_unknown(env, get_safe_buffer(env, arr, false))
+          }
+          RefDataType::I16Array => {
+            let arr = create_array_from_pointer(*(ptr as *mut *mut i16), array_len);
+            rs_value_to_js_unknown(env, RsArgsValue::I16Array(arr))
           }
           RefDataType::I32Array => {
             let arr = create_array_from_pointer(*(ptr as *mut *mut c_int), array_len);

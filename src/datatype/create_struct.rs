@@ -168,6 +168,29 @@ pub unsafe fn generate_c_struct(
                 return Err(FFIError::Panic(format!("error array type {:?}", array_type)).into());
               }
             }
+            RefDataType::I16Array => {
+              if let RsArgsValue::I16Array(arr) = array_value {
+                if get_ffi_tag(&obj_value) == FFITypeTag::StackArray {
+                  let (size, align) = get_size_align::<i16>();
+                  let field_size = size * array_len;
+                  let padding = (align - (offset % align)) % align;
+                  field_ptr = field_ptr.offset(padding as isize);
+                  std::ptr::copy(arr.as_ptr(), field_ptr as *mut i16, array_len);
+                  offset += field_size + padding;
+                  field_size
+                } else {
+                  let (size, align) = get_size_align::<*mut c_void>();
+                  let padding = (align - (offset % align)) % align;
+                  field_ptr = field_ptr.offset(padding as isize);
+                  (field_ptr as *mut *const i16).write(arr.as_ptr());
+                  std::mem::forget(arr);
+                  offset += size + padding;
+                  size
+                }
+              } else {
+                return Err(FFIError::Panic(format!("error array type {:?}", array_type)).into());
+              }
+            }
             RefDataType::I32Array => {
               if let RsArgsValue::I32Array(arr) = array_value {
                 if get_ffi_tag(&obj_value) == FFITypeTag::StackArray {
@@ -350,6 +373,7 @@ pub unsafe fn generate_c_struct(
       RsArgsValue::Function(_, _) => panic!("write_data error {:?}", field_val),
       RsArgsValue::StringArray(_)
       | RsArgsValue::FloatArray(_)
+      | RsArgsValue::I16Array(_)
       | RsArgsValue::I32Array(_)
       | RsArgsValue::DoubleArray(_)
       | RsArgsValue::StructArray(_)

@@ -54,6 +54,10 @@ pub unsafe fn get_rs_value_from_pointer(
             let arr = create_array_from_pointer(*(pointer as *mut *mut *mut c_char), array_len);
             RsArgsValue::StringArray(arr)
           }
+          RefDataType::I16Array => {
+            let arr = create_array_from_pointer(*(pointer as *mut *mut i16), array_len);
+            RsArgsValue::I16Array(arr)
+          }
           RefDataType::I32Array => {
             let arr = create_array_from_pointer(*(pointer as *mut *mut c_int), array_len);
             RsArgsValue::I32Array(arr)
