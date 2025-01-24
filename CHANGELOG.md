@@ -1,3 +1,12 @@
+## [1.2.4](https://github.com/zhangyuang/node-ffi-rs/compare/v1.2.3...v1.2.4) (2025-01-24)
+
+
+### Features
+
+* support DataType.I16Array ([1fdc724](https://github.com/zhangyuang/node-ffi-rs/commit/1fdc72429792e5680ebef9681b202c34d05853be))
+
+
+
 ## [1.2.3](https://github.com/zhangyuang/node-ffi-rs/compare/v1.2.1...v1.2.3) (2025-01-12)
 
 
