@@ -84,6 +84,7 @@ $ npm i ffi - rs
 
 * [pointer](#指针)
 * [u8Array](#缓冲区)(buffer)
+* [i16Array](#数组)
 * [i32Array](#数组)
 * [stringArray](#数组)
 * [doubleArray](#数组)

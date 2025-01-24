@@ -49,6 +49,7 @@ export enum DataType {
   BigInt = 16,
   I16 = 17,
   StructArray = 18,
+  I16Array = 19,
   StackStruct = 999, // reserve keyword
   StackArray = 996,
   Function = 998,
@@ -74,6 +75,8 @@ type DataTypeToType<T extends DataType> = T extends DataType.String
   : T extends DataType.External
   ? JsExternal
   : T extends DataType.U8Array
+  ? number[]
+  : T extends DataType.I16Array
   ? number[]
   : T extends DataType.I32Array
   ? number[]
