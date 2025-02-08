@@ -92,11 +92,14 @@ type DataTypeToType<T extends DataType> = T extends DataType.String
   ? undefined
   : never;
 
-
+export enum FFITypeTag {
+  StackStruct = DataType.StackStruct,
+  StackArray = DataType.StackArray,
+}
 export type ArrayConstructorOptions = {
   type: DataType;
   length: number;
-  ffiTypeTag?: DataType;
+  ffiTypeTag?: FFITypeTag;
   dynamicArray?: boolean
 };
 

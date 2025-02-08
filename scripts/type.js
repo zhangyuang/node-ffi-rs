@@ -310,16 +310,22 @@ DataType.StackStruct = 999
 DataType.Function = 998
 DataType.Array = 997
 DataType.StackArray = 996
-module.exports.DataType = DataType
-module.exports.PointerType = nativeBinding.PointerType
-module.exports.open = open
-module.exports.close = close
-module.exports.load = load
-module.exports.isNullPointer = isNullPointer
-
+exports.DataType = DataType
+exports.PointerType = nativeBinding.PointerType
+exports.open = open
+exports.close = close
+exports.load = load
+exports.isNullPointer = isNullPointer
+const FFITypeTag = {
+  StackStruct: DataType.StackStruct,
+  StackArray: DataType.StackArray,
+  Function: DataType.Function,
+  Array: DataType.Array,
+}
+exports.FFITypeTag = FFITypeTag
 const arrayDataType = [DataType.I16Array, DataType.I32Array, DataType.StringArray, DataType.DoubleArray, DataType.U8Array, DataType.FloatArray]
 const arrayConstructor = (options) => ({
-  ffiTypeTag: DataType.Array,
+  ffiTypeTag: FFITypeTag.Array,
   ...options
 })
 
@@ -338,7 +344,7 @@ const processParamsTypeForArray = (params) => {
 
 const setFreePointerTag = (params) => {
   params.paramsType = params.paramsType?.map((paramType, index) => {
-    if (paramType.ffiTypeTag === DataType.Function) {
+    if (paramType.ffiTypeTag === FFITypeTag.Function) {
       paramType.needFree = true
     }
     return paramType
@@ -359,8 +365,9 @@ exports.unwrapPointer = (params) => unwrapPointer(processParamsTypeForArray(para
 exports.wrapPointer = (params) => wrapPointer(processParamsTypeForArray(params))
 exports.freePointer = (params) => freePointer(setFreePointerTag(processParamsTypeForArray(params)))
 exports.arrayConstructor = arrayConstructor
+
 exports.funcConstructor = (options) => ({
-  ffiTypeTag: DataType.Function,
+  ffiTypeTag: FFITypeTag.Function,
   needFree: false,
   freeCFuncParamsMemory: false,
   ...options,

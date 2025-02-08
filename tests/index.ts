@@ -13,7 +13,7 @@ import {
   freePointer,
   define,
   PointerType,
-  isNullPointer
+  isNullPointer,
 } from "../index"
 import { logGreen } from "./utils"
 import { testObject } from "./struct"
