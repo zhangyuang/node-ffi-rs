@@ -5,7 +5,8 @@ import {
   createPointer,
   restorePointer,
   unwrapPointer,
-  arrayConstructor
+  arrayConstructor,
+  FFITypeTag
 } from "../index"
 import { logGreen } from "./utils"
 import { person, personType } from "./types"
@@ -82,7 +83,7 @@ export const testObject = () => {
       nNumber: DataType.I16,
       item: arrayConstructor({
         type: DataType.StructArray,
-        ffiTypeTag: DataType.StackArray,
+        ffiTypeTag: FFITypeTag.StackArray,
         structItemType: {
           x: DataType.I16,
           y: DataType.I16,
@@ -97,7 +98,7 @@ export const testObject = () => {
       nNumber: DataType.I16,
       item: arrayConstructor({
         type: DataType.StructArray,
-        ffiTypeTag: DataType.StackArray,
+        ffiTypeTag: FFITypeTag.StackArray,
         structItemType: {
           x: DataType.I16,
           y: DataType.I16,

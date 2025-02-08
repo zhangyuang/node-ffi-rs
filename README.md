@@ -567,7 +567,7 @@ typedef struct Person {
 staticBytes: arrayConstructor({
   type: DataType.U8Array,
   length: parent.staticBytes.length,
-  ffiTypeTag: DataType.StackArray
+  ffiTypeTag: FFITypeTag.StackArray
 }),
 ```
 
