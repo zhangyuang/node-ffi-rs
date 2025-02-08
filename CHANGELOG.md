@@ -1,3 +1,12 @@
+## [1.2.5](https://github.com/zhangyuang/node-ffi-rs/compare/v1.2.4...v1.2.5) (2025-02-08)
+
+
+### Features
+
+* add new export enum FFITypeTag for specific type ([5d6c73f](https://github.com/zhangyuang/node-ffi-rs/commit/5d6c73f8781eeb9f0e44002aef186c9e9a7f1b20))
+
+
+
 ## [1.2.4](https://github.com/zhangyuang/node-ffi-rs/compare/v1.2.3...v1.2.4) (2025-01-24)
 
 
