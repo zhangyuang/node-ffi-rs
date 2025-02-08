@@ -305,7 +305,7 @@ if (!nativeBinding) {
     (processParamsTypeForArray(params))
 }
 
-const { DataType, createPointer, restorePointer, unwrapPointer, wrapPointer, freePointer, open, close, load, isNullPointer } = nativeBinding
+const { DataType, createPointer, restorePointer, unwrapPointer, wrapPointer, freePointer, open, close, load, isNullPointer, FFITypeTag } = nativeBinding
 DataType.StackStruct = 999
 DataType.Function = 998
 DataType.Array = 997
@@ -316,12 +316,6 @@ exports.open = open
 exports.close = close
 exports.load = load
 exports.isNullPointer = isNullPointer
-const FFITypeTag = {
-  StackStruct: DataType.StackStruct,
-  StackArray: DataType.StackArray,
-  Function: DataType.Function,
-  Array: DataType.Array,
-}
 exports.FFITypeTag = FFITypeTag
 const arrayDataType = [DataType.I16Array, DataType.I32Array, DataType.StringArray, DataType.DoubleArray, DataType.U8Array, DataType.FloatArray]
 const arrayConstructor = (options) => ({
