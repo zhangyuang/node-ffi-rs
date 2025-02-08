@@ -442,6 +442,7 @@ pub const PARAMS_TYPE: &str = "paramsType";
 pub const RET_TYPE: &str = "retType";
 pub const FREE_FUNCTION_TAG: &str = "freeCFuncParamsMemory";
 
+#[napi]
 #[derive(PartialEq, Eq)]
 pub enum FFITypeTag {
   Unknown = 0,
