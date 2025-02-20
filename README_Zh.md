@@ -4,7 +4,7 @@
 <a href="https://github.com/zhangyuang/node-ffi-rs/blob/master/README.md">English</a> | <a href="https://github.com/zhangyuang/node-ffi-rs/blob/master/README_Zh.md">简体中文</a>
 </div>
 
-一个用Rust和N-API编写的模块, 为Node.js提供外部函数接口(FFI)功能
+一个用Rust和N-API编写的模块, 为Node.js提供外部函数接口(FFI)功能，中文文档的更新不一定及时，建议阅读[英文文档](./README.md)以便获取最新的信息
 
 <div align="">
 <a href="https://github.com/zhangyuang/node-ffi-rs/actions" target="_blank"><img src="https://github.com/zhangyuang/ssr/workflows/CI/badge.svg" alt="githubActions" />
@@ -110,6 +110,17 @@ $ npm i ffi - rs
 * linux-arm64-gnu
 * linux-arm64-musl
 * linux-arm-gnueabihf
+
+## 赞助
+
+There are two ways to sponsor me both Alipay and WeChat
+
+Eth address: 0x87a2575a5d4dbD5f965e3e3a3d20641BC9a5d192
+
+<div style="display:flex">
+  <img src="https://res.wx.qq.com/shop/public/2025-02-12/d50454c8-65f0-4a81-956b-b8837c187364.jpg" width=200>
+  <img src="https://res.wx.qq.com/op_res/9jSx7WJn6FBlfQ0ColL4hnvX91D9MlB_XPCgLFM527qknHp0utXZkLah6MYcumdVejK4884dvgkY0NIbBLPrYg" width=200>
+</div>
 
 ## 使用方法
 
