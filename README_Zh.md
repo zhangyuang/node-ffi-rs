@@ -76,7 +76,7 @@ $ npm i ffi - rs
 * [bigInt](#基本类型)
 * [u64](#基本类型)
 * [void](#基本类型)(类似js的undefined)
-* [float](#基本类型)(只能用作paramsType而不能用作retType)
+* [float](#基本类型)
 * [double](#基本类型)
 * [boolean](#基本类型)
 
