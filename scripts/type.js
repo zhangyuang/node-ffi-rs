@@ -370,7 +370,7 @@ exports.define = (obj) => {
   const res = {}
   Object.entries(obj).map(([funcName, funcDesc]) => {
     res[funcName] = (paramsValue = []) => wrapLoad({
-      ...obj[funcName],
+      ...funcDesc,
       funcName,
       paramsValue
     })

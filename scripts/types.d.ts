@@ -56,7 +56,7 @@ export enum DataType {
   Array = 997,
 }
 
-type DataTypeToType<T extends DataType> = T extends DataType.String
+type DataTypeToType<T> = T extends DataType.String
   ? string
   : T extends DataType.WString
   ? string
@@ -96,40 +96,37 @@ export enum FFITypeTag {
   StackStruct = DataType.StackStruct,
   StackArray = DataType.StackArray,
 }
-export type ArrayConstructorOptions = {
+
+export interface ArrayConstructorOptions {
   type: DataType;
   length: number;
   ffiTypeTag?: FFITypeTag;
   dynamicArray?: boolean
-};
+}
 
-export type FuncConstructorOptions = {
-  paramsType: Array<FieldType>;
+export interface FuncConstructorOptions {
+  paramsType: FieldType[];
   retType: FieldType;
   needFree?: boolean
   // Default:false, whether or not free function call params memory automatically which are allocated in c side
   freeCFuncParamsMemory?: boolean
-};
+}
 
-export function arrayConstructor<T extends ArrayConstructorOptions>(
-  options: T,
-): T;
+export function arrayConstructor(options: ArrayConstructorOptions): ArrayConstructorOptions;
 
-export function funcConstructor<T extends FuncConstructorOptions>(
-  options: T,
-): T;
+export function funcConstructor(options: FuncConstructorOptions): FuncConstructorOptions;
 
 export interface OpenParams {
   library: string;
   path: string;
 }
+
 export function open(params: OpenParams): void;
 export function close(library: string): void;
 
-
 export function createPointer(params: {
-  paramsType: Array<FieldType>;
-  paramsValue: Array<unknown>;
+  paramsType: FieldType[];
+  paramsValue: unknown[];
 }): JsExternal[]
 
 export enum PointerType {
@@ -138,31 +135,29 @@ export enum PointerType {
 }
 
 export function freePointer(params: {
-  paramsType: Array<FieldType>;
-  paramsValue: Array<JsExternal>;
+  paramsType: FieldType[];
+  paramsValue: JsExternal[];
   pointerType: PointerType
 }): void
 
+export function restorePointer<T>(params: {
+  retType: FieldType[];
+  paramsValue: JsExternal[];
+}): DataTypeToType<T>[]
 
-export function restorePointer<T extends DataType>(params: {
-  retType: Array<FieldType>;
-  paramsValue: Array<JsExternal>;
-}): Array<DataTypeToType<T>>
+export function unwrapPointer(params: JsExternal[]): JsExternal[]
 
-export function unwrapPointer(params: Array<JsExternal>): Array<JsExternal>
-
-export function wrapPointer(params: Array<JsExternal>): Array<JsExternal>
+export function wrapPointer(params: JsExternal[]): JsExternal[]
 
 export function isNullPointer(params: JsExternal): boolean
 
-type ResultWithErrno<T, IncludeErrno extends boolean | undefined = undefined> = IncludeErrno extends true
+type ResultWithErrno<T, E = undefined> = E extends true
   ? { value: T; errnoCode: number; errnoMessage: string }
   : T;
 
-type ResultWithPromise<T, U extends boolean | undefined = undefined> = U extends true
+type ResultWithPromise<T, P = undefined> = P extends true
   ? Promise<T>
   : T;
-
 
 export type FieldType =
   | DataType
@@ -172,7 +167,7 @@ export type FieldType =
 
 interface RecordFieldType extends Record<string, FieldType> { }
 
-type FieldTypeToType<T extends FieldType> = T extends DataType
+type FieldTypeToType<T> = T extends DataType
   ? DataTypeToType<T>
   : T extends ArrayConstructorOptions
   ? DataTypeToType<T['type']>
@@ -180,29 +175,25 @@ type FieldTypeToType<T extends FieldType> = T extends DataType
   ? { [K in keyof T]: FieldTypeToType<T[K]> }
   : never;
 
-
-export type FFIParams<T extends FieldType, U extends boolean | undefined = undefined, RunInNewThread extends boolean | undefined = undefined> = {
+export interface FFIParams<T, E = undefined, R = undefined> {
   library: string;
   funcName: string;
   retType: T;
-  paramsType: Array<FieldType>;
-  paramsValue: Array<unknown>;
+  paramsType: FieldType[];
+  paramsValue: unknown[];
   // whether need output errno
-  errno?: U
-  runInNewThread?: RunInNewThread
+  errno?: E
+  runInNewThread?: R
   // Default:false, whether or not need to free the result of return value memory automatically
   freeResultMemory?: boolean
 }
-export function load<T extends FieldType, U extends boolean | undefined = undefined, RunInNewThread extends boolean | undefined = undefined>(
-  params: FFIParams<T, U, RunInNewThread>,
-): ResultWithPromise<ResultWithErrno<FieldTypeToType<T>, U>, RunInNewThread>
 
-type FuncObj<
-  T extends FieldType,
-  U extends boolean | undefined = undefined,
-  RunInNewThread extends boolean | undefined = undefined
-> = Record<string, Omit<FFIParams<T, U, RunInNewThread>, 'paramsValue' | 'funcName'>>
+export function load<T extends FieldType, E = undefined, R extends boolean | undefined = undefined>(
+  params: FFIParams<T, E, R>
+): R extends true ? Promise<ResultWithErrno<FieldTypeToType<T>, E>> : ResultWithErrno<FieldTypeToType<T>, E>
 
-export function define<T extends FuncObj<FieldType, boolean | undefined>>(funcs: T): {
-  [K in keyof T]: (paramsValue: Array<unknown>) => ResultWithPromise<ResultWithErrno<FieldTypeToType<T[K]['retType']>, T[K]['errno']>, T[K]['runInNewThread']>;
+type FuncObj<T, E = undefined, R = undefined> = Record<string, Omit<FFIParams<T, E, R>, 'paramsValue' | 'funcName'>>
+
+export function define<T extends FuncObj<FieldType, boolean | undefined, boolean | undefined>>(funcs: T): {
+  [K in keyof T]: (paramsValue: unknown[]) => ResultWithPromise<ResultWithErrno<FieldTypeToType<T[K]['retType']>, T[K]['errno']>, T[K]['runInNewThread']>;
 }
