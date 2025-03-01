@@ -293,6 +293,18 @@ const testRunInNewThread = () => {
 }
 
 const testFunction = () => {
+  const funcDesc = funcConstructor({
+    paramsType: [
+      DataType.I32,
+      DataType.Boolean,
+      DataType.String,
+      DataType.Double,
+      arrayConstructor({ type: DataType.StringArray, length: 2 }),
+      arrayConstructor({ type: DataType.I32Array, length: 3 }),
+      personType,
+    ],
+    retType: DataType.I32,
+  })
   const func = (a, b, c, d, e, f, g) => {
     equal(a, 100);
     equal(b, false);
@@ -304,36 +316,14 @@ const testFunction = () => {
     logGreen("test function succeed");
     // free function memory which malloc in c side when it not in use
     freePointer({
-      paramsType: [funcConstructor({
-        paramsType: [
-          DataType.I32,
-          DataType.Boolean,
-          DataType.String,
-          DataType.Double,
-          arrayConstructor({ type: DataType.StringArray, length: 2 }),
-          arrayConstructor({ type: DataType.I32Array, length: 3 }),
-          personType,
-        ],
-        retType: DataType.Void,
-      })],
+      paramsType: [funcDesc],
       paramsValue: funcExternal,
       pointerType: PointerType.RsPointer
     })
     return 100
   };
   const funcExternal = createPointer({
-    paramsType: [funcConstructor({
-      paramsType: [
-        DataType.I32,
-        DataType.Boolean,
-        DataType.String,
-        DataType.Double,
-        arrayConstructor({ type: DataType.StringArray, length: 2 }),
-        arrayConstructor({ type: DataType.I32Array, length: 3 }),
-        personType,
-      ],
-      retType: DataType.I32,
-    })],
+    paramsType: [funcDesc],
     paramsValue: [func]
   })
   load({
