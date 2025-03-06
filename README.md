@@ -103,10 +103,6 @@ Currently, ffi-rs only supports these types of parameters and return values. How
 * [object](#struct) (Nested object is also supported in the latest version)
 * [function](#function)
 
-## Examples
-
-View [tests/index.ts](./tests/index.ts) for the latest examples usage
-
 ### C++ Class
 
 If you want to call a C++ function whose argument type is a class, you can use the `pointer` type. See [tutorial](#C++)
@@ -125,18 +121,21 @@ Note: You need to make sure that the compilation environment of the dynamic libr
 * linux-arm64-gnu
 * linux-arm64-musl
 * linux-arm-gnueabihf
+* android-arm64
 
 ## Usage
 
+View [tests/index.ts](./tests/index.ts) for the latest usage
+
 Here is an example of how to use ffi-rs:
 
-For the following [C language code](./cpp/sum.cpp), we compile this file into a dynamic library
+For the following C++ code, we compile this file into a dynamic library
 
 ### Write Foreign Function Code
 
 Note: The return value type of a function must be of type C
 
-```c
+```cpp
 #include <cstdio>
 #include <cstring>
 #include <iostream>

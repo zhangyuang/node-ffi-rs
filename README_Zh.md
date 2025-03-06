@@ -110,6 +110,7 @@ $ npm i ffi - rs
 * linux-arm64-gnu
 * linux-arm64-musl
 * linux-arm-gnueabihf
+* android-arm64
 
 ## 赞助
 
