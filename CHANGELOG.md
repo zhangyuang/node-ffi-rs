@@ -1,3 +1,30 @@
+## [1.2.8](https://github.com/zhangyuang/node-ffi-rs/compare/v1.2.7...v1.2.8) (2025-03-06)
+
+
+### Bug Fixes
+
+* package.json ([66ab59c](https://github.com/zhangyuang/node-ffi-rs/commit/66ab59c596717813aab70f3db834c6501c1d6536))
+
+
+
+## [1.2.7](https://github.com/zhangyuang/node-ffi-rs/compare/v1.2.6...v1.2.7) (2025-03-06)
+
+
+### Features
+
+* support android-arm64 ([78b7fcb](https://github.com/zhangyuang/node-ffi-rs/commit/78b7fcb304889bbebff599001215f8be25cfe827))
+
+
+
+## [1.2.6](https://github.com/zhangyuang/node-ffi-rs/compare/v1.2.5...v1.2.6) (2025-02-21)
+
+
+### Features
+
+* update types close [#95](https://github.com/zhangyuang/node-ffi-rs/issues/95) ([f364454](https://github.com/zhangyuang/node-ffi-rs/commit/f36445492ed5fcf7a1856d163922722474031c42))
+
+
+
 ## [1.2.5](https://github.com/zhangyuang/node-ffi-rs/compare/v1.2.4...v1.2.5) (2025-02-08)
 
 
