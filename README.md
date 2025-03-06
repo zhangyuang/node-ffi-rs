@@ -121,6 +121,7 @@ Note: You need to make sure that the compilation environment of the dynamic libr
 * linux-arm64-gnu
 * linux-arm64-musl
 * linux-arm-gnueabihf
+* android-arm64
 
 ## Usage
 

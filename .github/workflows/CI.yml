@@ -84,6 +84,17 @@ jobs:
               target=arm-unknown-linux-gnueabihf yarn build &&
               arm-linux-gnueabihf-strip *.node &&
               ls
+
+          - host: ubuntu-latest
+            target: aarch64-linux-android
+            build: |
+              set -e && uname -a &&
+              sudo apt-get update &&
+              sudo apt-get install gcc-aarch64-linux-gnu -y &&
+              rustup target add aarch64-linux-android &&
+              target=aarch64-linux-android yarn build &&
+              ls
+
           - host: ubuntu-latest
             target: x86_64-unknown-linux-musl
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
@@ -117,7 +128,6 @@ jobs:
         with:
           node-version: 18
           check-latest: true
-
 
       - name: Install
         uses: dtolnay/rust-toolchain@stable
@@ -239,7 +249,7 @@ jobs:
         run: ls .
         shell: bash
       - name: Test bindings
-        run:  yarn test
+        run: yarn test
   test-linux-x64-gnu-binding:
     name: Test bindings on Linux-x64-gnu - node@${{ matrix.node }}
     needs:
@@ -292,7 +302,7 @@ jobs:
         with:
           path: artifacts
       - name: Move artifacts
-        run:  yarn artifacts
+        run: yarn artifacts
       - name: List packages
         run: mv ./artifacts/bindings-aarch64-apple-darwin/index.js . && mv ./artifacts/bindings-aarch64-apple-darwin/index.d.ts . && ls . && ls -R ./npm
         shell: bash

@@ -56,7 +56,8 @@
     "publish:npm": "node scripts/publish.js",
     "test": "esno ./tests/index.ts",
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0 && git add . && git commit -m \"docs: update changelog.md\" && git push origin master",
-    "pub": "npm version patch && git push origin master --tags && npm run changelog",
+    "pub": "npm version patch && git push origin master --tags && npm run changelog && npm run copy",
+    "copy": "cp ./*.md ./package.json ../node-ffi-rs/",
     "pub:alpha": "npm version prerelease --preid=alpha && git push origin master --tags"
   },
   "optionalDependencies": {
@@ -69,6 +70,7 @@
     "@yuuang/ffi-rs-linux-x64-musl": "1.0.55",
     "@yuuang/ffi-rs-win32-ia32-msvc": "1.0.55",
     "@yuuang/ffi-rs-win32-x64-msvc": "1.0.55",
-    "@yuuang/ffi-rs-win32-arm64-msvc": "1.0.55"
+    "@yuuang/ffi-rs-win32-arm64-msvc": "1.0.55",
+    "@yuuang/ffi-rs-android-arm64": "1.0.55"
   }
 }
