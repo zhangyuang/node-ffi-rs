@@ -1,3 +1,12 @@
+## [1.2.8](https://github.com/zhangyuang/node-ffi-rs/compare/v1.2.7...v1.2.8) (2025-03-06)
+
+
+### Bug Fixes
+
+* package.json ([66ab59c](https://github.com/zhangyuang/node-ffi-rs/commit/66ab59c596717813aab70f3db834c6501c1d6536))
+
+
+
 ## [1.2.7](https://github.com/zhangyuang/node-ffi-rs/compare/v1.2.6...v1.2.7) (2025-03-06)
 
 
