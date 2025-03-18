@@ -354,7 +354,8 @@ pub unsafe fn free_rs_pointer_memory(
     }
     RsArgsValue::Object(obj) => {
       let ffi_tag = get_ffi_tag(&obj);
-      if let FFITypeTag::Array = ffi_tag {
+
+      if let FFITypeTag::Array | FFITypeTag::StackArray = ffi_tag {
         let array_desc = get_array_desc(&obj);
         // array
         let FFIARRARYDESC {
@@ -373,21 +374,26 @@ pub unsafe fn free_rs_pointer_memory(
           RefDataType::StructArray => {
             let is_stack_struct =
               get_ffi_tag(struct_item_type.as_ref().unwrap()) == FFITypeTag::StackStruct;
-            if !is_stack_struct {
-              let (size, align) = calculate_struct_size(&struct_item_type.as_ref().unwrap());
-              if size > 0 {
-                let layout = Layout::from_size_align(size, align).unwrap();
-                let mut start_ptr = ptr;
-                (0..array_len).for_each(|_| {
-                  free_struct_memory(
-                    *(start_ptr as *mut *mut c_void),
-                    struct_item_type.as_ref().unwrap(),
-                    PointerType::RsPointer,
-                  );
-                  start_ptr = start_ptr.offset(size as isize);
-                });
-                dealloc(*(ptr as *mut *mut u8), layout);
-              }
+            let (size, align) = calculate_struct_size(&struct_item_type.as_ref().unwrap());
+            if size <= 0 {
+              return;
+            }
+            if is_stack_struct {
+              let arr_size = size * array_len;
+              let layout = Layout::from_size_align(arr_size, align).unwrap();
+              dealloc(*(ptr as *mut *mut u8), layout);
+            } else {
+              let layout = Layout::from_size_align(size, align).unwrap();
+              let mut start_ptr = ptr;
+              (0..array_len).for_each(|_| {
+                free_struct_memory(
+                  *(start_ptr as *mut *mut c_void),
+                  struct_item_type.as_ref().unwrap(),
+                  PointerType::RsPointer,
+                );
+                start_ptr = start_ptr.offset(size as isize);
+              });
+              dealloc(*(ptr as *mut *mut u8), layout);
             }
           }
         }

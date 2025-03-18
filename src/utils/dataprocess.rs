@@ -17,6 +17,7 @@ use napi::{
   bindgen_prelude::*, Env, JsBigInt, JsBoolean, JsBuffer, JsExternal, JsNumber, JsObject, JsString,
   JsUnknown, NapiRaw,
 };
+use std::alloc::{alloc, Layout};
 use std::collections::HashMap;
 use std::ffi::CStr;
 use std::rc::Rc;
@@ -355,25 +356,29 @@ pub unsafe fn get_value_pointer(
       RsArgsValue::StructArray(val) => {
         if let RsArgsValue::Object(arg_type) = arg_type {
             let array_desc = get_array_desc(arg_type);
-            let struct_item_type = array_desc.struct_item_type.as_ref()
+            let FFIARRARYDESC {
+              struct_item_type,
+              array_len,
+              ..
+            } = array_desc;
+            let struct_item_type = struct_item_type.as_ref()
                 .ok_or_else(|| FFIError::Panic("Missing struct item type".to_string()))?;
 
             let is_stack_struct = get_ffi_tag(struct_item_type) == FFITypeTag::StackStruct;
 
             if is_stack_struct {
-              let (struct_size, _) = calculate_struct_size(struct_item_type);
-                let mut ptr = None;
-                let mut next_ptr = None;
+              let (struct_size, align) = calculate_struct_size(struct_item_type);
+              let mut head_ptr = None;
+              let mut current_ptr =alloc(Layout::from_size_align(struct_size * array_len, align).unwrap()) as *mut c_void;
 
-                for item in val {
-                    let struct_ptr = generate_c_struct(&env, struct_item_type, item, next_ptr)?;
-                    if ptr.is_none() {
-                        ptr = Some(struct_ptr);
+              for item in val {
+                let struct_ptr = generate_c_struct(&env, struct_item_type, item, Some(current_ptr))?;
+                    if head_ptr.is_none() {
+                      head_ptr = Some(struct_ptr);
                     }
-                    next_ptr = Some(struct_ptr.offset(struct_size as isize));
+                    current_ptr = struct_ptr.offset(struct_size as isize);
                 }
-
-                Ok(Box::into_raw(Box::new(ptr.unwrap())) as *mut c_void)
+                Ok(Box::into_raw(Box::new(head_ptr.unwrap())) as *mut c_void)
             } else {
                 let struct_ptrs: Vec<_> = val.into_iter()
                     .map(|item| generate_c_struct(&env, struct_item_type, item, None))
