@@ -102,6 +102,7 @@ export interface ArrayConstructorOptions {
   length: number;
   ffiTypeTag?: FFITypeTag;
   dynamicArray?: boolean
+  structItemType?: RecordFieldType
 }
 
 export interface FuncConstructorOptions {
