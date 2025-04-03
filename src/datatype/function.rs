@@ -34,9 +34,11 @@ pub unsafe fn get_rs_value_from_pointer(
         BasicDataType::WString => {
           RsArgsValue::WString(create_c_w_string_from_ptr(*(pointer as *mut *mut WideChar)))
         }
-        BasicDataType::External => {
-          RsArgsValue::External(env.create_external(pointer, None).unwrap())
-        }
+        BasicDataType::External => RsArgsValue::External(
+          env
+            .create_external(*(pointer as *mut *mut c_void), None)
+            .unwrap(),
+        ),
         BasicDataType::Void => RsArgsValue::Void(()),
       };
       data
