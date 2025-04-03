@@ -12,7 +12,9 @@ use crate::define::*;
 use indexmap::IndexMap;
 use libc::{c_char, c_double, c_float, c_int, c_uchar, c_void};
 
-use napi::threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode};
+use napi::threadsafe_function::{
+  ErrorStrategy, ThreadSafeCallContext, ThreadsafeFunction, ThreadsafeFunctionCallMode,
+};
 use napi::{
   bindgen_prelude::*, Env, JsBigInt, JsBoolean, JsBuffer, JsExternal, JsNumber, JsObject, JsString,
   JsUnknown, NapiRaw,
@@ -58,10 +60,6 @@ pub fn get_ffi_tag(obj: &IndexMap<String, RsArgsValue>) -> FFITypeTag {
   } else {
     FFITypeTag::Unknown
   }
-}
-
-pub fn get_array_value(obj: &mut IndexMap<String, RsArgsValue>) -> Option<RsArgsValue> {
-  obj.remove(ARRAY_VALUE_TAG)
 }
 
 pub fn get_func_desc(obj: &IndexMap<String, RsArgsValue>) -> FFIFUNCDESC {
@@ -416,6 +414,8 @@ pub unsafe fn get_value_pointer(
         use libffi::low;
         use libffi::middle::*;
         let func_args_type = func_desc.get(PARAMS_TYPE).unwrap().clone();
+        let func_args_type_for_thread_safe_function = func_args_type.clone();
+
         let func_ret_type = if func_desc.get(RET_TYPE).is_some() {
             func_desc.get(RET_TYPE).unwrap().clone()
         }  else {
@@ -423,28 +423,38 @@ pub unsafe fn get_value_pointer(
             RsArgsValue::I32(7)
         };
         let free_c_params_memory = func_desc.get(FREE_FUNCTION_TAG).unwrap().clone();
-        let tsfn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal> = (&js_function)
-          .create_threadsafe_function(0, |ctx| {
-            let value: Vec<RsArgsValue> = ctx.value;
-            let js_call_params: Vec<JsUnknown> = value
-              .into_iter()
-              .map(|rs_args| rs_value_to_js_unknown(&ctx.env, rs_args))
-              .collect::<Result<Vec<JsUnknown>, _>>()?;
-            Ok(js_call_params)
+        let tsfn: ThreadsafeFunction<Vec<*mut c_void>, ErrorStrategy::Fatal> = (&js_function)
+          .create_threadsafe_function(0, move |ctx: ThreadSafeCallContext<Vec<*mut c_void>>| {
+            if let RsArgsValue::Object(func_args_type_rs) = &func_args_type_for_thread_safe_function {
+              ctx.value
+                .into_iter()
+                .enumerate()
+                .map(|(index, c_param)| {
+                  let arg_type = func_args_type_rs.get(&index.to_string()).unwrap();
+                  let param = get_rs_value_from_pointer(&ctx.env, arg_type, c_param, true);
+                  let js_unknown = rs_value_to_js_unknown(&ctx.env, param);
+                  if free_c_params_memory == RsArgsValue::Boolean(true) {
+                    free_c_pointer_memory(c_param, arg_type, false);
+                  }
+                  Ok(js_unknown)
+                })
+                .collect()
+            } else {
+              Ok(vec![])
+            }
           })?;
 
 
-        unsafe extern "C" fn lambda_callback<F: Fn(Vec<*mut c_void>)>(
+        unsafe extern "C" fn lambda_callback<F: Fn((Vec<*mut c_void>, *mut c_void))>(
           _cif: &low::ffi_cif,
           result: &mut c_void,
           args: *const *const c_void,
           userdata: &F,
         ) {
-          let mut params: Vec<*mut c_void> = (0.._cif.nargs)
+          let params: Vec<*mut c_void> = (0.._cif.nargs)
             .map(|index| *args.offset(index as isize) as *mut c_void)
             .collect();
-          params.push(result);
-          userdata(params);
+          userdata((params, result));
         }
 
         let tsfn_call_context = TsFnCallContext {
@@ -463,35 +473,20 @@ pub unsafe fn get_value_pointer(
             func_ret_type.to_ffi_type(),
           );
           let main_thread_id = std::thread::current().id();
+          let env_clone = env.clone();
 
-          let lambda = move |mut args: Vec<*mut c_void>| {
-            let result = args.split_off(args.len()-1)[0];
-            let value: Vec<RsArgsValue> = args
-              .into_iter()
-              .enumerate()
-              .map(|(index, c_param)| {
-                let arg_type = func_args_type_rs.get(&index.to_string()).unwrap();
-                let param = get_rs_value_from_pointer(env, arg_type, c_param, true);
-                if let RsArgsValue::Boolean(value) = free_c_params_memory {
-                  if value {
-                    free_c_pointer_memory(c_param, arg_type, false);
-                  }
-                }
-                param
-              })
-              .collect();
-
+          let lambda = move |args: (Vec<*mut c_void>, *mut c_void)| {
+            let (params, result) = args;
             let func_ret_type_rc = Rc::new(vec![func_ret_type.clone()]);
-            let env_clone = env.clone();
             if std::thread::current().id() != main_thread_id  && func_ret_type != RsArgsValue::I32(7)  {
               let (se, re) = std::sync::mpsc::channel();
               (*tsfn_call_context_ptr).tsfn.call_with_return_value(
-                value,
+                params,
                 ThreadsafeFunctionCallMode::Blocking,
-                move |js_ret: JsUnknown| {
-                    let js_ret_rs = get_arg_values(Rc::clone(&func_ret_type_rc), vec![js_ret]).unwrap();
-                    let js_ret_rs_ptr = get_value_pointer(&env_clone,Rc::clone(&func_ret_type_rc), js_ret_rs).unwrap()[0];
-                    write_rs_ptr_to_c(&Rc::clone(&func_ret_type_rc)[0], js_ret_rs_ptr, result);
+                move |js_return_value: JsUnknown| {
+                    let js_return_value_rs = get_arg_values(Rc::clone(&func_ret_type_rc), vec![js_return_value]).unwrap();
+                    let js_return_value_rs_ptr = get_value_pointer(&env_clone,Rc::clone(&func_ret_type_rc), js_return_value_rs).unwrap()[0];
+                    write_rs_ptr_to_c(&Rc::clone(&func_ret_type_rc)[0], js_return_value_rs_ptr, result);
                     se.send(()).unwrap();
                     Ok(())
                 },
@@ -504,7 +499,7 @@ pub unsafe fn get_value_pointer(
                         "warning: Without runInNewThread: true will call js function in main thread will not get the return value in c environment"
                     );
                 }
-                (*tsfn_call_context_ptr).tsfn.call(value, ThreadsafeFunctionCallMode::Blocking);
+                (*tsfn_call_context_ptr).tsfn.call(params, ThreadsafeFunctionCallMode::Blocking);
             }
           };
           (cif, lambda)

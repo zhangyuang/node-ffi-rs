@@ -1,8 +1,7 @@
 use super::string::{string_to_c_string, string_to_c_w_string};
 use crate::define::*;
 use crate::utils::{
-  calculate_struct_size, get_array_desc, get_array_value, get_ffi_tag, get_js_external_wrap_data,
-  get_size_align,
+  calculate_struct_size, get_array_desc, get_ffi_tag, get_js_external_wrap_data, get_size_align,
 };
 use crate::RefDataType;
 use indexmap::IndexMap;
@@ -12,6 +11,10 @@ use std::ffi::{
   c_char, c_double, c_float, c_int, c_longlong, c_short, c_uchar, c_ulonglong, c_void,
 };
 use widestring::WideChar;
+
+pub fn get_array_value(obj: &mut IndexMap<String, RsArgsValue>) -> Option<RsArgsValue> {
+  obj.shift_remove(ARRAY_VALUE_TAG)
+}
 
 pub unsafe fn generate_c_struct(
   env: &Env,
