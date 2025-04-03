@@ -1,3 +1,13 @@
+## [1.2.10](https://github.com/zhangyuang/node-ffi-rs/compare/v1.2.9...v1.2.10) (2025-04-03)
+
+
+### Bug Fixes
+
+* restore pointer params in function call params ([39803a8](https://github.com/zhangyuang/node-ffi-rs/commit/39803a872d85ca4c4b1264c4620eccea29530148))
+* use ctx.env to restore function params in another thread ([a204e4b](https://github.com/zhangyuang/node-ffi-rs/commit/a204e4b92b3170ddcaa2cc011d2ffadcd0f522b7))
+
+
+
 ## [1.2.9](https://github.com/zhangyuang/node-ffi-rs/compare/v1.2.6...v1.2.9) (2025-03-18)
 
 
