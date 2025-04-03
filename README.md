@@ -385,167 +385,136 @@ deepStrictEqual(stringArr, load({
 
 ### Pointer
 
-In `ffi-rs` , we use [DataType. External](https://nodejs.org/api/n-api.html#napi_create_external) for wrapping the `pointer` which enables it to be passed between `Node.js` and `C` .
+These functions are used to handle pointer types in `ffi-rs` . We use `DataType.External` to pass pointers between `Node.js` and `C` .
 
-`Pointer` is complicated and underlying, `ffi-rs` provides four functions to handle this pointer including `createPointer` , `restorePointer` , `unwrapPointer` , `wrapPointer` , `freePointer` , `isNullPointer` for different scenes.
+#### Create Pointer
 
-```cpp
-extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
-  std::string result = std::string(str1) + std::string(str2);
-  char *cstr = new char[result.length() + 1];
-  strcpy(cstr, result.c_str());
-  return cstr;
-}
-
-extern "C" char *getStringFromPtr(void *ptr) { return (char *)ptr; };
-```
+Use `createPointer` to create a pointer for specific type in the code as follows:
 
 ```js
-// get pointer
-const ptr = load({
-    library: "libsum",
-    funcName: "concatenateStrings",
-    retType: DataType.External,
-    paramsType: [DataType.String, DataType.String],
-    paramsValue: [c, d],
-})
+extern "C"
+void receiveNumPointer(const int * num)
 
-// send pointer
-const string = load({
-    library: "libsum",
-    funcName: "getStringFromPtr",
-    retType: DataType.String,
-    paramsType: [DataType.External],
-    paramsValue: [ptr],
-})
-```
-
-#### createPointer
-
-`createPointer` function is used for creating a pointer pointing to a specified type. In order to avoid mistakes, developers have to understand what type this pointer is.
-
-For numeric types like `i32|u8|i64|f64` , createPointer will create a pointer like `*mut i32` pointing to these numbers.
-
-For types that are originally pointer types like `char *` representing `string` type in `C` , createPointer will create a dual pointer like `*mut *mut c_char` pointing to `*mut c_char` . Developers can use `unwrapPointer` to get the internal pointer `*mut c_char` .
-
-```js
-let bigDoubleArr = new Array(5).fill(1.1);
-deepStrictEqual(
-    bigDoubleArr,
-    load({
-        library: "libsum",
-        funcName: "createArrayDouble",
-        retType: arrayConstructor({
-            type: DataType.DoubleArray,
-            length: bigDoubleArr.length,
-        }),
-        paramsType: [DataType.DoubleArray, DataType.I32],
-        paramsValue: [bigDoubleArr, bigDoubleArr.length],
-    }),
-);
-```
-
-For the code above, we can use `createPointer` function to wrap a pointer data and send it as paramsValue
-
-```js
-const ptrArr: unknown[] = createPointer({
-    paramsType: [DataType.DoubleArray],
-    paramsValue: [
-        [1.1, 2.2]
-    ]
+const pointer: JsExternal[] = createPointer({
+    paramsType: [DataType.I32],
+    paramsValue: [100],
 })
 
 load({
     library: "libsum",
-    funcName: "createArrayDouble",
-    retType: arrayConstructor({
-        type: DataType.DoubleArray,
-        length: bigDoubleArr.length,
-    }),
-    paramsType: [DataType.External, DataType.I32],
-    paramsValue: [unwrapPointer(ptrArr)[0], bigDoubleArr.length],
+    funcName: "receiveNumPointer",
+    paramsType: [DataType.External],
+    paramsValue: pointer,
+    retType: DataType.Void,
 })
-```
-
-The two pieces of code above are equivalent
-
-#### restorePointer
-
-Similarly, you can use `restorePointer` to restore data from a `pointer` which is wrapped by `createPointer` or as a return value of a foreign function
-
-```js
-const pointerArr = createPointer({
-    paramsType: [DataType.DoubleArray],
-    paramsValue: [
-        [1.1, 2.2]
-    ]
-})
-const restoreData = restorePointer({
-    retType: [arrayConstructor({
-        type: DataType.DoubleArray,
-        length: 2
-    })],
-    paramsValue: pointerArr
-})
-deepStrictEqual(restoreData, [
-    [1.1, 2.2]
-])
-```
-
-#### freePointer
-
-`freePointer` is used to free memory which is not freed automatically.
-
-By default, `ffi-rs` will free data memory for ffi call args and return result to prevent memory leaks. Except in the following cases:
-
-* set `freeResultMemory: false` when calling `load` method
-
-If you set freeResultMemory to false, `ffi-rs` will not release the return result memory which was allocated in the C environment
-
-* Use `DataType.External` as paramsType or retType
-
-If developers use `DataType.External` as paramsType or retType, please use `freePointer` to release the memory of the pointer. ref [test.ts](./test.ts#170)
-
-#### wrapPointer
-
-`wrapPointer` is used to create multiple pointers.
-
-For example, developers can use `wrapPointer` to create a pointer pointing to other existing pointers.
-
-```js
-const {
-    wrapPointer
-} = require('ffi-rs')
-// ptr type is *mut c_char
-const ptr = load({
-    library: "libsum",
-    funcName: "concatenateStrings",
-    retType: DataType.External,
-    paramsType: [DataType.String, DataType.String],
-    paramsValue: [c, d],
-})
-
-// wrapPtr type is *mut *mut c_char
-const wrapPtr = wrapPointer([ptr])[0]
 ```
 
 #### unwrapPointer
 
-`unwrapPointer` is opposite to `wrapPointer` which is used to get the internal pointer for multiple pointers
+Use `createPointer` to create a data type which store in heap will receive a double pointer means a pointer to a pointer.
+So we need to use `unwrapPointer` to get the inner pointer when call foreign function.
 
 ```js
-const {
-    unwrapPointer,
-    createPointer
-} = require('ffi-rs')
-// ptr type is *mut *mut c_char
-let ptr = createPointer({
+extern "C"
+void receiveStringPointer(const char * str)
+
+// because of string is a pointer, so the pointer is a double pointer means a pointer to a string pointer
+// use the rust type expression pointer type is *mut *const char
+const pointer: JsExternal[] = createPointer({
     paramsType: [DataType.String],
-    paramsValue: ["foo"]
+    paramsValue: ["hello"],
 })
 
-// unwrapPtr type is *mut c_char
-const unwrapPtr = unwrapPointer([ptr])[0]
+load({
+    library: "libsum",
+    funcName: "receiveStringPointer",
+    paramsType: [DataType.External],
+    paramsValue: unwrapPointer(pointer), // use the unwrapPointer to get the inner *mut *const char pointer, which points to a *const char value
+    retType: DataType.Void,
+})
+```
+
+#### restorePointer
+
+If you want to restore the pointer to the original value, you can use the `restorePointer` function. Corresponds to `createPointer` ,
+it can receive the result of `createPointer` and return the original pointer directly without `wrapPointer` or `unwrapPointer` .
+
+```js
+const pointer: JsExternal[] = createPointer({
+    paramsType: [DataType.String],
+    paramsValue: ["hello"],
+})
+const str = restorePointer({
+    retType: [DataType.String],
+    paramsValue: pointer,
+})
+equal(str, "hello")
+```
+
+#### wrapPointer
+
+Use `wrapPointer` when you want to restore the foreign function return value.
+
+```js
+extern "C" const char * returnStringPointer() {
+    char * str = new char[6];
+    strcpy(str, "hello");
+    return str;
+}
+// the stringPointer type is *const char, we need to convert it to *mut *const char before call restorePointer
+const stringPointer = load({
+    library: "libsum",
+    funcName: "returnStringPointer",
+    retType: DataType.External,
+    paramsType: [DataType.String],
+    paramsValue: ["hello"],
+})
+
+const wrapStringPointer = wrapPointer([stringPointer])
+
+const str = restorePointer({
+    retType: [DataType.String],
+    paramsValue: wrapStringPointer,
+})
+equal(str, "hello")
+```
+
+#### freePointer
+
+Use `freePointer` to free the pointer when it is no longer in use.
+
+```js
+const i32Ptr = createPointer({
+    paramsType: [DataType.I32],
+    paramsValue: [100]
+})
+const i32Data = restorePointer({
+    paramsValue: i32Ptr
+    retType: [DataType.I32],
+})
+freePointer({
+    paramsType: [DataType.I32],
+    paramsValue: i32Ptr,
+    pointerType: PointerType.RsPointer
+})
+
+extern "C" const char * returnStringPointer() {
+    char * str = new char[6];
+    strcpy(str, "hello");
+    return str;
+}
+const stringPointer = load({
+    library: "libsum",
+    funcName: "returnStringPointer",
+    retType: DataType.External,
+    paramsType: [DataType.String],
+    paramsValue: ["hello"],
+})
+freePointer({
+    paramsType: [DataType.External],
+    paramsValue: [stringPointer],
+    pointerType: PointerType.CPointer // will use libc::free to free the memory
+})
 ```
 
 ### Struct
@@ -568,7 +537,7 @@ If you use an array as a function parameter, this usually passes an array pointe
 
 So, `ffi-rs` needs to distinguish between the two types.
 
-By default, `ffi-rs` uses pointer arrays to calculate struct. If you confirm there should be a static array, you can define it in this way:
+By default, `ffi-rs` uses dynamic arrays to calculate struct. If you confirm there is a static array, you can define it in this way:
 
 ```c
 typedef struct Person {
