@@ -395,6 +395,7 @@ Use `createPointer` to create a pointer for specific type in the code as follows
 extern "C"
 void receiveNumPointer(const int * num)
 
+// use the rust type expression the pointer type is *const i32
 const pointer: JsExternal[] = createPointer({
     paramsType: [DataType.I32],
     paramsValue: [100],
