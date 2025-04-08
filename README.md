@@ -10,17 +10,20 @@ A module written in Rust and N-API provides interface (FFI) features for Node.js
 <a href="https://github.com/zhangyuang/node-ffi-rs/actions" target="_blank"><img src="https://github.com/zhangyuang/ssr/workflows/CI/badge.svg" alt="githubActions" /></a>
 <a href="https://www.npmjs.com/package/ffi-rs" target="_blank"><img src="https://img.shields.io/npm/dm/ffi-rs">
 </a>
+<a href="https://www.npmjs.com/package/ffi-rs" target="_blank"><img src="https://img.shields.io/npm/unpacked-size/@yuuang/ffi-rs-linux-x64-gnu">
+</a>
 </div>
 
 ## Description
 
-[ffi-rs](https://github.com/zhangyuang/node-ffi-rs) is a high-performance module written in Rust and N-API that provides FFI (Foreign Function Interface) features for Node.js. It allows developers to call functions written in other languages such as C++, C, and Rust directly from JavaScript without writing any C++ code.
+[ffi-rs](https://github.com/zhangyuang/node-ffi-rs) is a high-performance module with small binary size written in Rust and N-API that provides FFI (Foreign Function Interface) features for Node.js. It allows developers to call functions written in other languages such as C++, C, and Rust directly from JavaScript without writing any C++ code.
 
 This module aims to provide similar functionality to the node-ffi module but with a completely rewritten underlying codebase. The node-ffi module has been unmaintained for several years and is no longer usable, so ffi-rs was developed to fill that void.
 
 ## Features
 
 * High performance ✨
+* Small binary size
 * Better type hints 🧐
 * Simpler data description and API interface 💗
 * Support more different data types between `Node.js` and `C` 😊
@@ -437,7 +440,7 @@ load({
 
 #### restorePointer
 
-If you want to restore the pointer to the original value, you can use the `restorePointer` function. Corresponds to `createPointer` ,
+If you want to restore the pointer to the original value, you can use the `restorePointer` function. Corresponds to `createPointer` , 
 it can receive the result of `createPointer` and return the original pointer directly without `wrapPointer` or `unwrapPointer` .
 
 ```js
@@ -457,7 +460,8 @@ equal(str, "hello")
 Use `wrapPointer` when you want to restore the foreign function return value.
 
 ```js
-extern "C" const char * returnStringPointer() {
+extern "C"
+const char * returnStringPointer() {
     char * str = new char[6];
     strcpy(str, "hello");
     return str;
@@ -499,7 +503,8 @@ freePointer({
     pointerType: PointerType.RsPointer
 })
 
-extern "C" const char * returnStringPointer() {
+extern "C"
+const char * returnStringPointer() {
     char * str = new char[6];
     strcpy(str, "hello");
     return str;
