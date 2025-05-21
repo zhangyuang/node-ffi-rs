@@ -20,6 +20,10 @@ A module written in Rust and N-API provides interface (FFI) features for Node.js
 
 This module aims to provide similar functionality to the node-ffi module but with a completely rewritten underlying codebase. The node-ffi module has been unmaintained for several years and is no longer usable, so ffi-rs was developed to fill that void.
 
+## DeepWiki
+
+Reading DeepWiki in [reference](https://deepwiki.com/zhangyuang/node-ffi-rs/2-api-reference)
+
 ## Features
 
 * High performance ✨
