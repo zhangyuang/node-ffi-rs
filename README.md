@@ -20,10 +20,6 @@ A module written in Rust and N-API provides interface (FFI) features for Node.js
 
 This module aims to provide similar functionality to the node-ffi module but with a completely rewritten underlying codebase. The node-ffi module has been unmaintained for several years and is no longer usable, so ffi-rs was developed to fill that void.
 
-## DeepWiki
-
-Reading DeepWiki in [reference](https://deepwiki.com/zhangyuang/node-ffi-rs/2-api-reference)
-
 ## Features
 
 * High performance ✨
@@ -444,7 +440,7 @@ load({
 
 #### restorePointer
 
-If you want to restore the pointer to the original value, you can use the `restorePointer` function. Corresponds to `createPointer` , 
+If you want to restore the pointer to the original value, you can use the `restorePointer` function. Corresponds to `createPointer` ,
 it can receive the result of `createPointer` and return the original pointer directly without `wrapPointer` or `unwrapPointer` .
 
 ```js
@@ -464,8 +460,7 @@ equal(str, "hello")
 Use `wrapPointer` when you want to restore the foreign function return value.
 
 ```js
-extern "C"
-const char * returnStringPointer() {
+extern "C" const char * returnStringPointer() {
     char * str = new char[6];
     strcpy(str, "hello");
     return str;
@@ -507,8 +502,7 @@ freePointer({
     pointerType: PointerType.RsPointer
 })
 
-extern "C"
-const char * returnStringPointer() {
+extern "C" const char * returnStringPointer() {
     char * str = new char[6];
     strcpy(str, "hello");
     return str;
