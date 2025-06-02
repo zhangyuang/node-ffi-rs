@@ -1,3 +1,12 @@
+## [1.2.11](https://github.com/zhangyuang/node-ffi-rs/compare/v1.2.10...v1.2.11) (2025-06-02)
+
+
+### Bug Fixes
+
+* stack struct ([d90b4fc](https://github.com/zhangyuang/node-ffi-rs/commit/d90b4fcb48c7e1d9592463153caa765fb70f4008))
+
+
+
 ## [1.2.10](https://github.com/zhangyuang/node-ffi-rs/compare/v1.2.9...v1.2.10) (2025-04-03)
 
 
