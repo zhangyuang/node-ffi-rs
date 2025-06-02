@@ -5,5 +5,15 @@
   "[typescript]": {
     "editor.formatOnSave": true,
   },
-  "files.trimTrailingWhitespace": true
+  "files.trimTrailingWhitespace": true,
+  "files.associations": {
+    "*.vue": "vue",
+    "*.wpy": "vue",
+    "*.html": "html",
+    "*.wxml": "html",
+    "*.cjson": "jsonc",
+    "*.wxss": "css",
+    "*.wxs": "javascript",
+    "*.inc": "cpp"
+  }
 }

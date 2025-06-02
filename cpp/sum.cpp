@@ -274,6 +274,20 @@ extern "C" MINUTIAE *printAndReturnMinutiae(MINUTIAE *minutiae)
   return result;
 }
 
+typedef struct {
+    int a;
+    int b;
+    int c;
+    int d;
+
+} testStruct;
+
+
+
+ extern "C" int testFunc(testStruct setting)
+{
+    return 0;
+}
 // typedef void (*CallbackType)(const char *);
 // extern "C" void call_callback_async() {
 //   dispatch_async(dispatch_get_main_queue(), ^{

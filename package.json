@@ -44,7 +44,6 @@
     "benny": "^3.7.1",
     "conventional-changelog-cli": "^4.1.0",
     "esno": "^4.7.0",
-    "ffi-napi": "^4.0.3",
     "koa": "^2.14.2",
     "shelljs": "^0.8.5",
     "typescript": "^5.4.5"

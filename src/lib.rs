@@ -7,6 +7,7 @@ mod utils;
 use datatype::pointer::{free_c_pointer_memory, free_rs_pointer_memory};
 use define::*;
 use dlopen::symbor::{Library, Symbol};
+use libffi_sys::ffi_type;
 use libffi_sys::{ffi_abi_FFI_DEFAULT_ABI, ffi_call, ffi_cif, ffi_prep_cif};
 use napi::{Env, JsExternal, JsUnknown, Result};
 use std::collections::HashMap;
@@ -216,31 +217,20 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
       .map(|param| type_define_to_rs_args(&env, param).unwrap())
       .collect(),
   );
-  let arg_types = params_type_rs
+  let mut arg_types: Vec<*mut ffi_type> = params_type_rs
     .iter()
-    .map(|arg| {
-      let mut ffi_type_cleanup = FFITypeCleanup::new();
-      get_ffi_type(arg, &mut ffi_type_cleanup)
-    })
+    .map(|arg| Box::into_raw(get_ffi_type(arg)))
     .collect();
   let arg_values = get_arg_values(Rc::clone(&params_type_rs), params_value)?;
   let mut arg_values_c_void = get_value_pointer(&env, Rc::clone(&params_type_rs), arg_values)?;
   let ret_type_rs = type_define_to_rs_args(&env, ret_type)?;
-  let mut ffi_type_cleanup = FFITypeCleanup::new();
-
-  let r_type = get_ffi_type(&ret_type_rs, &mut ffi_type_cleanup);
-  ffi_type_cleanup.r_type = Some(r_type);
-  ffi_type_cleanup.arg_types = arg_types;
-
-  let FFITypeCleanup {
-    ref mut arg_types, ..
-  } = &mut ffi_type_cleanup;
+  let mut r_type = get_ffi_type(&ret_type_rs);
 
   let mut cif = ffi_cif {
     abi: ffi_abi_FFI_DEFAULT_ABI,
     nargs: params_type_len as u32,
     arg_types: arg_types.as_mut_ptr(),
-    rtype: r_type,
+    rtype: &mut *r_type,
     bytes: 0,
     flags: 0,
     #[cfg(all(target_arch = "aarch64", target_os = "windows"))]
@@ -261,7 +251,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     &mut cif,
     ffi_abi_FFI_DEFAULT_ABI,
     params_type_len as u32,
-    r_type,
+    &mut *r_type,
     arg_types.as_mut_ptr(),
   );
   if run_in_new_thread == Some(true) {
@@ -329,9 +319,9 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
       ret_type_rs,
       fn_pointer: func,
       errno,
+      arg_types,
       free_result_memory,
       params_type_rs,
-      ffi_type_cleanup,
     });
     let async_work_promise = env.spawn(task)?;
     Ok(async_work_promise.promise_object().into_unknown())

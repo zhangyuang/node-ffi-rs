@@ -352,9 +352,9 @@ pub struct FFICALLPARAMS {
   pub arg_values_c_void: Vec<*mut c_void>,
   pub ret_type_rs: RsArgsValue,
   pub errno: Option<bool>,
+  pub arg_types: Vec<*mut ffi_type>,
   pub free_result_memory: bool,
   pub params_type_rs: Rc<Vec<RsArgsValue>>,
-  pub ffi_type_cleanup: FFITypeCleanup,
 }
 pub struct BarePointerWrap(pub *mut c_void);
 unsafe impl Send for FFICALL {}
@@ -399,35 +399,6 @@ pub struct StorePointerParams {
 pub struct OpenParams {
   pub library: String,
   pub path: String,
-}
-
-pub struct FFITypeCleanup {
-  pub struct_type_box: Option<*mut ffi_type>,
-  pub elements_box: Option<*mut Vec<*mut ffi_type>>,
-  pub r_type: Option<*mut ffi_type>,
-  pub arg_types: Vec<*mut ffi_type>,
-}
-impl FFITypeCleanup {
-  pub fn new() -> Self {
-    Self {
-      struct_type_box: None,
-      elements_box: None,
-      r_type: None,
-      arg_types: vec![],
-    }
-  }
-}
-impl Drop for FFITypeCleanup {
-  fn drop(&mut self) {
-    unsafe {
-      if let Some(struct_type_box) = self.struct_type_box.take() {
-        let _ = Box::from_raw(struct_type_box);
-      }
-      if let Some(elements_box) = self.elements_box.take() {
-        let _ = Box::from_raw(elements_box);
-      }
-    }
-  }
 }
 
 pub const ARRAY_LENGTH_TAG: &str = "length";

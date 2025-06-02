@@ -400,7 +400,7 @@ pub unsafe fn get_value_pointer(
           let is_stack_struct = get_ffi_tag(arg_type_rs) == FFITypeTag::StackStruct;
           Ok(
             if is_stack_struct {
-              generate_c_struct(&env, &arg_type_rs, val, None)?
+            generate_c_struct(&env, &arg_type_rs, val, None)?
             }  else {
               Box::into_raw(Box::new(generate_c_struct(&env, &arg_type_rs, val, None)?))
               as *mut c_void
