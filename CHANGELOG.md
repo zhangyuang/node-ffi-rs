@@ -1,3 +1,12 @@
+## [1.2.12](https://github.com/zhangyuang/node-ffi-rs/compare/v1.2.11...v1.2.12) (2025-06-04)
+
+
+### Features
+
+* support pass stackStruct in function call ([0156b32](https://github.com/zhangyuang/node-ffi-rs/commit/0156b323aa5da8566a2221c1e19b72b2895bee39))
+
+
+
 ## [1.2.11](https://github.com/zhangyuang/node-ffi-rs/compare/v1.2.10...v1.2.11) (2025-06-02)
 
 
