@@ -118,4 +118,22 @@ export const testObject = () => {
     nNumber: 3,
     item: structArray,
   })
+  const testStruct = {
+    a: 1,
+    b: 2,
+    c: 3,
+    d: 4,
+  }
+  const testStackStruct = load({
+    library: "libsum",
+    funcName: "testFunc",
+    retType: DataType.I32,
+    paramsType: [{
+      a: DataType.I32, b: DataType.I32,
+      c: DataType.I32, d: DataType.I32,
+      ffiTypeTag: DataType.StackStruct
+    }],
+    paramsValue: [testStruct],
+  })
+  deepStrictEqual(testStackStruct, 0)
 }

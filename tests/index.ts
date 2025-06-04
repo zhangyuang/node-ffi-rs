@@ -14,6 +14,7 @@ import {
   define,
   PointerType,
   isNullPointer,
+  FFITypeTag
 } from "../index"
 import { logGreen } from "./utils"
 import { testObject } from "./struct"
