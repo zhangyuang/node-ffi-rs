@@ -1,3 +1,4 @@
+use super::utils::get_ffi_tag;
 use indexmap::IndexMap;
 use libc::c_void;
 use libffi::middle::Closure;
@@ -207,7 +208,20 @@ impl RsArgsTrait for RsArgsValue {
           BasicDataType::I16 => Type::i16(),
         }
       }
-      RsArgsValue::Object(_) => Type::pointer(),
+      RsArgsValue::Object(obj_type) => {
+        let is_stack_struct = get_ffi_tag(&obj_type) == FFITypeTag::StackStruct;
+        if is_stack_struct {
+          Type::structure(
+            obj_type
+              .iter()
+              .filter(|(k, _)| k.as_str() != FFI_TAG_FIELD)
+              .map(|(_, v)| v.to_ffi_type())
+              .collect::<Vec<Type>>(),
+          )
+        } else {
+          Type::pointer()
+        }
+      }
       _ => panic!("parse function params type err {:?}", self),
     }
   }

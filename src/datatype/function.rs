@@ -82,9 +82,15 @@ pub unsafe fn get_rs_value_from_pointer(
         }
       } else {
         // function | raw object
+        let is_stack_struct = get_ffi_tag(obj) == FFITypeTag::StackStruct;
+
         RsArgsValue::Object(create_rs_struct_from_pointer(
           env,
-          *(pointer as *mut *mut c_void),
+          if is_stack_struct {
+            pointer
+          } else {
+            *(pointer as *mut *mut c_void)
+          },
           obj,
           true,
         ))

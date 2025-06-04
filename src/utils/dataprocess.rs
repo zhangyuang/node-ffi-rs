@@ -478,7 +478,7 @@ pub unsafe fn get_value_pointer(
           let lambda = move |args: (Vec<*mut c_void>, *mut c_void)| {
             let (params, result) = args;
             let func_ret_type_rc = Rc::new(vec![func_ret_type.clone()]);
-            if std::thread::current().id() != main_thread_id  && func_ret_type != RsArgsValue::I32(7)  {
+            if std::thread::current().id() != main_thread_id && func_ret_type != RsArgsValue::I32(7)  {
               let (se, re) = std::sync::mpsc::channel();
               (*tsfn_call_context_ptr).tsfn.call_with_return_value(
                 params,
