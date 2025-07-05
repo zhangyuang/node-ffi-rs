@@ -353,59 +353,63 @@ pub unsafe fn get_value_pointer(
       }
       RsArgsValue::StructArray(val) => {
         if let RsArgsValue::Object(arg_type) = arg_type {
-            let array_desc = get_array_desc(arg_type);
-            let FFIARRARYDESC {
-              struct_item_type,
-              array_len,
-              ..
-            } = array_desc;
-            let struct_item_type = struct_item_type.as_ref()
-                .ok_or_else(|| FFIError::Panic("Missing struct item type".to_string()))?;
+          let array_desc = get_array_desc(arg_type);
+          let FFIARRARYDESC {
+            struct_item_type,
+            array_len,
+            ..
+          } = array_desc;
+          let struct_item_type = struct_item_type
+            .as_ref()
+            .ok_or_else(|| FFIError::Panic("Missing struct item type".to_string()))?;
 
-            let is_stack_struct = get_ffi_tag(struct_item_type) == FFITypeTag::StackStruct;
+          let is_stack_struct = get_ffi_tag(struct_item_type) == FFITypeTag::StackStruct;
 
-            if is_stack_struct {
-              let (struct_size, align) = calculate_struct_size(struct_item_type);
-              let mut head_ptr = None;
-              let mut current_ptr =alloc(Layout::from_size_align(struct_size * array_len, align).unwrap()) as *mut c_void;
+          if is_stack_struct {
+            let (struct_size, align) = calculate_struct_size(struct_item_type);
+            let mut head_ptr = None;
+            let mut current_ptr =
+              alloc(Layout::from_size_align(struct_size * array_len, align).unwrap())
+                as *mut c_void;
 
-              for item in val {
-                let struct_ptr = generate_c_struct(&env, struct_item_type, item, Some(current_ptr))?;
-                    if head_ptr.is_none() {
-                      head_ptr = Some(struct_ptr);
-                    }
-                    current_ptr = struct_ptr.offset(struct_size as isize);
-                }
-                Ok(Box::into_raw(Box::new(head_ptr.unwrap())) as *mut c_void)
-            } else {
-                let struct_ptrs: Vec<_> = val.into_iter()
-                    .map(|item| generate_c_struct(&env, struct_item_type, item, None))
-                    .collect::<Result<Vec<_>>>()?;
-                let ptr = struct_ptrs.as_ptr();
-                std::mem::forget(struct_ptrs);
-
-                Ok(Box::into_raw(Box::new(ptr as *mut c_void)) as *mut c_void)
+            for item in val {
+              let struct_ptr = generate_c_struct(&env, struct_item_type, item, Some(current_ptr))?;
+              if head_ptr.is_none() {
+                head_ptr = Some(struct_ptr);
+              }
+              current_ptr = struct_ptr.offset(struct_size as isize);
             }
-      } else {
-       Err(FFIError::Panic(format!("uncorrect params type {:?}", arg_type)).into())
-      }
+            Ok(Box::into_raw(Box::new(head_ptr.unwrap())) as *mut c_void)
+          } else {
+            let struct_ptrs: Vec<_> = val
+              .into_iter()
+              .map(|item| generate_c_struct(&env, struct_item_type, item, None))
+              .collect::<Result<Vec<_>>>()?;
+            let ptr = struct_ptrs.as_ptr();
+            std::mem::forget(struct_ptrs);
+
+            Ok(Box::into_raw(Box::new(ptr as *mut c_void)) as *mut c_void)
+          }
+        } else {
+          Err(FFIError::Panic(format!("uncorrect params type {:?}", arg_type)).into())
+        }
       }
       RsArgsValue::Boolean(val) => {
         let c_bool = Box::new(val);
         Ok(Box::into_raw(c_bool) as *mut c_void)
       }
-      RsArgsValue::Void(_) => Ok(Box::into_raw(Box::new(std::ptr::null_mut() as *mut c_void)) as *mut c_void),
+      RsArgsValue::Void(_) => {
+        Ok(Box::into_raw(Box::new(std::ptr::null_mut() as *mut c_void)) as *mut c_void)
+      }
       RsArgsValue::Object(val) => {
         if let RsArgsValue::Object(arg_type_rs) = arg_type {
           let is_stack_struct = get_ffi_tag(arg_type_rs) == FFITypeTag::StackStruct;
-          Ok(
-            if is_stack_struct {
+          Ok(if is_stack_struct {
             generate_c_struct(&env, &arg_type_rs, val, None)?
-            }  else {
-              Box::into_raw(Box::new(generate_c_struct(&env, &arg_type_rs, val, None)?))
+          } else {
+            Box::into_raw(Box::new(generate_c_struct(&env, &arg_type_rs, val, None)?))
               as *mut c_void
-            }
-          )
+          })
         } else {
           Err(FFIError::Panic(format!("uncorrect params type {:?}", arg_type)).into())
         }
@@ -414,36 +418,22 @@ pub unsafe fn get_value_pointer(
         use libffi::low;
         use libffi::middle::*;
         let func_args_type = func_desc.get(PARAMS_TYPE).unwrap().clone();
-        let func_args_type_for_thread_safe_function = func_args_type.clone();
 
         let func_ret_type = if func_desc.get(RET_TYPE).is_some() {
-            func_desc.get(RET_TYPE).unwrap().clone()
-        }  else {
-          // void type
-            RsArgsValue::I32(7)
+          func_desc.get(RET_TYPE).unwrap().clone()
+        } else {
+          RsArgsValue::I32(DataType::Void as i32)
         };
         let free_c_params_memory = func_desc.get(FREE_FUNCTION_TAG).unwrap().clone();
-        let tsfn: ThreadsafeFunction<Vec<*mut c_void>, ErrorStrategy::Fatal> = (&js_function)
-          .create_threadsafe_function(0, move |ctx: ThreadSafeCallContext<Vec<*mut c_void>>| {
-            if let RsArgsValue::Object(func_args_type_rs) = &func_args_type_for_thread_safe_function {
-              ctx.value
-                .into_iter()
-                .enumerate()
-                .map(|(index, c_param)| {
-                  let arg_type = func_args_type_rs.get(&index.to_string()).unwrap();
-                  let param = get_rs_value_from_pointer(&ctx.env, arg_type, c_param, true);
-                  let js_unknown = rs_value_to_js_unknown(&ctx.env, param);
-                  if free_c_params_memory == RsArgsValue::Boolean(true) {
-                    free_c_pointer_memory(c_param, arg_type, false);
-                  }
-                  Ok(js_unknown)
-                })
-                .collect()
-            } else {
-              Ok(vec![])
-            }
+        let tsfn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal> = (&js_function)
+          .create_threadsafe_function(0, move |ctx: ThreadSafeCallContext<Vec<RsArgsValue>>| {
+            let js_call_params: Vec<JsUnknown> = ctx
+              .value
+              .into_iter()
+              .map(|rs_args| rs_value_to_js_unknown(&ctx.env, rs_args))
+              .collect::<Result<Vec<JsUnknown>, _>>()?;
+            Ok(js_call_params)
           })?;
-
 
         unsafe extern "C" fn lambda_callback<F: Fn((Vec<*mut c_void>, *mut c_void))>(
           _cif: &low::ffi_cif,
@@ -454,14 +444,16 @@ pub unsafe fn get_value_pointer(
           let params: Vec<*mut c_void> = (0.._cif.nargs)
             .map(|index| *args.offset(index as isize) as *mut c_void)
             .collect();
+
           userdata((params, result));
         }
 
         let tsfn_call_context = TsFnCallContext {
-            tsfn,
-            lambda: None,
-            closure: None
+          tsfn,
+          lambda: None,
+          closure: None,
         };
+
         let tsfn_call_context_ptr = Box::into_raw(Box::new(tsfn_call_context));
 
         let (cif, lambda) = if let RsArgsValue::Object(func_args_type_rs) = func_args_type {
@@ -477,29 +469,53 @@ pub unsafe fn get_value_pointer(
 
           let lambda = move |args: (Vec<*mut c_void>, *mut c_void)| {
             let (params, result) = args;
+            let value: Vec<RsArgsValue> = params
+              .into_iter()
+              .enumerate()
+              .map(|(index, c_param)| {
+                let arg_type = func_args_type_rs.get(&index.to_string()).unwrap();
+                let param = get_rs_value_from_pointer(env, arg_type, c_param, true);
+                if let RsArgsValue::Boolean(value) = free_c_params_memory {
+                  if value {
+                    free_c_pointer_memory(c_param, arg_type, false);
+                  }
+                }
+                param
+              })
+              .collect();
             let func_ret_type_rc = Rc::new(vec![func_ret_type.clone()]);
-            if std::thread::current().id() != main_thread_id && func_ret_type != RsArgsValue::I32(7)  {
+            if std::thread::current().id() != main_thread_id && func_ret_type != RsArgsValue::I32(7)
+            {
               let (se, re) = std::sync::mpsc::channel();
               (*tsfn_call_context_ptr).tsfn.call_with_return_value(
-                params,
+                value,
                 ThreadsafeFunctionCallMode::Blocking,
                 move |js_return_value: JsUnknown| {
-                    let js_return_value_rs = get_arg_values(Rc::clone(&func_ret_type_rc), vec![js_return_value]).unwrap();
-                    let js_return_value_rs_ptr = get_value_pointer(&env_clone,Rc::clone(&func_ret_type_rc), js_return_value_rs).unwrap()[0];
-                    write_rs_ptr_to_c(&Rc::clone(&func_ret_type_rc)[0], js_return_value_rs_ptr, result);
-                    se.send(()).unwrap();
-                    Ok(())
+                  let js_return_value_rs =
+                    get_arg_values(Rc::clone(&func_ret_type_rc), vec![js_return_value]).unwrap();
+                  let js_return_value_rs_ptr =
+                    get_value_pointer(&env_clone, Rc::clone(&func_ret_type_rc), js_return_value_rs)
+                      .unwrap()[0];
+                  write_rs_ptr_to_c(
+                    &Rc::clone(&func_ret_type_rc)[0],
+                    js_return_value_rs_ptr,
+                    result,
+                  );
+                  se.send(()).unwrap();
+                  Ok(())
                 },
               );
-               re.recv().unwrap();
+              re.recv().unwrap();
             } else {
-                if func_ret_type != RsArgsValue::I32(DataType::Void as i32) {
-                    println!(
-                        "\x1b[33m{}\x1b[0m",
-                        "warning: Without runInNewThread: true will call js function in main thread will not get the return value in c environment"
-                    );
-                }
-                (*tsfn_call_context_ptr).tsfn.call(params, ThreadsafeFunctionCallMode::Blocking);
+              if func_ret_type != RsArgsValue::I32(DataType::Void as i32) {
+                println!(
+                  "\x1b[33m{}\x1b[0m",
+                  "warning: set runInNewThread to true to get the return value in c environment"
+                );
+              }
+              (*tsfn_call_context_ptr)
+                .tsfn
+                .call(value, ThreadsafeFunctionCallMode::Blocking);
             }
           };
           (cif, lambda)
@@ -507,16 +523,26 @@ pub unsafe fn get_value_pointer(
           return Err(FFIError::Panic(format!("generate cif error")).into());
         };
         (*tsfn_call_context_ptr).lambda = Some(Box::new(lambda));
-        let closure = Closure::new(cif, lambda_callback, (*tsfn_call_context_ptr).lambda.as_ref().unwrap());
+        let closure = Closure::new(
+          cif,
+          lambda_callback,
+          (*tsfn_call_context_ptr).lambda.as_ref().unwrap(),
+        );
         (*tsfn_call_context_ptr).closure = Some(closure);
         if CLOSURE_MAP.is_none() {
           CLOSURE_MAP = Some(HashMap::new())
         }
-        let code_ptr = std::mem::transmute((*tsfn_call_context_ptr).closure.as_ref().unwrap().code_ptr());
-        CLOSURE_MAP.as_mut().unwrap().insert(
-          code_ptr,
-          tsfn_call_context_ptr as *mut c_void
+        let code_ptr = std::mem::transmute(
+          (*tsfn_call_context_ptr)
+            .closure
+            .as_ref()
+            .unwrap()
+            .code_ptr(),
         );
+        CLOSURE_MAP
+          .as_mut()
+          .unwrap()
+          .insert(code_ptr, tsfn_call_context_ptr as *mut c_void);
         Ok(code_ptr)
 
         // has been deprecated

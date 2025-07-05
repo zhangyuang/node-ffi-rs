@@ -42,7 +42,7 @@ impl From<FFIError> for Error {
 }
 
 pub struct TsFnCallContext<'a> {
-  pub tsfn: ThreadsafeFunction<Vec<*mut c_void>, ErrorStrategy::Fatal>,
+  pub tsfn: ThreadsafeFunction<Vec<RsArgsValue>, ErrorStrategy::Fatal>,
   pub lambda: Option<Box<dyn Fn((Vec<*mut c_void>, *mut c_void)) + 'a>>,
   pub closure: Option<Closure<'a>>,
 }
