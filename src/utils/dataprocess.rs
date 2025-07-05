@@ -493,7 +493,7 @@ pub unsafe fn get_value_pointer(
               );
                re.recv().unwrap();
             } else {
-                if func_ret_type != RsArgsValue::I32(7) {
+                if func_ret_type != RsArgsValue::I32(DataType::Void as i32) {
                     println!(
                         "\x1b[33m{}\x1b[0m",
                         "warning: Without runInNewThread: true will call js function in main thread will not get the return value in c environment"

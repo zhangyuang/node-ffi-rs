@@ -7,6 +7,7 @@ use napi::bindgen_prelude::{Error, Result, Status as NapiStatus};
 use napi::threadsafe_function::{ErrorStrategy, ThreadsafeFunction};
 use napi::{bindgen_prelude::*, JsBufferValue};
 use napi::{Env, JsExternal, JsObject, JsUnknown};
+use std::cmp::PartialEq;
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::rc::Rc;
@@ -279,7 +280,6 @@ impl Clone for RsArgsValue {
     }
   }
 }
-use std::cmp::PartialEq;
 
 impl PartialEq for RsArgsValue {
   fn eq(&self, other: &Self) -> bool {
@@ -363,10 +363,10 @@ pub struct FFIParams {
 pub struct FFICALLPARAMS {
   pub cif: ffi_cif,
   pub fn_pointer: unsafe extern "C" fn(),
+  pub arg_types: Vec<*mut ffi_type>,
   pub arg_values_c_void: Vec<*mut c_void>,
   pub ret_type_rs: RsArgsValue,
   pub errno: Option<bool>,
-  pub arg_types: Vec<*mut ffi_type>,
   pub free_result_memory: bool,
   pub params_type_rs: Rc<Vec<RsArgsValue>>,
 }
