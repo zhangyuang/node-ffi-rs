@@ -194,7 +194,7 @@ unsafe fn free_struct_memory(
               let padding = (align - (offset % align)) % align;
               field_ptr = field_ptr.offset(padding as isize);
               if dynamic_array {
-                free_dynamic_double_array(field_ptr, array_len);
+                free_dynamic_array::<f64>(field_ptr, array_len);
               }
               offset += size + padding;
               field_size = size
@@ -209,7 +209,7 @@ unsafe fn free_struct_memory(
               let padding = (align - (offset % align)) % align;
               field_ptr = field_ptr.offset(padding as isize);
               if dynamic_array {
-                free_dynamic_float_array(field_ptr, array_len);
+                free_dynamic_array::<f32>(field_ptr, array_len);
               }
               offset += size + padding;
               field_size = size
@@ -224,7 +224,7 @@ unsafe fn free_struct_memory(
               let padding = (align - (offset % align)) % align;
               field_ptr = field_ptr.offset(padding as isize);
               if dynamic_array {
-                free_dynamic_i16_array(field_ptr, array_len)
+                free_dynamic_array::<i16>(field_ptr, array_len)
               }
               offset += size + padding;
               field_size = size
@@ -239,7 +239,7 @@ unsafe fn free_struct_memory(
               let padding = (align - (offset % align)) % align;
               field_ptr = field_ptr.offset(padding as isize);
               if dynamic_array {
-                free_dynamic_i32_array(field_ptr, array_len)
+                free_dynamic_array::<i32>(field_ptr, array_len)
               }
               offset += size + padding;
               field_size = size
@@ -278,7 +278,7 @@ unsafe fn free_struct_memory(
                 if let PointerType::CPointer = ptr_type {
                   // only free u8 pointer data when the pointer is allocated in c
                   // rust u8 pointer memory is buffer
-                  free_dynamic_u8_array(field_ptr, array_len)
+                  free_dynamic_array::<u8>(field_ptr, array_len)
                 }
               }
               offset += size + padding;
@@ -366,10 +366,10 @@ pub unsafe fn free_rs_pointer_memory(
         } = array_desc;
         match array_type {
           RefDataType::U8Array => {}
-          RefDataType::I16Array => free_dynamic_i16_array(ptr, array_len),
-          RefDataType::I32Array => free_dynamic_i32_array(ptr, array_len),
-          RefDataType::DoubleArray => free_dynamic_double_array(ptr, array_len),
-          RefDataType::FloatArray => free_dynamic_float_array(ptr, array_len),
+          RefDataType::I16Array => free_dynamic_array::<i16>(ptr, array_len),
+          RefDataType::I32Array => free_dynamic_array::<i32>(ptr, array_len),
+          RefDataType::DoubleArray => free_dynamic_array::<f64>(ptr, array_len),
+          RefDataType::FloatArray => free_dynamic_array::<f32>(ptr, array_len),
           RefDataType::StringArray => free_dynamic_string_array(ptr, array_len),
           RefDataType::StructArray => {
             let is_stack_struct =
@@ -459,11 +459,11 @@ pub unsafe fn free_c_pointer_memory(
           ..
         } = array_desc;
         match array_type {
-          RefDataType::U8Array => free_dynamic_u8_array(ptr, array_len),
-          RefDataType::I16Array => free_dynamic_i16_array(ptr, array_len),
-          RefDataType::I32Array => free_dynamic_i32_array(ptr, array_len),
-          RefDataType::DoubleArray => free_dynamic_double_array(ptr, array_len),
-          RefDataType::FloatArray => free_dynamic_float_array(ptr, array_len),
+          RefDataType::U8Array => free_dynamic_array::<u8>(ptr, array_len),
+          RefDataType::I16Array => free_dynamic_array::<i16>(ptr, array_len),
+          RefDataType::I32Array => free_dynamic_array::<i32>(ptr, array_len),
+          RefDataType::DoubleArray => free_dynamic_array::<f64>(ptr, array_len),
+          RefDataType::FloatArray => free_dynamic_array::<f32>(ptr, array_len),
           RefDataType::StringArray => free_dynamic_string_array(ptr, array_len),
           RefDataType::StructArray => {
             let mut target_ptr = *(ptr as *mut *mut c_void);
@@ -499,24 +499,13 @@ pub unsafe fn free_c_pointer_memory(
   }
 }
 
-unsafe fn free_dynamic_string_array(ptr: *mut c_void, array_len: usize) {
+pub unsafe fn free_dynamic_string_array(ptr: *mut c_void, array_len: usize) {
   let v = Vec::from_raw_parts(*(ptr as *mut *mut *mut c_char), array_len, array_len);
   v.into_iter().for_each(|str_ptr| {
     let _ = CString::from_raw(str_ptr);
   });
 }
-unsafe fn free_dynamic_i32_array(ptr: *mut c_void, array_len: usize) {
-  let _ = Vec::from_raw_parts(*(ptr as *mut *mut c_int), array_len, array_len);
-}
-unsafe fn free_dynamic_double_array(ptr: *mut c_void, array_len: usize) {
-  let _ = Vec::from_raw_parts(*(ptr as *mut *mut c_double), array_len, array_len);
-}
-unsafe fn free_dynamic_float_array(ptr: *mut c_void, array_len: usize) {
-  let _ = Vec::from_raw_parts(*(ptr as *mut *mut c_float), array_len, array_len);
-}
-unsafe fn free_dynamic_u8_array(ptr: *mut c_void, array_len: usize) {
-  let _ = Vec::from_raw_parts(*(ptr as *mut *mut c_char), array_len, array_len);
-}
-unsafe fn free_dynamic_i16_array(ptr: *mut c_void, array_len: usize) {
-  let _ = Vec::from_raw_parts(*(ptr as *mut *mut i16), array_len, array_len);
+
+pub unsafe fn free_dynamic_array<T>(ptr: *mut c_void, array_len: usize) {
+  let _ = Vec::from_raw_parts(*(ptr as *mut *mut T), array_len, array_len);
 }
