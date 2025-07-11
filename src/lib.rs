@@ -29,7 +29,6 @@ static mut LIBRARY_MAP: Option<
 
 #[napi]
 unsafe fn create_pointer(env: Env, params: CreatePointerParams) -> Result<Vec<JsExternal>> {
-    println!("create_pointer{}", std::mem::size_of::<*mut c_void>());
     let CreatePointerParams { params_type, params_value } = params;
     let params_type_rs: Rc<Vec<RsArgsValue>> = Rc::new(
         params_type
