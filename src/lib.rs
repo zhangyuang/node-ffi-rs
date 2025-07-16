@@ -299,6 +299,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
         } = self.data;
         let FFICALLPARAMS {
           ret_type_rs,
+          arg_types,
           arg_values_c_void,
           params_type_rs,
           ..
@@ -308,6 +309,9 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
           if free_result_memory {
             free_c_pointer_memory(output.0, &ret_type_rs, false);
           }
+          arg_types.into_iter().for_each(|arg| {
+            let _ = Box::from_raw(*arg);
+          });
           arg_values_c_void
             .into_iter()
             .zip(params_type_rs.iter())
@@ -338,6 +342,9 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
   } else {
     let result = &mut () as *mut _ as *mut c_void;
     ffi_call(&mut cif, Some(func), result, arg_values_c_void.as_mut_ptr());
+    arg_types.into_iter().for_each(|arg| {
+      let _ = Box::from_raw(arg);
+    });
     let call_result = get_js_unknown_from_pointer(&env, &ret_type_rs, result);
     if free_result_memory {
       free_c_pointer_memory(result, &ret_type_rs, false);
