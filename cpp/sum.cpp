@@ -240,6 +240,12 @@ extern "C" MyClass *createMyClassFromC(const char *name, int age)
   return createMyClass(std::string(name), age);
 }
 
+extern "C" void freeClass(MyClass *instance)
+{
+  printf("freeClass\n");
+  delete instance;
+}
+
 extern "C" void printMyClass(MyClass *instance) { instance->print(); }
 
 typedef struct

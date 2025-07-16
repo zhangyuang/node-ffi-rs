@@ -356,7 +356,7 @@ const testCpp = () => {
   load({
     library: "libsum",
     funcName: "printMyClass",
-    retType: DataType.External,
+    retType: DataType.Void,
     paramsType: [
       DataType.External,
     ],

@@ -361,12 +361,19 @@ const testCpp = () => {
   load({
     library: "libsum",
     funcName: "printMyClass",
-    retType: DataType.External,
+    retType: DataType.Void,
     paramsType: [
       DataType.External,
     ],
     paramsValue: [classPointer],
   })
+  // load({
+  //   library: "libsum",
+  //   funcName: "freeClass",
+  //   retType: DataType.Void,
+  //   paramsType: [DataType.External],
+  //   paramsValue: [classPointer],
+  // })
   freePointer({
     paramsType: [DataType.External],
     paramsValue: [classPointer],
@@ -404,7 +411,7 @@ const unitTest = () => {
   // logGreen('test string succeed')
   // testDefine()
   // logGreen('test define succeed')
-  testArray()
+  // testArray()
   // logGreen('test array succeed')
   // testVoid()
   // logGreen('test void succeed')
@@ -413,7 +420,7 @@ const unitTest = () => {
   // testMainProgram()
   // logGreen('test main program succeed')
   // testFunction()
-  // testCpp()
+  testCpp()
   // logGreen('test cpp succeed')
   // testPointer()
   // logGreen('test createPointer succeed')
