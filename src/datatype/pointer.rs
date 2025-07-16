@@ -368,11 +368,26 @@ pub unsafe fn free_rs_pointer_memory(
         } = array_desc;
         match array_type {
           RefDataType::U8Array => {}
-          RefDataType::I16Array => free_dynamic_array::<i16>(ptr, array_len),
-          RefDataType::I32Array => free_dynamic_array::<i32>(ptr, array_len),
-          RefDataType::DoubleArray => free_dynamic_array::<f64>(ptr, array_len),
-          RefDataType::FloatArray => free_dynamic_array::<f32>(ptr, array_len),
-          RefDataType::StringArray => free_dynamic_string_array(ptr, array_len),
+          RefDataType::I16Array => {
+            free_dynamic_array::<i16>(ptr, array_len);
+            free(ptr);
+          }
+          RefDataType::I32Array => {
+            free_dynamic_array::<i32>(ptr, array_len);
+            free(ptr);
+          }
+          RefDataType::DoubleArray => {
+            free_dynamic_array::<f64>(ptr, array_len);
+            free(ptr);
+          }
+          RefDataType::FloatArray => {
+            free_dynamic_array::<f32>(ptr, array_len);
+            free(ptr);
+          }
+          RefDataType::StringArray => {
+            free_dynamic_string_array(ptr, array_len);
+            free(ptr);
+          }
           RefDataType::StructArray => {
             let is_stack_struct =
               get_ffi_tag(struct_item_type.as_ref().unwrap()) == FFITypeTag::StackStruct;
@@ -464,11 +479,26 @@ pub unsafe fn free_c_pointer_memory(
           ..
         } = array_desc;
         match array_type {
-          RefDataType::U8Array => free_dynamic_array::<u8>(ptr, array_len),
-          RefDataType::I16Array => free_dynamic_array::<i16>(ptr, array_len),
-          RefDataType::I32Array => free_dynamic_array::<i32>(ptr, array_len),
-          RefDataType::DoubleArray => free_dynamic_array::<f64>(ptr, array_len),
-          RefDataType::FloatArray => free_dynamic_array::<f32>(ptr, array_len),
+          RefDataType::U8Array => {
+            free_dynamic_array::<u8>(ptr, array_len);
+            free(ptr);
+          }
+          RefDataType::FloatArray => {
+            free_dynamic_array::<f32>(ptr, array_len);
+            free(ptr);
+          }
+          RefDataType::I16Array => {
+            free_dynamic_array::<i16>(ptr, array_len);
+            free(ptr);
+          }
+          RefDataType::I32Array => {
+            free_dynamic_array::<i32>(ptr, array_len);
+            free(ptr);
+          }
+          RefDataType::DoubleArray => {
+            free_dynamic_array::<f64>(ptr, array_len);
+            free(ptr);
+          }
           RefDataType::StringArray => free_dynamic_string_array(ptr, array_len),
           RefDataType::StructArray => {
             let mut target_ptr = *(ptr as *mut *mut c_void);

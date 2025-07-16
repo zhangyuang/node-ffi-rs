@@ -21,6 +21,9 @@ const {
 
 const platform = process.platform;
 const dynamicLib = platform === "win32" ? "../sum.dll" : "./libsum.so";
+const logGreen = (text) => {
+  console.log('\x1b[32m%s\x1b[0m', text);
+}
 
 open({
   library: "libsum",
@@ -136,6 +139,7 @@ const testArray = () => {
         type: DataType.StringArray,
         length: stringArr.length,
       }),
+      freeResultMemory: true,
       paramsType: [arrayConstructor({
         type: DataType.StringArray,
         length: stringArr.length,
@@ -154,6 +158,7 @@ const testArray = () => {
         type: DataType.I32Array,
         length: bigArr.length,
       }),
+      freeResultMemory: true,
       paramsType: [arrayConstructor({
         type: DataType.I32Array,
         length: bigArr.length,
@@ -172,6 +177,7 @@ const testArray = () => {
         type: DataType.DoubleArray,
         length: bigDoubleArr.length,
       }),
+      freeResultMemory: true,
       paramsType: [arrayConstructor({
         type: DataType.DoubleArray,
         length: bigDoubleArr.length,
@@ -392,13 +398,13 @@ const testDefine = () => {
   equal(res.sum([1, 2]), 3)
 }
 const unitTest = () => {
-  testNumber()
+  // testNumber()
   // logGreen('test number succeed')
   // testString()
   // logGreen('test string succeed')
   // testDefine()
   // logGreen('test define succeed')
-  // testArray()
+  testArray()
   // logGreen('test array succeed')
   // testVoid()
   // logGreen('test void succeed')
