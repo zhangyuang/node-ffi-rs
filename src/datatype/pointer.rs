@@ -329,9 +329,11 @@ pub unsafe fn free_rs_pointer_memory(
       match basic_data_type {
         BasicDataType::String => {
           let _ = CString::from_raw(*(ptr as *mut *mut c_char));
+          free(ptr);
         }
         BasicDataType::WString => {
           let _ = WideCString::from_raw(*(ptr as *mut *mut WideChar));
+          free(ptr);
         }
         BasicDataType::U8
         | BasicDataType::I16
@@ -382,6 +384,7 @@ pub unsafe fn free_rs_pointer_memory(
               let arr_size = size * array_len;
               let layout = Layout::from_size_align(arr_size, align).unwrap();
               dealloc(*(ptr as *mut *mut u8), layout);
+              free(ptr);
             } else {
               let layout = Layout::from_size_align(size, align).unwrap();
               let mut start_ptr = ptr;
@@ -394,6 +397,7 @@ pub unsafe fn free_rs_pointer_memory(
                 start_ptr = start_ptr.offset(size as isize);
               });
               dealloc(*(ptr as *mut *mut u8), layout);
+              free(ptr);
             }
           }
         }
@@ -435,6 +439,7 @@ pub unsafe fn free_c_pointer_memory(
       match basic_data_type {
         BasicDataType::String => {
           free(*(ptr as *mut *mut i8) as *mut c_void);
+          free(ptr);
         }
 
         BasicDataType::External => {
@@ -481,7 +486,8 @@ pub unsafe fn free_c_pointer_memory(
       } else if let FFITypeTag::Function = ffi_tag {
         let func_desc = get_func_desc(&obj);
         if func_desc.need_free {
-          free(*(ptr as *mut *mut c_void))
+          free(*(ptr as *mut *mut c_void));
+          free(ptr);
         }
       } else {
         // struct
@@ -492,7 +498,8 @@ pub unsafe fn free_c_pointer_memory(
           *(ptr as *mut *mut c_void)
         };
         free_struct_memory(target_ptr, obj, PointerType::CPointer);
-        free(*(ptr as *mut *mut c_void))
+        free(*(ptr as *mut *mut c_void));
+        free(ptr);
       }
     }
     _ => panic!("free c pointer memory error"),

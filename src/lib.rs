@@ -46,6 +46,25 @@ unsafe fn create_pointer(env: Env, params: CreatePointerParams) -> Result<Vec<Js
 }
 
 #[napi]
+unsafe fn free_pointer(env: Env, params: FreePointerParams) {
+    let FreePointerParams { params_type, params_value, pointer_type } = params;
+    let params_type_rs: Vec<RsArgsValue> = params_type
+        .into_iter()
+        .map(|param| type_define_to_rs_args(&env, param).unwrap())
+        .collect();
+    params_value
+        .into_iter()
+        .zip(params_type_rs.iter())
+        .for_each(|(js_external, ptr_desc)| {
+            let ptr = get_js_external_wrap_data(&env, js_external).unwrap();
+            match pointer_type {
+                PointerType::CPointer => free_c_pointer_memory(ptr, ptr_desc, true),
+                PointerType::RsPointer => free_rs_pointer_memory(ptr, ptr_desc, true),
+            }
+        });
+}
+
+#[napi]
 unsafe fn is_null_pointer(env: Env, js_external: JsExternal) -> Result<bool> {
     let ptr = get_js_external_wrap_data(&env, js_external)?;
     Ok(ptr.is_null())
@@ -89,24 +108,6 @@ unsafe fn wrap_pointer(env: Env, params: Vec<JsExternal>) -> Result<Vec<JsExtern
             )
         })
         .collect()
-}
-#[napi]
-unsafe fn free_pointer(env: Env, params: FreePointerParams) {
-    let FreePointerParams { params_type, params_value, pointer_type } = params;
-    let params_type_rs: Vec<RsArgsValue> = params_type
-        .into_iter()
-        .map(|param| type_define_to_rs_args(&env, param).unwrap())
-        .collect();
-    params_value
-        .into_iter()
-        .zip(params_type_rs.iter())
-        .for_each(|(js_external, ptr_desc)| {
-            let ptr = get_js_external_wrap_data(&env, js_external).unwrap();
-            match pointer_type {
-                PointerType::CPointer => free_c_pointer_memory(ptr, ptr_desc, true),
-                PointerType::RsPointer => free_rs_pointer_memory(ptr, ptr_desc, true),
-            }
-        });
 }
 
 #[napi]
