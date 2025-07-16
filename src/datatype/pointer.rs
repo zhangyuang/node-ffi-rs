@@ -66,63 +66,63 @@ unsafe fn free_struct_memory(
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           offset += size + padding;
-          field_size = size
+          field_size = size;
         }
         BasicDataType::I16 => {
           let (size, align) = get_size_align::<c_short>();
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           offset += size + padding;
-          field_size = size
+          field_size = size;
         }
         BasicDataType::I32 => {
           let (size, align) = get_size_align::<c_int>();
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           offset += size + padding;
-          field_size = size
+          field_size = size;
         }
         BasicDataType::I64 | BasicDataType::BigInt => {
           let (size, align) = get_size_align::<c_longlong>();
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           offset += size + padding;
-          field_size = size
+          field_size = size;
         }
         BasicDataType::U64 => {
           let (size, align) = get_size_align::<c_ulonglong>();
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           offset += size + padding;
-          field_size = size
+          field_size = size;
         }
         BasicDataType::Float => {
           let (size, align) = get_size_align::<c_float>();
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           offset += size + padding;
-          field_size = size
+          field_size = size;
         }
         BasicDataType::Double => {
           let (size, align) = get_size_align::<c_double>();
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           offset += size + padding;
-          field_size = size
+          field_size = size;
         }
         BasicDataType::Boolean => {
           let (size, align) = get_size_align::<bool>();
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           offset += size + padding;
-          field_size = size
+          field_size = size;
         }
         BasicDataType::Void => {
           let (size, align) = (std::mem::size_of::<()>(), std::mem::align_of::<()>());
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           offset += size + padding;
-          field_size = size
+          field_size = size;
         }
         BasicDataType::String => {
           let (size, align) = get_size_align::<*const c_void>();
@@ -130,13 +130,13 @@ unsafe fn free_struct_memory(
           field_ptr = field_ptr.offset(padding as isize);
           let type_field_ptr = field_ptr as *mut *mut c_char;
           match ptr_type {
-            PointerType::CPointer => free((*type_field_ptr) as *mut c_void),
+            PointerType::CPointer => free(*type_field_ptr as *mut c_void),
             PointerType::RsPointer => {
               let _ = CString::from_raw(*(type_field_ptr as *mut *mut c_char));
             }
           }
           offset += size + padding;
-          field_size = size
+          field_size = size;
         }
         BasicDataType::WString => {
           let (size, align) = get_size_align::<*const c_void>();
@@ -144,22 +144,22 @@ unsafe fn free_struct_memory(
           field_ptr = field_ptr.offset(padding as isize);
           let type_field_ptr = field_ptr as *mut *mut WideChar;
           match ptr_type {
-            PointerType::CPointer => free((*type_field_ptr) as *mut c_void),
+            PointerType::CPointer => free(*type_field_ptr as *mut c_void),
             PointerType::RsPointer => {
               let _ = WideCString::from_raw(*(type_field_ptr as *mut *mut WideChar));
             }
           }
           offset += size + padding;
-          field_size = size
+          field_size = size;
         }
         BasicDataType::External => {
           let (size, align) = get_size_align::<*const c_void>();
           let padding = (align - (offset % align)) % align;
           field_ptr = field_ptr.offset(padding as isize);
           offset += size + padding;
-          field_size = size
+          field_size = size;
         }
-      };
+      }
     }
     if let RsArgsValue::Object(obj) = val {
       match get_ffi_tag(&obj) {
@@ -182,7 +182,7 @@ unsafe fn free_struct_memory(
                 free_dynamic_string_array(field_ptr, array_len);
               }
               offset += size + padding;
-              field_size = size
+              field_size = size;
             }
             RefDataType::DoubleArray => {
               let (size, align) = if dynamic_array {
@@ -197,7 +197,7 @@ unsafe fn free_struct_memory(
                 free_dynamic_array::<f64>(field_ptr, array_len);
               }
               offset += size + padding;
-              field_size = size
+              field_size = size;
             }
             RefDataType::FloatArray => {
               let (size, align) = if dynamic_array {
@@ -212,7 +212,7 @@ unsafe fn free_struct_memory(
                 free_dynamic_array::<f32>(field_ptr, array_len);
               }
               offset += size + padding;
-              field_size = size
+              field_size = size;
             }
             RefDataType::I16Array => {
               let (size, align) = if dynamic_array {
@@ -224,10 +224,10 @@ unsafe fn free_struct_memory(
               let padding = (align - (offset % align)) % align;
               field_ptr = field_ptr.offset(padding as isize);
               if dynamic_array {
-                free_dynamic_array::<i16>(field_ptr, array_len)
+                free_dynamic_array::<i16>(field_ptr, array_len);
               }
               offset += size + padding;
-              field_size = size
+              field_size = size;
             }
             RefDataType::I32Array => {
               let (size, align) = if dynamic_array {
@@ -239,10 +239,10 @@ unsafe fn free_struct_memory(
               let padding = (align - (offset % align)) % align;
               field_ptr = field_ptr.offset(padding as isize);
               if dynamic_array {
-                free_dynamic_array::<i32>(field_ptr, array_len)
+                free_dynamic_array::<i32>(field_ptr, array_len);
               }
               offset += size + padding;
-              field_size = size
+              field_size = size;
             }
             RefDataType::StructArray => {
               let (size, align) = if dynamic_array {
@@ -263,7 +263,7 @@ unsafe fn free_struct_memory(
                 });
               }
               offset += size + padding;
-              field_size = size
+              field_size = size;
             }
             RefDataType::U8Array => {
               let (size, align) = if dynamic_array {
@@ -278,13 +278,13 @@ unsafe fn free_struct_memory(
                 if let PointerType::CPointer = ptr_type {
                   // only free u8 pointer data when the pointer is allocated in c
                   // rust u8 pointer memory is buffer
-                  free_dynamic_array::<u8>(field_ptr, array_len)
+                  free_dynamic_array::<u8>(field_ptr, array_len);
                 }
               }
               offset += size + padding;
-              field_size = size
+              field_size = size;
             }
-          };
+          }
         }
         FFITypeTag::Function => {
           let func_desc = get_func_desc(&obj);
@@ -303,18 +303,18 @@ unsafe fn free_struct_memory(
             field_ptr = field_ptr.offset(padding as isize);
             free_struct_memory(field_ptr, obj, ptr_type);
             offset += size + padding;
-            field_size = size
+            field_size = size;
           } else {
             let (size, align) = get_size_align::<*const c_void>();
             let padding = (align - (offset % align)) % align;
             field_ptr = field_ptr.offset(padding as isize);
             free_struct_memory(*(field_ptr as *mut *mut c_void), obj, ptr_type);
             offset += size + padding;
-            field_size = size
+            field_size = size;
           }
         }
       }
-    };
+    }
     field_ptr = field_ptr.offset(field_size as isize) as *mut c_void;
   }
 }
