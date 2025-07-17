@@ -7,7 +7,7 @@
 一个用Rust和N-API编写的模块, 为Node.js提供外部函数接口(FFI)功能，中文文档的更新不一定及时，建议阅读[英文文档](./README.md)以便获取最新的信息
 
 <div align="">
-<a href="https://github.com/zhangyuang/node-ffi-rs/actions" target="_blank"><img src="https://github.com/zhangyuang/ssr/workflows/CI/badge.svg" alt="githubActions" /></a>
+<a href="https://github.com/zhangyuang/node-ffi-rs/actions" target="_blank"><img src="https://github.com/zhangyuang/node-ffi-rs/workflows/CI/badge.svg" alt="githubActions" /></a>
 <a href="https://www.npmjs.com/package/ffi-rs" target="_blank"><img src="https://img.shields.io/npm/dm/ffi-rs">
 </a>
 </div>
