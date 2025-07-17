@@ -266,3 +266,5 @@ package-lock.json
 yuuangtest
 .tencent
 **/*.DS_Store
+core
+vgcore.**
