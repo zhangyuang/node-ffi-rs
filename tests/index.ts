@@ -362,10 +362,12 @@ const testCpp = () => {
     ],
     paramsValue: [classPointer],
   })
-  freePointer({
+  load({
+    library: "libsum",
+    funcName: "freeClass",
+    retType: DataType.Void,
     paramsType: [DataType.External],
     paramsValue: [classPointer],
-    pointerType: PointerType.CPointer
   })
 }
 const testMainProgram = () => {

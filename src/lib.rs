@@ -347,13 +347,13 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     });
     let call_result = get_js_unknown_from_pointer(&env, &ret_type_rs, result);
     if free_result_memory {
-      free_c_pointer_memory(result, &ret_type_rs, false);
+      free_c_pointer_memory(result, &ret_type_rs, true);
     }
     arg_values_c_void
       .into_iter()
       .zip(params_type_rs.iter())
       .for_each(|(ptr, ptr_desc)| {
-        free_rs_pointer_memory(ptr, ptr_desc, false);
+        free_rs_pointer_memory(ptr, ptr_desc, true);
       });
     if let Some(true) = errno {
       add_errno(&env, call_result?)

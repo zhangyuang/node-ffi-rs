@@ -367,17 +367,12 @@ const testCpp = () => {
     ],
     paramsValue: [classPointer],
   })
-  // load({
-  //   library: "libsum",
-  //   funcName: "freeClass",
-  //   retType: DataType.Void,
-  //   paramsType: [DataType.External],
-  //   paramsValue: [classPointer],
-  // })
-  freePointer({
+  load({
+    library: "libsum",
+    funcName: "freeClass",
+    retType: DataType.Void,
     paramsType: [DataType.External],
     paramsValue: [classPointer],
-    pointerType: PointerType.CPointer
   })
 }
 const testMainProgram = () => {
@@ -405,14 +400,6 @@ const testDefine = () => {
   equal(res.sum([1, 2]), 3)
 }
 const unitTest = () => {
-  let dataIdPtr=createPointer({ paramsType: [DataType.String], paramsValue: ['123'] });
-freePointer({
-paramsType: [DataType.String],
-paramsValue: dataIdPtr,
-pointerType: PointerType.CPointer
-})
-console.log('finish')
-return
   // testNumber()
   // logGreen('test number succeed')
   // testString()
@@ -436,6 +423,7 @@ return
   // testObject()
   // logGreen('test object succeed')
   close("libsum")
+  global.gc()
   console.log('finish')
 };
 
