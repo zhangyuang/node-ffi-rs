@@ -67,8 +67,8 @@ unsafe fn free_pointer(env: Env, params: FreePointerParams) {
     .for_each(|(js_external, ptr_desc)| {
       let ptr = get_js_external_wrap_data(&env, js_external).unwrap();
       match pointer_type {
-        PointerType::CPointer => free_c_pointer_memory(ptr, ptr_desc, true),
-        PointerType::RsPointer => free_rs_pointer_memory(ptr, ptr_desc, true),
+        PointerType::CPointer => free_c_pointer_memory(ptr, ptr_desc),
+        PointerType::RsPointer => free_rs_pointer_memory(ptr, ptr_desc),
       }
     });
 }
@@ -307,7 +307,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
         unsafe {
           let call_result = get_js_unknown_from_pointer(&env, &ret_type_rs, output.0);
           if free_result_memory {
-            free_c_pointer_memory(output.0, &ret_type_rs, false);
+            free_c_pointer_memory(output.0, &ret_type_rs);
           }
           arg_types.into_iter().for_each(|arg| {
             let _ = Box::from_raw(*arg);
@@ -316,7 +316,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
             .into_iter()
             .zip(params_type_rs.iter())
             .for_each(|(ptr, ptr_desc)| {
-              free_rs_pointer_memory(*ptr, ptr_desc, false);
+              free_rs_pointer_memory(*ptr, ptr_desc);
             });
           libc::free(output.0);
           if let Some(true) = errno {
@@ -347,13 +347,13 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     });
     let call_result = get_js_unknown_from_pointer(&env, &ret_type_rs, result);
     if free_result_memory {
-      free_c_pointer_memory(result, &ret_type_rs, true);
+      free_c_pointer_memory(result, &ret_type_rs);
     }
     arg_values_c_void
       .into_iter()
       .zip(params_type_rs.iter())
       .for_each(|(ptr, ptr_desc)| {
-        free_rs_pointer_memory(ptr, ptr_desc, true);
+        free_rs_pointer_memory(ptr, ptr_desc);
       });
     if let Some(true) = errno {
       add_errno(&env, call_result?)

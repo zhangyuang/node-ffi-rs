@@ -318,11 +318,7 @@ unsafe fn free_struct_memory(
     field_ptr = field_ptr.offset(field_size as isize) as *mut c_void;
   }
 }
-pub unsafe fn free_rs_pointer_memory(
-  ptr: *mut c_void,
-  ptr_desc: &RsArgsValue,
-  need_free_external: bool,
-) {
+pub unsafe fn free_rs_pointer_memory(ptr: *mut c_void, ptr_desc: &RsArgsValue) {
   match ptr_desc {
     RsArgsValue::I32(number) => {
       let basic_data_type = (*number).try_into().unwrap();
@@ -344,13 +340,9 @@ pub unsafe fn free_rs_pointer_memory(
         | BasicDataType::Void
         | BasicDataType::Float
         | BasicDataType::Double
-        | BasicDataType::Boolean => {
+        | BasicDataType::Boolean
+        | BasicDataType::External => {
           let _ = Box::from_raw(ptr);
-        }
-        BasicDataType::External => {
-          if need_free_external {
-            let _ = Box::from_raw(ptr);
-          }
         }
       }
     }
@@ -443,11 +435,7 @@ unsafe fn free_closure(ptr: *mut c_void) {
   let p = CLOSURE_MAP.as_ref().unwrap().get(&ptr).unwrap();
   let _ = Box::from_raw(*p as *mut TsFnCallContext);
 }
-pub unsafe fn free_c_pointer_memory(
-  ptr: *mut c_void,
-  ptr_desc: &RsArgsValue,
-  need_free_external: bool,
-) {
+pub unsafe fn free_c_pointer_memory(ptr: *mut c_void, ptr_desc: &RsArgsValue) {
   match ptr_desc {
     RsArgsValue::I32(number) => {
       let basic_data_type = (*number).try_into().unwrap();
@@ -455,12 +443,6 @@ pub unsafe fn free_c_pointer_memory(
         BasicDataType::String => {
           free(*(ptr as *mut *mut i8) as *mut c_void);
           free(ptr);
-        }
-
-        BasicDataType::External => {
-          if need_free_external {
-            free(ptr);
-          }
         }
         _ => {
           free(ptr);

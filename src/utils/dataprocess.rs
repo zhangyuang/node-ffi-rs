@@ -486,11 +486,10 @@ pub unsafe fn get_value_pointer(
                 .map(|(index, c_param)| {
                   let arg_type = func_args_type_rs.get(&index.to_string()).unwrap();
                   let param = get_rs_value_from_pointer(env, arg_type, c_param, true);
-                  if let RsArgsValue::Boolean(value) = free_c_params_memory {
-                    if value {
-                      free_c_pointer_memory(c_param, arg_type, false);
-                    }
+                  if free_c_params_memory == RsArgsValue::Boolean(true) {
+                    free_c_pointer_memory(c_param, arg_type);
                   }
+
                   param
                 })
                 .collect();
