@@ -405,6 +405,14 @@ const testDefine = () => {
   equal(res.sum([1, 2]), 3)
 }
 const unitTest = () => {
+  let dataIdPtr=createPointer({ paramsType: [DataType.String], paramsValue: ['123'] });
+freePointer({
+paramsType: [DataType.String],
+paramsValue: dataIdPtr,
+pointerType: PointerType.CPointer
+})
+console.log('finish')
+return
   // testNumber()
   // logGreen('test number succeed')
   // testString()

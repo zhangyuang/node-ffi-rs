@@ -463,7 +463,7 @@ pub unsafe fn free_c_pointer_memory(
           }
         }
         _ => {
-          //
+          free(ptr);
         }
       }
     }
