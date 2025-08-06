@@ -121,8 +121,8 @@ There are two ways to sponsor me both Alipay and WeChat
 Eth address: 0x87a2575a5d4dbD5f965e3e3a3d20641BC9a5d192
 
 <div style="display:flex">
-  <img src="https://res.wx.qq.com/shop/public/2025-02-12/d50454c8-65f0-4a81-956b-b8837c187364.jpg" width=200>
-  <img src="https://res.wx.qq.com/op_res/9jSx7WJn6FBlfQ0ColL4hnvX91D9MlB_XPCgLFM527qknHp0utXZkLah6MYcumdVejK4884dvgkY0NIbBLPrYg" width=200>
+ <img src="https://doc.ssr-fc.com/images/wepay.jpg" width=200>
+  <img src="https://doc.ssr-fc.com/images/alipay.jpg" width=200>
 </div>
 
 ## 使用方法
