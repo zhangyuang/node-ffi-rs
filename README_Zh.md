@@ -60,7 +60,7 @@ Finished 2 cases!
 ## 安装
 
 ```js
-$ npm i ffi - rs
+$ npm i ffi-rs
 ```
 
 ## 支持的类型
