@@ -78,6 +78,110 @@ unsafe fn is_null_pointer(env: Env, js_external: JsExternal) -> Result<bool> {
   let ptr = get_js_external_wrap_data(&env, js_external)?;
   Ok(ptr.is_null())
 }
+use serde::{Deserialize, Serialize};
+#[napi(object)]
+#[derive(Serialize, Deserialize)]
+struct Metadata {
+  pub version: String,
+  pub author: String,
+  pub created_at: u32,
+  pub updated_at: u32,
+  pub permissions: Vec<String>,
+}
+#[napi(object)]
+#[derive(Serialize, Deserialize)]
+struct Coordinate {
+  pub x: f64,
+  pub y: f64,
+  pub z: f64,
+  pub label: String,
+}
+#[napi(object)]
+#[derive(Serialize, Deserialize)]
+struct bench_test_struct {
+  pub id: i64,
+  pub data: String,
+  pub metadata: Metadata,
+  pub coordinates: Vec<Coordinate>,
+  pub is_active: bool,
+  pub timestamp: u32,
+  pub tags: Vec<String>,
+}
+
+#[napi]
+unsafe fn create_bench_test_struct() -> Result<bench_test_struct> {
+  Ok(bench_test_struct {
+    id: 100,
+    data: "test".to_string(),
+    metadata: Metadata {
+      version: "1.0.0".to_string(),
+      author: "test_user".to_string(),
+      created_at: 1640995200,
+      updated_at: 1640995200,
+      permissions: vec!["read".to_string(), "write".to_string()],
+    },
+    coordinates: vec![
+      Coordinate {
+        x: 1.0,
+        y: 2.0,
+        z: 3.0,
+        label: "origin".to_string(),
+      },
+      Coordinate {
+        x: 4.0,
+        y: 5.0,
+        z: 6.0,
+        label: "target".to_string(),
+      },
+    ],
+    is_active: true,
+    timestamp: 1640995200,
+    tags: vec![
+      "benchmark".to_string(),
+      "test".to_string(),
+      "performance".to_string(),
+    ],
+  })
+}
+
+#[napi]
+unsafe fn create_bench_test_struct_to_json_string() -> Result<String> {
+  Ok(
+    serde_json::to_string(&bench_test_struct {
+      id: 100,
+      data: "test".to_string(),
+      metadata: Metadata {
+        version: "1.0.0".to_string(),
+        author: "test_user".to_string(),
+        created_at: 1640995200,
+        updated_at: 1640995200,
+        permissions: vec!["read".to_string(), "write".to_string()],
+      },
+      coordinates: vec![
+        Coordinate {
+          x: 1.0,
+          y: 2.0,
+          z: 3.0,
+          label: "origin".to_string(),
+        },
+        Coordinate {
+          x: 4.0,
+          y: 5.0,
+          z: 6.0,
+          label: "target".to_string(),
+        },
+      ],
+      is_active: true,
+      timestamp: 1640995200,
+      tags: vec![
+        "benchmark".to_string(),
+        "test".to_string(),
+        "performance".to_string(),
+      ],
+    })
+    .unwrap(),
+  )
+}
 
 #[napi]
 unsafe fn restore_pointer(env: Env, params: StorePointerParams) -> Result<Vec<JsUnknown>> {

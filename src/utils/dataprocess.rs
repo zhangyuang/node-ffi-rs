@@ -44,16 +44,16 @@ pub fn get_ffi_tag(obj: &IndexMap<String, RsArgsValue>) -> FFITypeTag {
     return FFITypeTag::Unknown;
   }
   if let Some(RsArgsValue::I32(ffitypetag)) = obj.get(FFI_TAG_FIELD) {
-    if ffitypetag == &FFITypeTag::Array.into() {
+    if ffitypetag == &FFITypeTag::Array.into() as &i32 {
       return FFITypeTag::Array;
     }
-    if ffitypetag == &FFITypeTag::StackStruct.into() {
+    if ffitypetag == &FFITypeTag::StackStruct.into() as &i32 {
       return FFITypeTag::StackStruct;
     }
-    if ffitypetag == &FFITypeTag::StackArray.into() {
+    if ffitypetag == &FFITypeTag::StackArray.into() as &i32 {
       return FFITypeTag::StackArray;
     }
-    if ffitypetag == &FFITypeTag::Function.into() {
+    if ffitypetag == &FFITypeTag::Function.into() as &i32 {
       return FFITypeTag::Function;
     }
     FFITypeTag::Unknown

@@ -37,13 +37,13 @@
     "README.md"
   ],
   "license": "MIT",
-  "dependencies": {},
   "devDependencies": {
     "@napi-rs/cli": "^2.15.2",
     "@types/node": "^20.8.7",
     "benny": "^3.7.1",
     "conventional-changelog-cli": "^4.1.0",
     "esno": "^4.7.0",
+    "ffi-napi": "^4.0.3",
     "koa": "^2.14.2",
     "shelljs": "^0.8.5",
     "typescript": "^5.4.5"
@@ -61,16 +61,16 @@
     "pub:alpha": "npm version prerelease --preid=alpha && git push origin master --tags"
   },
   "optionalDependencies": {
+    "@yuuang/ffi-rs-android-arm64": "1.0.55",
     "@yuuang/ffi-rs-darwin-arm64": "1.0.55",
     "@yuuang/ffi-rs-darwin-x64": "1.0.55",
-    "@yuuang/ffi-rs-linux-arm64-gnu": "1.0.55",
     "@yuuang/ffi-rs-linux-arm-gnueabihf": "1.0.55",
+    "@yuuang/ffi-rs-linux-arm64-gnu": "1.0.55",
     "@yuuang/ffi-rs-linux-arm64-musl": "1.0.55",
     "@yuuang/ffi-rs-linux-x64-gnu": "1.0.55",
     "@yuuang/ffi-rs-linux-x64-musl": "1.0.55",
-    "@yuuang/ffi-rs-win32-ia32-msvc": "1.0.55",
-    "@yuuang/ffi-rs-win32-x64-msvc": "1.0.55",
     "@yuuang/ffi-rs-win32-arm64-msvc": "1.0.55",
-    "@yuuang/ffi-rs-android-arm64": "1.0.55"
+    "@yuuang/ffi-rs-win32-ia32-msvc": "1.0.55",
+    "@yuuang/ffi-rs-win32-x64-msvc": "1.0.55"
   }
 }
