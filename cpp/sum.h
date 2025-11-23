@@ -1,6 +1,7 @@
 #ifndef EXAMPLE_H
 #define EXAMPLE_H
 #include <stdbool.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,6 +43,8 @@ typedef struct Person {
 } Person;
 
 extern  Person *getStruct(Person *person) { return person; };
+extern uint32_t testU32(uint32_t a, uint32_t b);
+extern uint32_t doubleU32(uint32_t input);
 #ifdef __cplusplus
 }
 #endif

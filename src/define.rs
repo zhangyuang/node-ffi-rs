@@ -123,6 +123,7 @@ pub enum DataType {
   I16 = 17,
   StructArray = 18,
   I16Array = 19,
+  U32 = 20,
 }
 #[derive(Debug, FromRepr)]
 pub enum BasicDataType {
@@ -139,6 +140,7 @@ pub enum BasicDataType {
   WString = 15,
   BigInt = 16,
   I16 = 17,
+  U32 = 20,
 }
 
 #[derive(Debug, FromRepr)]
@@ -207,6 +209,7 @@ impl RsArgsTrait for RsArgsValue {
           BasicDataType::Void => Type::void(),
           BasicDataType::External => Type::pointer(),
           BasicDataType::I16 => Type::i16(),
+          BasicDataType::U32 => Type::u32(),
         }
       }
       RsArgsValue::Object(obj_type) => {
@@ -237,6 +240,7 @@ pub enum RsArgsValue {
   I64(i64),
   BigInt(i64),
   U64(u64),
+  U32(u32),
   Float(f32),
   Double(f64),
   U8Array(Option<JsBufferValue>, Option<Vec<u8>>),
@@ -263,6 +267,7 @@ impl Clone for RsArgsValue {
       RsArgsValue::I64(i) => RsArgsValue::I64(*i),
       RsArgsValue::BigInt(u) => RsArgsValue::BigInt(*u),
       RsArgsValue::U64(u) => RsArgsValue::U64(*u),
+      RsArgsValue::U32(u) => RsArgsValue::U32(*u),
       RsArgsValue::Float(f) => RsArgsValue::Float(*f),
       RsArgsValue::Double(d) => RsArgsValue::Double(*d),
       RsArgsValue::I16Array(vec) => RsArgsValue::I16Array(vec.clone()),
@@ -290,6 +295,7 @@ impl PartialEq for RsArgsValue {
       (RsArgsValue::I32(a), RsArgsValue::I32(b)) => a == b,
       (RsArgsValue::I64(a), RsArgsValue::I64(b)) => a == b,
       (RsArgsValue::U64(a), RsArgsValue::U64(b)) => a == b,
+      (RsArgsValue::U32(a), RsArgsValue::U32(b)) => a == b,
       (RsArgsValue::BigInt(a), RsArgsValue::BigInt(b)) => a == b,
       (RsArgsValue::Float(a), RsArgsValue::Float(b)) => a == b,
       (RsArgsValue::Double(a), RsArgsValue::Double(b)) => a == b,
@@ -323,6 +329,7 @@ impl std::fmt::Debug for RsArgsValue {
       RsArgsValue::I32(i) => write!(f, "I32({})", i),
       RsArgsValue::I64(i) => write!(f, "I64({})", i),
       RsArgsValue::U64(i) => write!(f, "U64({})", i),
+      RsArgsValue::U32(i) => write!(f, "U32({})", i),
       RsArgsValue::BigInt(i) => write!(f, "BigInt({})", i),
       RsArgsValue::Float(d) => write!(f, "Float({})", d),
       RsArgsValue::Double(d) => write!(f, "Double({})", d),

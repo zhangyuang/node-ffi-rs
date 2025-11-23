@@ -82,6 +82,13 @@ unsafe fn free_struct_memory(
           offset += size + padding;
           field_size = size;
         }
+        BasicDataType::U32 => {
+          let (size, align) = get_size_align::<u32>();
+          let padding = (align - (offset % align)) % align;
+          field_ptr = field_ptr.offset(padding as isize);
+          offset += size + padding;
+          field_size = size;
+        }
         BasicDataType::I64 | BasicDataType::BigInt => {
           let (size, align) = get_size_align::<c_longlong>();
           let padding = (align - (offset % align)) % align;
@@ -334,6 +341,7 @@ pub unsafe fn free_rs_pointer_memory(ptr: *mut c_void, ptr_desc: &RsArgsValue) {
         BasicDataType::U8
         | BasicDataType::I16
         | BasicDataType::I32
+        | BasicDataType::U32
         | BasicDataType::I64
         | BasicDataType::BigInt
         | BasicDataType::U64

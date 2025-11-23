@@ -61,6 +61,14 @@ pub unsafe fn generate_c_struct(
         offset += size + padding;
         size
       }
+      RsArgsValue::U32(number) => {
+        let (size, align) = get_size_align::<u32>();
+        let padding = (align - (offset % align)) % align;
+        field_ptr = field_ptr.offset(padding as isize);
+        (field_ptr as *mut u32).write(number);
+        offset += size + padding;
+        size
+      }
       RsArgsValue::I64(number) | RsArgsValue::BigInt(number) => {
         let (size, align) = get_size_align::<c_longlong>();
         let padding = (align - (offset % align)) % align;

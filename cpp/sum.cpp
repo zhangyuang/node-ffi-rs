@@ -294,6 +294,16 @@ typedef struct {
 {
     return 0;
 }
+
+extern "C" uint32_t testU32(uint32_t a, uint32_t b)
+{
+    return a + b;
+}
+
+extern "C" uint32_t doubleU32(uint32_t input)
+{
+    return input * 2;
+}
 // typedef void (*CallbackType)(const char *);
 // extern "C" void call_callback_async() {
 //   dispatch_async(dispatch_get_main_queue(), ^{

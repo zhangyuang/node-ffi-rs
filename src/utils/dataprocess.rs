@@ -103,6 +103,10 @@ pub unsafe fn get_arg_values(
               let arg_val: i32 = create_js_value_unchecked::<JsNumber>(value)?.try_into()?;
               RsArgsValue::I32(arg_val)
             }
+            BasicDataType::U32 => {
+              let arg_val: u32 = create_js_value_unchecked::<JsNumber>(value)?.try_into()?;
+              RsArgsValue::U32(arg_val)
+            }
             BasicDataType::I64 => {
               let arg_val: i64 = create_js_value_unchecked::<JsNumber>(value)?.try_into()?;
               RsArgsValue::I64(arg_val)
@@ -298,6 +302,7 @@ pub unsafe fn get_value_pointer(
           Ok(Box::into_raw(Box::new(val)) as *mut c_void)
         }
         RsArgsValue::U64(val) => Ok(Box::into_raw(Box::new(val)) as *mut c_void),
+        RsArgsValue::U32(val) => Ok(Box::into_raw(Box::new(val)) as *mut c_void),
         RsArgsValue::String(val) => {
           let c_string = string_to_c_string(val);
           let ptr = c_string.as_ptr();
@@ -637,6 +642,11 @@ pub unsafe fn get_params_value_rs_struct(
                 let val: i64 = val.try_into()?;
                 RsArgsValue::U64(val as u64)
               }
+              DataType::U32 => {
+                let val: JsNumber = params_value_object.get_named_property(&field)?;
+                let val: i64 = val.try_into()?;
+                RsArgsValue::U32(val as u32)
+              }
               DataType::Boolean => {
                 let val: JsBoolean = params_value_object.get_named_property(&field)?;
                 let val: bool = val.get_value()?;
@@ -841,6 +851,7 @@ pub unsafe fn get_js_unknown_from_pointer(
         BasicDataType::I32 => rs_value_to_js_unknown(env, RsArgsValue::I32(*(ptr as *mut i32))),
         BasicDataType::I64 => rs_value_to_js_unknown(env, RsArgsValue::I64(*(ptr as *mut i64))),
         BasicDataType::U64 => rs_value_to_js_unknown(env, RsArgsValue::U64(*(ptr as *mut u64))),
+        BasicDataType::U32 => rs_value_to_js_unknown(env, RsArgsValue::U32(*(ptr as *mut u32))),
         BasicDataType::BigInt => {
           rs_value_to_js_unknown(env, RsArgsValue::BigInt(*(ptr as *mut i64)))
         }
@@ -952,6 +963,7 @@ unsafe fn write_rs_ptr_to_c(ret_type: &RsArgsValue, src: *mut c_void, dst: *mut 
           std::ptr::copy(src, dst, std::mem::size_of::<i64>());
         }
         BasicDataType::U64 => std::ptr::copy(src, dst, std::mem::size_of::<u64>()),
+        BasicDataType::U32 => std::ptr::copy(src, dst, std::mem::size_of::<u32>()),
         BasicDataType::Float => std::ptr::copy(src, dst, std::mem::size_of::<f32>()),
         BasicDataType::Double => std::ptr::copy(src, dst, std::mem::size_of::<f64>()),
         BasicDataType::Boolean => std::ptr::copy(src, dst, std::mem::size_of::<bool>()),
@@ -966,6 +978,7 @@ unsafe fn write_rs_ptr_to_c(ret_type: &RsArgsValue, src: *mut c_void, dst: *mut 
         | BasicDataType::I64
         | BasicDataType::BigInt
         | BasicDataType::U64
+        | BasicDataType::U32
         | BasicDataType::Float
         | BasicDataType::Double
         | BasicDataType::Boolean => {

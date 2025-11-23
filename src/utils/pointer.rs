@@ -3,7 +3,7 @@ use super::object_utils::calculate_struct_size;
 use crate::define::*;
 use libffi_sys::{
   ffi_type, ffi_type_double, ffi_type_enum_STRUCT, ffi_type_float, ffi_type_pointer,
-  ffi_type_sint16, ffi_type_sint32, ffi_type_sint64, ffi_type_uint64, ffi_type_uint8,
+  ffi_type_sint16, ffi_type_sint32, ffi_type_sint64, ffi_type_uint32, ffi_type_uint64, ffi_type_uint8,
   ffi_type_void,
 };
 pub unsafe fn get_ffi_type(ret_type_rs: &RsArgsValue) -> Box<ffi_type> {
@@ -14,6 +14,7 @@ pub unsafe fn get_ffi_type(ret_type_rs: &RsArgsValue) -> Box<ffi_type> {
         BasicDataType::U8 => Box::new(ffi_type_uint8),
         BasicDataType::I32 => Box::new(ffi_type_sint32),
         BasicDataType::I16 => Box::new(ffi_type_sint16),
+        BasicDataType::U32 => Box::new(ffi_type_uint32),
         BasicDataType::I64 | BasicDataType::BigInt => Box::new(ffi_type_sint64),
         BasicDataType::U64 => Box::new(ffi_type_uint64),
         BasicDataType::String | BasicDataType::WString => Box::new(ffi_type_pointer),

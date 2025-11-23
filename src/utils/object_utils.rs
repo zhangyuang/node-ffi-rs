@@ -26,6 +26,7 @@ macro_rules! calculate_layout_for {
 calculate_layout_for!(calculate_u8, c_uchar);
 calculate_layout_for!(calculate_i16, c_short);
 calculate_layout_for!(calculate_i32, c_int);
+calculate_layout_for!(calculate_u32, u32);
 calculate_layout_for!(calculate_i64, c_longlong);
 calculate_layout_for!(calculate_float, c_float);
 calculate_layout_for!(calculate_double, c_double);
@@ -47,6 +48,7 @@ pub fn calculate_struct_size(struct_type: &IndexMap<String, RsArgsValue>) -> (us
           BasicDataType::U8 => calculate_u8(size, align, offset),
           BasicDataType::I16 => calculate_i16(size, align, offset),
           BasicDataType::I32 => calculate_i32(size, align, offset),
+          BasicDataType::U32 => calculate_u32(size, align, offset),
           BasicDataType::I64 | BasicDataType::U64 | BasicDataType::BigInt => {
             calculate_i64(size, align, offset)
           }

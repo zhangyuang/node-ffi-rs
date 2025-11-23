@@ -77,6 +77,7 @@ $ npm i ffi-rs
 * [i64](#基本类型)
 * [bigInt](#基本类型)
 * [u64](#基本类型)
+* [u32](#基本类型)
 * [void](#基本类型)(类似js的undefined)
 * [float](#基本类型)
 * [double](#基本类型)
@@ -156,6 +157,7 @@ extern "C" const char *concatenateStrings(const char *str1, const char *str2) {
 
 extern "C" void noRet() { printf("%s", "hello world"); }
 extern "C" bool return_opposite(bool input) { return !input; }
+extern "C" uint32_t testU32(uint32_t a, uint32_t b) { return a + b; }
 
 ```
 
@@ -286,6 +288,15 @@ equal(!bool_val, load({
     retType: DataType.Boolean,
     paramsType: [DataType.Boolean],
     paramsValue: [bool_val],
+}))
+
+// U32 类型用法
+equal(3147483647, load({
+    library: 'libsum',
+    funcName: 'testU32',
+    retType: DataType.U32,
+    paramsType: [DataType.U32, DataType.U32],
+    paramsValue: [2147483647, 1000000000],
 }))
 ```
 
