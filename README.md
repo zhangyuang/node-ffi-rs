@@ -538,7 +538,7 @@ To create a C struct or get a C struct as a return type, you need to define the 
 
 `ffi-rs` provides a C struct named `Person` with many types of fields in [sum.cpp](./cpp/sum.cpp#L48)
 
-The example call method about how to call a foreign function to create a `Person` struct or use `Person` struct as a return value is [here](./test.ts#L289)
+The example call method about how to call a foreign function to create a `Person` struct or use `Person` struct as a return value is [here](./tests/struct.ts#L27)
 
 #### Use array in struct
 
@@ -769,7 +769,7 @@ If you set freeResultMemory to false, `ffi-rs` will not release the return resul
 
 * Use `DataType.External` as paramsType or retType
 
-If developers use `DataType.External` as paramsType or retType, please use `freePointer` to release the memory of the pointer when this memory is no longer in use. ref [test.ts](./test.ts#L170)
+If developers use `DataType.External` as paramsType or retType, please use `freePointer` to release the memory of the pointer when this memory is no longer in use. ref [tests/index.ts](./tests/index.ts#L212)
 
 ## runInNewThread
 
