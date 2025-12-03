@@ -1,7 +1,7 @@
 # ffi-rs
 
 <div>
-<a href="https://github.com/zhangyuang/node-ffi-rs/blob/master/README.md">English</a> | <a href="https://github.com/zhangyuang/node-ffi-rs/blob/master/README_Zh.md">简体中文</a>
+<a href="./README.md">English</a> | <a href="./README_Zh.md">简体中文</a>
 </div>
 
 A module written in Rust and N-API provides interface (FFI) features for Node.js
@@ -536,9 +536,9 @@ freePointer({
 
 To create a C struct or get a C struct as a return type, you need to define the types of the parameters strictly in the order in which the fields of the C structure are defined.
 
-`ffi-rs` provides a C struct named `Person` with many types of fields in [sum.cpp](https://github.com/zhangyuang/node-ffi-rs/blob/master/cpp/sum.cpp#L48)
+`ffi-rs` provides a C struct named `Person` with many types of fields in [sum.cpp](./cpp/sum.cpp#L48)
 
-The example call method about how to call a foreign function to create a `Person` struct or use `Person` struct as a return value is [here](https://github.com/zhangyuang/node-ffi-rs/blob/master/test.ts#L289)
+The example call method about how to call a foreign function to create a `Person` struct or use `Person` struct as a return value is [here](./test.ts#L289)
 
 #### Use array in struct
 
@@ -769,7 +769,7 @@ If you set freeResultMemory to false, `ffi-rs` will not release the return resul
 
 * Use `DataType.External` as paramsType or retType
 
-If developers use `DataType.External` as paramsType or retType, please use `freePointer` to release the memory of the pointer when this memory is no longer in use. ref [test.ts](./test.ts#170)
+If developers use `DataType.External` as paramsType or retType, please use `freePointer` to release the memory of the pointer when this memory is no longer in use. ref [test.ts](./test.ts#L170)
 
 ## runInNewThread
 

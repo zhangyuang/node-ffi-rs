@@ -1,7 +1,7 @@
 # ffi-rs
 
 <div>
-<a href="https://github.com/zhangyuang/node-ffi-rs/blob/master/README.md">English</a> | <a href="https://github.com/zhangyuang/node-ffi-rs/blob/master/README_Zh.md">简体中文</a>
+<a href="./README.md">English</a> | <a href="./README_Zh.md">简体中文</a>
 </div>
 
 一个用Rust和N-API编写的模块, 为Node.js提供外部函数接口(FFI)功能，中文文档的更新不一定及时，建议阅读[英文文档](./README.md)以便获取最新的信息
@@ -518,7 +518,7 @@ deepStrictEqual(restoreData, [
 
 * 使用`DataType.External`作为paramsType或retType
 
-如果开发者使用 `DataType.External` 作为paramsType或retType, 请使用 `freePointer` 释放指针的内存。参考[test.ts](./test.ts#170)
+如果开发者使用 `DataType.External` 作为paramsType或retType, 请使用 `freePointer` 释放指针的内存。参考[test.ts](./test.ts#L170)
 
 #### wrapPointer
 
@@ -566,9 +566,9 @@ const unwrapPtr = unwrapPointer([ptr])[0]
 
 要创建c结构体或获取c结构体作为返回类型, 你需要严格按照c结构体字段定义的顺序定义参数类型。
 
-`ffi-rs` 在[sum.cpp](https://github.com/zhangyuang/node-ffi-rs/blob/master/cpp/sum.cpp#L48)中提供了一个名为 `Person` 的c结构体, 包含多种类型的字段
+`ffi-rs` 在[sum.cpp](./cpp/sum.cpp#L48)中提供了一个名为 `Person` 的c结构体, 包含多种类型的字段
 
-关于如何调用外部函数来创建 `Person` 结构体或使用 `Person` 结构体作为返回值的示例调用方法在[这里](https://github.com/zhangyuang/node-ffi-rs/blob/master/test.ts#L289)
+关于如何调用外部函数来创建 `Person` 结构体或使用 `Person` 结构体作为返回值的示例调用方法在[这里](./test.ts#L289)
 
 #### 在结构体中使用数组
 
@@ -800,7 +800,7 @@ load({
 
 * 使用`DataType.External`作为paramsType或retType
 
-如果开发者使用 `DataType.External` 作为paramsType或retType, 请在不再使用此内存时使用 `freePointer` 释放指针的内存。参考[test.ts](./test.ts#170)
+如果开发者使用 `DataType.External` 作为paramsType或retType, 请在不再使用此内存时使用 `freePointer` 释放指针的内存。参考[test.ts](./test.ts#L170)
 
 ## runInNewThread
 
