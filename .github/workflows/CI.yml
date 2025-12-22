@@ -24,7 +24,7 @@ jobs:
       fail-fast: false
       matrix:
         settings:
-          - host: macos-13
+          - host: macos-latest
             target: x86_64-apple-darwin
             build: |
               rustup -V
@@ -47,10 +47,13 @@ jobs:
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:stable-2023-09-17-x64
             build: |-
               set -e &&
+              curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y &&
+              . /usr/local/cargo/env &&
+              rustup update stable &&
               target=x86_64-unknown-linux-gnu yarn build &&
               strip *.node && yarn test &&
               ls
-          - host: macos-13
+          - host: macos-latest
             target: aarch64-apple-darwin
             build: |
               uname -a &&
@@ -62,6 +65,10 @@ jobs:
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:stable-2023-09-17-aarch64
             build: |-
               set -e &&
+              curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y &&
+              . /usr/local/cargo/env &&
+              rustup update stable &&
+              rustup target add aarch64-unknown-linux-gnu &&
               uname -a &&
               apt-get update &&
               apt-get install gcc-aarch64-linux-gnu -y &&
@@ -133,7 +140,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         if: ${{ !matrix.settings.docker }}
         with:
-          toolchain: 1.73.0
+          toolchain: 1.88.0
           targets: ${{ matrix.settings.target }}
       - name: Cache cargo
         uses: actions/cache@v4
