@@ -14,10 +14,10 @@ use std::collections::HashMap;
 use std::ffi::c_void;
 use std::rc::Rc;
 use utils::dataprocess::{
-  get_arg_values, get_js_external_wrap_data, get_js_unknown_from_pointer,
-  get_value_pointer, type_define_to_rs_args,
+  get_arg_values, get_js_external_wrap_data, get_js_unknown_from_pointer, get_value_pointer,
+  type_define_to_rs_args,
 };
-use utils::pointer::get_ffi_type;
+use utils::pointer::get_ffi_type_cached;
 
 static mut LIBRARY_MAP: Option<
   HashMap<
@@ -229,18 +229,18 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
   );
   let mut arg_types: Vec<*mut ffi_type> = params_type_rs
     .iter()
-    .map(|arg| Box::into_raw(get_ffi_type(arg)))
+    .map(|arg| get_ffi_type_cached(arg))
     .collect();
   let arg_values = get_arg_values(Rc::clone(&params_type_rs), params_value)?;
   let mut arg_values_c_void = get_value_pointer(&env, Rc::clone(&params_type_rs), arg_values)?;
   let ret_type_rs = type_define_to_rs_args(&env, ret_type)?;
-  let mut r_type = get_ffi_type(&ret_type_rs);
+  let r_type = get_ffi_type_cached(&ret_type_rs);
 
   let mut cif = ffi_cif {
     abi: ffi_abi_FFI_DEFAULT_ABI,
     nargs: params_type_len as u32,
     arg_types: arg_types.as_mut_ptr(),
-    rtype: &mut *r_type,
+    rtype: r_type,
     bytes: 0,
     flags: 0,
     #[cfg(all(target_arch = "aarch64", target_os = "windows"))]
@@ -261,7 +261,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
     &mut cif,
     ffi_abi_FFI_DEFAULT_ABI,
     params_type_len as u32,
-    &mut *r_type,
+    r_type,
     arg_types.as_mut_ptr(),
   );
   if run_in_new_thread == Some(true) {
@@ -309,9 +309,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
           if free_result_memory {
             free_c_pointer_memory(output.0, &ret_type_rs);
           }
-          arg_types.into_iter().for_each(|arg| {
-            let _ = Box::from_raw(*arg);
-          });
+          // Note: arg_types are cached and should NOT be freed
           arg_values_c_void
             .into_iter()
             .zip(params_type_rs.iter())
@@ -342,9 +340,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
   } else {
     let result = &mut () as *mut _ as *mut c_void;
     ffi_call(&mut cif, Some(func), result, arg_values_c_void.as_mut_ptr());
-    arg_types.into_iter().for_each(|arg| {
-      let _ = Box::from_raw(arg);
-    });
+    // Note: arg_types are cached and should NOT be freed
     let call_result = get_js_unknown_from_pointer(&env, &ret_type_rs, result);
     if free_result_memory {
       free_c_pointer_memory(result, &ret_type_rs);

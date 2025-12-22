@@ -6,6 +6,7 @@ use crate::{RefDataType, RsArgsValue, FFIARRARYDESC};
 use indexmap::IndexMap;
 use std::ffi::{c_char, c_double, c_float, c_int, c_longlong, c_short, c_uchar, c_void};
 use widestring::WideChar;
+
 pub fn get_size_align<T: Sized>() -> (usize, usize) {
   (std::mem::size_of::<T>(), std::mem::align_of::<T>())
 }
@@ -37,6 +38,13 @@ calculate_layout_for!(calculate_w_string, *const WideChar);
 calculate_layout_for!(calculate_pointer, *const c_void);
 
 pub fn calculate_struct_size(struct_type: &IndexMap<String, RsArgsValue>) -> (usize, usize) {
+  // Check cache first
+  let hash = compute_struct_type_hash(struct_type);
+  let cached = STRUCT_LAYOUT_CACHE.with(|cache| cache.borrow().get(&hash).copied());
+  if let Some(layout) = cached {
+    return (layout.size, layout.align);
+  }
+
   let (mut size, align, _) = struct_type.iter().fold(
     (0, 0, 0),
     |(size, align, offset), (field_name, field_type)| {
@@ -107,6 +115,14 @@ pub fn calculate_struct_size(struct_type: &IndexMap<String, RsArgsValue>) -> (us
     0
   };
   size += padding;
+
+  // Cache the result
+  STRUCT_LAYOUT_CACHE.with(|cache| {
+    cache
+      .borrow_mut()
+      .insert(hash, StructLayout { size, align });
+  });
+
   (size, align)
 }
 
