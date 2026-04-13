@@ -268,3 +268,7 @@ yuuangtest
 **/*.DS_Store
 core
 vgcore.**
+
+# test api_main files
+tests/test_api_main.cpp
+tests/test_api_main.ts

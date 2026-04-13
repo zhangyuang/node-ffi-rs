@@ -271,24 +271,28 @@ packages:
     engines: {node: '>= 12'}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@yuuang/ffi-rs-linux-arm64-musl@1.0.55':
     resolution: {integrity: sha512-1vaX9hzYj9cZGG2qvMhuE9rrSVh5P6+veC38njuXsQVa+ndaFkiqmWGJzMmF098nNBbDpptXL4at7wEgLoSsaA==}
     engines: {node: '>= 12'}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@yuuang/ffi-rs-linux-x64-gnu@1.0.55':
     resolution: {integrity: sha512-M78vTlsJXtFfLLIxHie++OXRLQ3RkYBQScvC4SOL8d/6aXNq8S9IlmhxK/ivIQkePg946lYQknjrLFcVD/SvBQ==}
     engines: {node: '>= 12'}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@yuuang/ffi-rs-linux-x64-musl@1.0.55':
     resolution: {integrity: sha512-HpHtDjEx1YHVt2hUaBHdfiV9C71Y5ohPZnTqdZhJ8zO13PecNlml99lz+XU7o/k1eRiw74SjpHZqOb+rsAVCSw==}
     engines: {node: '>= 12'}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@yuuang/ffi-rs-win32-ia32-msvc@1.0.55':
     resolution: {integrity: sha512-zt3mCHAK7wFJEe9a73KXmqxGY56ofLU7bMbXt3x+eP+RwJ2ATDsvmNA5MBjeXq+Z7mG2TWMSfg+hiJ7qq+prNA==}
