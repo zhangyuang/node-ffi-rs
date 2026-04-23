@@ -456,3 +456,64 @@ impl From<FFITypeTag> for i32 {
 }
 
 pub static mut CLOSURE_MAP: Option<HashMap<*mut c_void, *mut c_void>> = None;
+
+// Struct layout cache for performance optimization
+use std::cell::RefCell;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::Hasher;
+
+#[derive(Clone, Copy, Debug)]
+pub struct StructLayout {
+  pub size: usize,
+  pub align: usize,
+}
+
+thread_local! {
+  pub static STRUCT_LAYOUT_CACHE: RefCell<HashMap<u64, StructLayout>> = RefCell::new(HashMap::new());
+  pub static FFI_TYPE_CACHE: RefCell<HashMap<u64, *mut ffi_type>> = RefCell::new(HashMap::new());
+}
+
+/// Compute a hash for a struct type definition based on field names and types
+pub fn compute_struct_type_hash(struct_type: &IndexMap<String, RsArgsValue>) -> u64 {
+  let mut hasher = DefaultHasher::new();
+  for (field_name, field_type) in struct_type.iter() {
+    field_name.hash(&mut hasher);
+    hash_rs_args_value(field_type, &mut hasher);
+  }
+  hasher.finish()
+}
+
+fn hash_rs_args_value(value: &RsArgsValue, hasher: &mut DefaultHasher) {
+  match value {
+    RsArgsValue::I32(n) => {
+      0u8.hash(hasher);
+      n.hash(hasher);
+    }
+    RsArgsValue::Object(map) => {
+      1u8.hash(hasher);
+      for (k, v) in map.iter() {
+        k.hash(hasher);
+        hash_rs_args_value(v, hasher);
+      }
+    }
+    RsArgsValue::String(s) => {
+      2u8.hash(hasher);
+      s.hash(hasher);
+    }
+    RsArgsValue::Boolean(b) => {
+      3u8.hash(hasher);
+      b.hash(hasher);
+    }
+    _ => {
+      // For other types, use a discriminant
+      255u8.hash(hasher);
+    }
+  }
+}
+
+/// Compute a hash for an RsArgsValue type definition (for FFI type caching)
+pub fn compute_rs_args_hash(value: &RsArgsValue) -> u64 {
+  let mut hasher = DefaultHasher::new();
+  hash_rs_args_value(value, &mut hasher);
+  hasher.finish()
+}
