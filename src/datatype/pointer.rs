@@ -367,7 +367,9 @@ pub unsafe fn free_rs_pointer_memory(ptr: *mut c_void, ptr_desc: &RsArgsValue) {
           ..
         } = array_desc;
         match array_type {
-          RefDataType::U8Array => {}
+          RefDataType::U8Array => {
+            let _ = Box::from_raw(ptr as *mut *mut u8);
+          }
           RefDataType::I16Array => {
             free_dynamic_array::<i16>(ptr, array_len);
             free(ptr);
@@ -431,6 +433,7 @@ pub unsafe fn free_rs_pointer_memory(ptr: *mut c_void, ptr_desc: &RsArgsValue) {
             dealloc(*(ptr as *mut *mut u8), layout);
           } else {
             free_struct_memory(ptr, obj, PointerType::RsPointer);
+            dealloc(ptr as *mut u8, layout);
           }
         }
       }
