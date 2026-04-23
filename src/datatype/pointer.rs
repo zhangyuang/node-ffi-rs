@@ -433,7 +433,6 @@ pub unsafe fn free_rs_pointer_memory(ptr: *mut c_void, ptr_desc: &RsArgsValue) {
             dealloc(*(ptr as *mut *mut u8), layout);
           } else {
             free_struct_memory(ptr, obj, PointerType::RsPointer);
-            dealloc(ptr as *mut u8, layout);
           }
         }
       }

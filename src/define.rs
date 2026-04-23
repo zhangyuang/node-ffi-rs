@@ -377,7 +377,11 @@ pub struct FFICALLPARAMS {
   pub free_result_memory: bool,
   pub params_type_rs: Rc<Vec<RsArgsValue>>,
 }
-pub struct BarePointerWrap(pub *mut c_void);
+pub struct BarePointerWrap {
+  pub data: *mut c_void,
+  pub errno_code: i32,
+  pub errno_message: String,
+}
 unsafe impl Send for FFICALL {}
 unsafe impl Send for BarePointerWrap {}
 

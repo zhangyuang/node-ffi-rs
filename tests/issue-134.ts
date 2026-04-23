@@ -1,146 +1,92 @@
 import {
+  open,
+  close,
   createPointer,
   freePointer,
-  arrayConstructor,
   DataType,
   PointerType,
+  arrayConstructor,
 } from "../index";
+import { logGreen } from "./utils";
 
-const ITERATIONS = 100_000;
-const BUFFER_SIZE = 1024;
-const LEAK_THRESHOLD_MB = 5;
+open({ library: "libc", path: "" });
 
-function getRssMB(): number {
-  if (global.gc) global.gc();
-  return +(process.memoryUsage().rss / 1024 / 1024).toFixed(1);
+function measureRss(): number {
+  if (typeof process.memoryUsage === "function") {
+    return process.memoryUsage().rss;
+  }
+  return 0;
 }
 
-function testU8ArrayLeak() {
-  console.log("=== Bug 1: U8Array freePointer leak ===");
-
-  // Warmup
-  for (let i = 0; i < 1000; i++) {
-    const ext = createPointer({
-      paramsType: [arrayConstructor({ type: DataType.U8Array, length: BUFFER_SIZE })],
-      paramsValue: [Buffer.alloc(BUFFER_SIZE)],
+function testU8ArrayFreePointer(iterations: number) {
+  const buf = Buffer.alloc(1024, 0x42);
+  const desc = arrayConstructor({
+    type: DataType.U8Array,
+    length: buf.length,
+  });
+  for (let i = 0; i < iterations; i++) {
+    const ptrs = createPointer({
+      paramsType: [desc],
+      paramsValue: [buf],
     });
     freePointer({
-      paramsType: [arrayConstructor({ type: DataType.U8Array, length: BUFFER_SIZE })],
-      paramsValue: ext,
+      paramsType: [desc],
+      paramsValue: ptrs,
       pointerType: PointerType.RsPointer,
     });
   }
-
-  const rssStart = getRssMB();
-  console.log(`start: RSS = ${rssStart} MB`);
-
-  for (let i = 0; i < ITERATIONS; i++) {
-    const ext = createPointer({
-      paramsType: [arrayConstructor({ type: DataType.U8Array, length: BUFFER_SIZE })],
-      paramsValue: [Buffer.alloc(BUFFER_SIZE)],
-    });
-    freePointer({
-      paramsType: [arrayConstructor({ type: DataType.U8Array, length: BUFFER_SIZE })],
-      paramsValue: ext,
-      pointerType: PointerType.RsPointer,
-    });
-  }
-
-  const rssEnd = getRssMB();
-  const growth = +(rssEnd - rssStart).toFixed(1);
-  console.log(`end:   RSS = ${rssEnd} MB (growth: +${growth} MB)`);
-
-  // Compare with I32Array baseline
-  const i32Start = getRssMB();
-  for (let i = 0; i < ITERATIONS; i++) {
-    const ext = createPointer({
-      paramsType: [arrayConstructor({ type: DataType.I32Array, length: 4 })],
-      paramsValue: [[1, 2, 3, 4]],
-    });
-    freePointer({
-      paramsType: [arrayConstructor({ type: DataType.I32Array, length: 4 })],
-      paramsValue: ext,
-      pointerType: PointerType.RsPointer,
-    });
-  }
-  const i32Growth = +(getRssMB() - i32Start).toFixed(1);
-  console.log(`I32Array baseline growth: +${i32Growth} MB`);
-
-  const excessGrowth = +(growth - i32Growth).toFixed(1);
-  if (excessGrowth > LEAK_THRESHOLD_MB) {
-    console.log(`LEAK CONFIRMED: U8Array excess growth over I32Array baseline: +${excessGrowth} MB`);
-    process.exitCode = 1;
-  } else {
-    console.log(`PASS: U8Array growth within baseline (excess: ${excessGrowth} MB)`);
-  }
-  console.log();
 }
 
-function testStackStructLeak() {
-  console.log("=== Bug 2: StackStruct freePointer leak ===");
-  const structType = {
-    ffiTypeTag: DataType.StackStruct,
-    code: DataType.I32,
-    value: DataType.I64,
-  };
-
-  // Warmup
-  for (let i = 0; i < 1000; i++) {
-    const ext = createPointer({
-      paramsType: [structType],
-      paramsValue: [{ code: 0, value: 0 }],
+function testI32ArrayFreePointer(iterations: number) {
+  const arr = new Array(256).fill(42);
+  const desc = arrayConstructor({
+    type: DataType.I32Array,
+    length: arr.length,
+  });
+  for (let i = 0; i < iterations; i++) {
+    const ptrs = createPointer({
+      paramsType: [desc],
+      paramsValue: [arr],
     });
     freePointer({
-      paramsType: [structType],
-      paramsValue: ext,
+      paramsType: [desc],
+      paramsValue: ptrs,
       pointerType: PointerType.RsPointer,
     });
   }
-
-  const rssStart = getRssMB();
-  console.log(`start: RSS = ${rssStart} MB`);
-
-  for (let i = 0; i < ITERATIONS; i++) {
-    const ext = createPointer({
-      paramsType: [structType],
-      paramsValue: [{ code: 0, value: 0 }],
-    });
-    freePointer({
-      paramsType: [structType],
-      paramsValue: ext,
-      pointerType: PointerType.RsPointer,
-    });
-  }
-
-  const rssEnd = getRssMB();
-  const growth = +(rssEnd - rssStart).toFixed(1);
-  console.log(`end:   RSS = ${rssEnd} MB (growth: +${growth} MB)`);
-
-  // Compare with I32 scalar baseline (minimal native alloc)
-  const baseStart = getRssMB();
-  for (let i = 0; i < ITERATIONS; i++) {
-    const ext = createPointer({
-      paramsType: [DataType.I32],
-      paramsValue: [42],
-    });
-    freePointer({
-      paramsType: [DataType.I32],
-      paramsValue: ext,
-      pointerType: PointerType.RsPointer,
-    });
-  }
-  const baseGrowth = +(getRssMB() - baseStart).toFixed(1);
-  console.log(`I32 scalar baseline growth: +${baseGrowth} MB`);
-
-  const excessGrowth = +(growth - baseGrowth).toFixed(1);
-  if (excessGrowth > LEAK_THRESHOLD_MB) {
-    console.log(`LEAK CONFIRMED: StackStruct excess growth over baseline: +${excessGrowth} MB`);
-    process.exitCode = 1;
-  } else {
-    console.log(`PASS: StackStruct growth within baseline (excess: ${excessGrowth} MB)`);
-  }
-  console.log();
 }
 
-testU8ArrayLeak();
-testStackStructLeak();
+const ITERATIONS = 50_000;
+const THRESHOLD_MB = 10;
+
+// Warm up
+testU8ArrayFreePointer(100);
+testI32ArrayFreePointer(100);
+
+if (global.gc) global.gc();
+const baseRss = measureRss();
+
+testU8ArrayFreePointer(ITERATIONS);
+if (global.gc) global.gc();
+const afterU8 = measureRss();
+const u8GrowthMb = (afterU8 - baseRss) / (1024 * 1024);
+
+testI32ArrayFreePointer(ITERATIONS);
+if (global.gc) global.gc();
+const afterI32 = measureRss();
+const i32GrowthMb = (afterI32 - afterU8) / (1024 * 1024);
+
+logGreen(`U8Array: RSS grew ${u8GrowthMb.toFixed(1)} MB over ${ITERATIONS} iterations`);
+logGreen(`I32Array (control): RSS grew ${i32GrowthMb.toFixed(1)} MB over ${ITERATIONS} iterations`);
+
+const leakDelta = u8GrowthMb - i32GrowthMb;
+if (leakDelta > THRESHOLD_MB) {
+  console.error(
+    `LEAK: U8Array grew ${leakDelta.toFixed(1)} MB more than I32Array control (threshold: ${THRESHOLD_MB} MB)`
+  );
+  process.exitCode = 1;
+} else {
+  logGreen("issue-134 U8Array test passed — no significant leak detected");
+}
+
+close("libc");

@@ -273,6 +273,7 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
         let FFICALLPARAMS {
           mut cif,
           fn_pointer,
+          errno,
           ..
         } = self.data;
 
@@ -287,7 +288,13 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
             result,
             arg_values_c_void.as_mut_ptr(),
           );
-          Ok(BarePointerWrap(result))
+          let (errno_code, errno_message) = if let Some(true) = errno {
+            let last_error = std::io::Error::last_os_error();
+            (last_error.raw_os_error().unwrap_or(0), last_error.to_string())
+          } else {
+            (0, String::new())
+          };
+          Ok(BarePointerWrap { data: result, errno_code, errno_message })
         }
       }
 
@@ -305,9 +312,9 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
           ..
         } = &mut self.data;
         unsafe {
-          let call_result = get_js_unknown_from_pointer(&env, &ret_type_rs, output.0);
+          let call_result = get_js_unknown_from_pointer(&env, &ret_type_rs, output.data);
           if free_result_memory {
-            free_c_pointer_memory(output.0, &ret_type_rs);
+            free_c_pointer_memory(output.data, &ret_type_rs);
           }
           arg_types.into_iter().for_each(|arg| {
             let _ = Box::from_raw(*arg);
@@ -318,9 +325,13 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
             .for_each(|(ptr, ptr_desc)| {
               free_rs_pointer_memory(*ptr, ptr_desc);
             });
-          libc::free(output.0);
+          libc::free(output.data);
           if let Some(true) = errno {
-            add_errno(&env, call_result?)
+            let mut obj = env.create_object()?;
+            obj.set_named_property("errnoCode", env.create_int32(output.errno_code)?)?;
+            obj.set_named_property("errnoMessage", env.create_string(&output.errno_message)?)?;
+            obj.set_named_property("value", call_result?)?;
+            Ok(obj.into_unknown())
           } else {
             call_result
           }
