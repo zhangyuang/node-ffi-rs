@@ -146,9 +146,9 @@ jobs:
     name: stable - ${{ matrix.settings.target }} - node@18
     runs-on: ${{ matrix.settings.host }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Setup node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         if: ${{ !matrix.settings.docker }}
         with:
           node-version: 18
@@ -161,7 +161,7 @@ jobs:
           toolchain: 1.88.0
           targets: ${{ matrix.settings.target }}
       - name: Cache cargo
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry/index/
@@ -196,7 +196,7 @@ jobs:
       - name: Install dependencies
         run: node scripts/preinstall.js && yarn add esno@^4.0.0 shelljs@^0.8.5 @napi-rs/cli@^2.15.2 --registry https://registry.npmjs.org/ --prod
       - name: Setup node x86
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         if: matrix.settings.target == 'i686-pc-windows-msvc'
         with:
           node-version: 18
@@ -214,7 +214,7 @@ jobs:
         if: ${{ !matrix.settings.docker }}
         shell: bash
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: bindings-${{ matrix.settings.target }}
           path: |
@@ -243,15 +243,15 @@ jobs:
           - "18"
     runs-on: ${{ matrix.settings.host }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Setup node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
           check-latest: true
 
       - name: Setup node x86
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         if: matrix.settings.target == 'i686-pc-windows-msvc'
         with:
           node-version: 18
@@ -266,7 +266,7 @@ jobs:
       - name: Install dependencies
         run: node scripts/preinstall.js && yarn add esno@^4.0.0 shelljs@^0.8.5 @napi-rs/cli@^2.15.2 --registry https://registry.npmjs.org/ --prod
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: bindings-${{ matrix.settings.target }}
           path: .
@@ -286,9 +286,9 @@ jobs:
           - "18"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Setup node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
           check-latest: true
@@ -296,7 +296,7 @@ jobs:
       - name: Install dependencies
         run: node scripts/preinstall.js && yarn add esno@^4.0.0 shelljs@^0.8.5 @napi-rs/cli@^2.15.2 --registry https://registry.npmjs.org/ --prod
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: bindings-x86_64-unknown-linux-gnu
           path: .
@@ -313,9 +313,9 @@ jobs:
       - test-linux-x64-gnu-binding
       - test-windows-binding
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Setup node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 18
           check-latest: true
@@ -323,7 +323,7 @@ jobs:
       - name: Install dependencies
         run: node scripts/preinstall.js && yarn add esno@^4.0.0 shelljs@^0.8.5 @napi-rs/cli@^2.15.2 --registry https://registry.npmjs.org/ --prod
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           path: artifacts
       - name: Move artifacts
