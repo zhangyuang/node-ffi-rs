@@ -14,7 +14,7 @@ const isPreReleaseVersion = () => {
 
 const publishPackage = (path) => {
   const tag = isPreReleaseVersion() ? `--tag alpha` : '';
-  execSync(`npm publish ${tag}`, { cwd: path, stdio: 'inherit' });
+  execSync(`npm publish ${tag} --access public`, { cwd: path, stdio: 'inherit' });
 };
 const optionalDependencies = {}
 const publishSubpackages = async () => {
@@ -50,5 +50,5 @@ publishSubpackages().then(async () => {
   })
   .catch(err => {
     console.error(`Publish failed: ${err}`);
-    procee.exit(1)
+    process.exit(1)
   });

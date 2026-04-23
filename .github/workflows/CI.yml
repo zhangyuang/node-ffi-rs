@@ -47,9 +47,12 @@ jobs:
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:stable-2023-09-17-x64
             build: |-
               set -e &&
+              command -v yarn >/dev/null 2>&1 || npm install -g yarn &&
               curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y &&
               . /usr/local/cargo/env &&
-              rustup update stable &&
+              rustup install 1.88.0 &&
+              rustup default 1.88.0 &&
+              rustc --version &&
               target=x86_64-unknown-linux-gnu yarn build &&
               strip *.node && yarn test &&
               ls
@@ -65,16 +68,18 @@ jobs:
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:stable-2023-09-17-aarch64
             build: |-
               set -e &&
+              command -v yarn >/dev/null 2>&1 || npm install -g yarn &&
               curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y &&
               . /usr/local/cargo/env &&
-              rustup update stable &&
+              rustup install 1.88.0 &&
+              rustup default 1.88.0 &&
               rustup target add aarch64-unknown-linux-gnu &&
               uname -a &&
+              rm -f /etc/apt/sources.list.d/nodesource.list &&
               apt-get update &&
               apt-get install gcc-aarch64-linux-gnu -y &&
               export CFLAGS="$CFLAGS -D__GLIBC_USE\(...\)=0" &&
               target=aarch64-unknown-linux-gnu yarn build &&
-              find . -name config.log &&
               aarch64-unknown-linux-gnu-strip *.node &&
               ls
           # - host: ubuntu-latest
@@ -85,6 +90,10 @@ jobs:
             docker: ghcr.io/catthehacker/ubuntu:custom-20.04-dev
             build: |
               set -e && uname -a &&
+              command -v yarn >/dev/null 2>&1 || npm install -g yarn &&
+              rustup install 1.88.0 &&
+              rustup default 1.88.0 &&
+              rm -f /etc/apt/sources.list.d/nodesource.list &&
               apt-get update &&
               apt-get install gcc-arm-linux-gnueabihf -y &&
               rustup target add arm-unknown-linux-gnueabihf &&
@@ -106,7 +115,12 @@ jobs:
             target: x86_64-unknown-linux-musl
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
             build: |
-              set -e && uname -a && apk update &&
+              set -e && uname -a &&
+              command -v yarn >/dev/null 2>&1 || npm install -g yarn &&
+              rustup install 1.88.0 &&
+              rustup default 1.88.0 &&
+              rustc --version &&
+              apk update &&
               apk add linux-headers &&
               CC="/usr/bin/x86_64-alpine-linux-musl-gcc" LDFLAGS="-L/usr/lib/gcc/x86_64-alpine-linux-musl/12.2.1/" yarn build &&
               strip *.node && yarn test &&
@@ -117,7 +131,11 @@ jobs:
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
             build: |-
               set -e &&
+              command -v yarn >/dev/null 2>&1 || npm install -g yarn &&
+              rustup install 1.88.0 &&
+              rustup default 1.88.0 &&
               uname -a &&
+              rm -f /etc/apt/sources.list.d/nodesource.list &&
               apt update &&
               apt install gcc-aarch64-linux-gnu -y &&
               export CFLAGS="$CFLAGS -D__GLIBC_USE\(...\)=0" &&
@@ -286,7 +304,7 @@ jobs:
         run: ls -R .
         shell: bash
       - name: Test bindings
-        run: docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-slim yarn test
+        run: docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-slim sh -c "command -v yarn >/dev/null 2>&1 || npm install -g yarn && yarn test"
 
   publish:
     name: Publish
