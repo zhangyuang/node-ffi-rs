@@ -14,8 +14,8 @@ use std::collections::HashMap;
 use std::ffi::c_void;
 use std::rc::Rc;
 use utils::dataprocess::{
-  get_arg_values, get_js_external_wrap_data, get_js_unknown_from_pointer,
-  get_value_pointer, type_define_to_rs_args,
+  get_arg_values, get_js_external_wrap_data, get_js_unknown_from_pointer, get_value_pointer,
+  type_define_to_rs_args,
 };
 use utils::pointer::get_ffi_type;
 
@@ -142,11 +142,7 @@ unsafe fn wrap_pointer(env: Env, params: Vec<JsExternal>) -> Result<Vec<JsExtern
 /// falls back to copying the data, so the Buffer is still usable but loses
 /// the zero-copy/shared-mutability property.
 #[napi]
-unsafe fn create_external_buffer(
-  env: Env,
-  external: JsExternal,
-  length: i64,
-) -> Result<JsUnknown> {
+unsafe fn create_external_buffer(env: Env, external: JsExternal, length: i64) -> Result<JsUnknown> {
   let ptr = get_js_external_wrap_data(&env, external)?;
   let len = length as usize;
   if ptr.is_null() {
@@ -330,11 +326,18 @@ unsafe fn load(env: Env, params: FFIParams) -> napi::Result<JsUnknown> {
           );
           let (errno_code, errno_message) = if let Some(true) = errno {
             let last_error = std::io::Error::last_os_error();
-            (last_error.raw_os_error().unwrap_or(0), last_error.to_string())
+            (
+              last_error.raw_os_error().unwrap_or(0),
+              last_error.to_string(),
+            )
           } else {
             (0, String::new())
           };
-          Ok(BarePointerWrap { data: result, errno_code, errno_message })
+          Ok(BarePointerWrap {
+            data: result,
+            errno_code,
+            errno_message,
+          })
         }
       }
 
