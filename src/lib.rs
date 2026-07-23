@@ -125,6 +125,46 @@ unsafe fn wrap_pointer(env: Env, params: Vec<JsExternal>) -> Result<Vec<JsExtern
     .collect()
 }
 
+/// Wrap an existing native pointer (a `DataType.External` returned from `load`,
+/// or any `JsExternal` from `createPointer`/`unwrapPointer`) into a Node.js
+/// `Buffer` **without copying**. The returned Buffer shares the same memory as
+/// the pointer, so reads/writes on either side are immediately visible on the
+/// other. This is the zero-copy equivalent of ffi-napi's `ref.reinterpret`.
+///
+/// `external` is the pointer to wrap and `length` is the number of bytes to
+/// expose. The caller is responsible for the lifetime of the underlying
+/// memory: ffi-rs does NOT free it when the Buffer is garbage-collected, so
+/// the pointer must stay valid for as long as the Buffer is used (e.g. the
+/// region returned by `mmap` must remain mapped until you are done with the
+/// Buffer and call `munmap` yourself).
+///
+/// On runtimes that forbid external buffers (e.g. Electron), this silently
+/// falls back to copying the data, so the Buffer is still usable but loses
+/// the zero-copy/shared-mutability property.
+#[napi]
+unsafe fn create_external_buffer(
+  env: Env,
+  external: JsExternal,
+  length: i64,
+) -> Result<JsUnknown> {
+  let ptr = get_js_external_wrap_data(&env, external)?;
+  let len = length as usize;
+  if ptr.is_null() {
+    return Err(napi::Error::from_reason(
+      "create_external_buffer: pointer is null",
+    ));
+  }
+  if len == 0 {
+    // A zero-length external buffer is not allowed; hand back an empty buffer.
+    return Ok(env.create_buffer(0)?.into_unknown());
+  }
+  // Borrow the native memory: a no-op finalizer means ffi-rs will never free
+  // it. The caller owns the memory (e.g. it came from mmap/malloc) and is
+  // responsible for keeping it valid while the Buffer is alive.
+  let buf = env.create_buffer_with_borrowed_data(ptr as *mut u8, len, (), |_, _| {})?;
+  Ok(buf.into_unknown())
+}
+
 #[napi]
 unsafe fn open(params: OpenParams) -> Result<()> {
   let OpenParams { library, path } = params;
