@@ -305,7 +305,7 @@ if (!nativeBinding) {
     (processParamsTypeForArray(params))
 }
 
-const { DataType, createPointer, restorePointer, unwrapPointer, wrapPointer, freePointer, open, close, load, isNullPointer, FFITypeTag } = nativeBinding
+const { DataType, createPointer, restorePointer, unwrapPointer, wrapPointer, freePointer, open, close, load, isNullPointer, FFITypeTag, createExternalBuffer } = nativeBinding
 DataType.StackStruct = 999
 DataType.Function = 998
 DataType.Array = 997
@@ -358,6 +358,7 @@ exports.restorePointer = (params) => restorePointer(processParamsTypeForArray(pa
 exports.unwrapPointer = (params) => unwrapPointer(processParamsTypeForArray(params))
 exports.wrapPointer = (params) => wrapPointer(processParamsTypeForArray(params))
 exports.freePointer = (params) => freePointer(setFreePointerTag(processParamsTypeForArray(params)))
+exports.createExternalBuffer = createExternalBuffer
 exports.arrayConstructor = arrayConstructor
 
 exports.funcConstructor = (options) => ({

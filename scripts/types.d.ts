@@ -155,6 +155,25 @@ export function wrapPointer(params: JsExternal[]): JsExternal[]
 
 export function isNullPointer(params: JsExternal): boolean
 
+/**
+ * Wrap an existing native pointer into a Node.js `Buffer` **without copying**.
+ *
+ * The returned Buffer shares the same memory as `external`, so reads/writes on
+ * either side are immediately visible on the other — the zero-copy equivalent
+ * of ffi-napi's `ref.reinterpret`.
+ *
+ * `external` is the pointer to wrap (a `DataType.External` returned from `load`,
+ * or any `JsExternal` from `createPointer`/`unwrapPointer`/`wrapPointer`).
+ * `length` is the number of bytes to expose.
+ *
+ * ffi-rs does NOT free the underlying memory when the Buffer is garbage
+ * collected; the caller owns the pointer's lifetime (e.g. a region returned by
+ * `mmap` must stay mapped until you are done with the Buffer and call `munmap`
+ * yourself). On runtimes that forbid external buffers (e.g. Electron) this
+ * silently falls back to copying the data.
+ */
+export function createExternalBuffer(external: JsExternal, length: number): Buffer
+
 type ResultWithErrno<T, E = undefined> = E extends true
   ? { value: T; errnoCode: number; errnoMessage: string }
   : T;
