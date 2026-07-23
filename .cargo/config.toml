@@ -1,3 +1,10 @@
+# Note: aarch64-linux-android is intentionally NOT configured here. Its linker
+# (the Android NDK clang wrapper) is provided at build time via the
+# `CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER` / `CC` environment variables in
+# CI (see .github/workflows/CI.yml), because the NDK install path varies by
+# host and NDK version and must not be hard-coded. build.rs additionally links
+# libclang_rt.builtins.a so libffi's `__clear_cache` reference is resolved.
+
 [target.aarch64-unknown-linux-musl]
 linker = "aarch64-linux-musl-gcc"
 rustflags = ["-C", "target-feature=-crt-static"]

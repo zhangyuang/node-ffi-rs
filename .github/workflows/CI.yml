@@ -103,12 +103,31 @@ jobs:
 
           - host: ubuntu-latest
             target: aarch64-linux-android
+            # The GitHub-hosted Ubuntu runner ships Android NDK with
+            # ANDROID_NDK_LATEST_HOME already set. We use the NDK clang wrapper
+            # (aarch64-linux-android24-clang) as both CC and linker instead of
+            # the glibc `gcc-aarch64-linux-gnu` toolchain, so that libffi's
+            # `__builtin___clear_cache` resolves to the static
+            # libclang_rt.builtins.a implementation that the NDK links in by
+            # default. Otherwise the produced .node keeps an undefined
+            # `__clear_cache` reference that bionic libc cannot resolve, and
+            # dlopen fails on real Android devices (see issue #138).
             build: |
               set -e && uname -a &&
-              sudo apt-get update &&
-              sudo apt-get install gcc-aarch64-linux-gnu -y &&
               rustup target add aarch64-linux-android &&
+              test -n "$ANDROID_NDK_LATEST_HOME" &&
+              NDK_TOOLCHAIN="$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin" &&
+              export CC="$NDK_TOOLCHAIN/aarch64-linux-android24-clang" &&
+              export CXX="$NDK_TOOLCHAIN/aarch64-linux-android24-clang++" &&
+              export AR="$NDK_TOOLCHAIN/llvm-ar" &&
+              export RANLIB="$NDK_TOOLCHAIN/llvm-ranlib" &&
+              export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$CC" &&
+              export TARGET_CC="$CC" &&
+              export TARGET_CXX="$CXX" &&
+              export TARGET_AR="$AR" &&
+              export PATH="$NDK_TOOLCHAIN:$PATH" &&
               target=aarch64-linux-android yarn build &&
+              "$NDK_TOOLCHAIN/llvm-strip" *.node &&
               ls
 
           - host: ubuntu-latest
