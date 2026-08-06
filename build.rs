@@ -38,9 +38,8 @@ fn main() {
       .map(|p| p.to_path_buf())
       .unwrap_or_else(|| PathBuf::from("."));
     println!("cargo:rustc-link-search=native={}", dir.display());
-    // The `:` prefix makes rustc treat the name as an exact archive filename
-    // (no `lib` prefix / `.a` suffix rewriting), which matches the NDK's
-    // `libclang_rt.builtins-<arch>.a` naming.
+    // Strip `lib` prefix and `.a` suffix so the linker applies its standard
+    // conventions: `-lclang_rt.builtins-aarch64` finds `libclang_rt.builtins-aarch64.a`.
     let stem = builtins
       .file_name()
       .and_then(|s| s.to_str())
@@ -50,7 +49,7 @@ fn main() {
       .unwrap_or(stem)
       .strip_suffix(".a")
       .unwrap_or(stem);
-    println!("cargo:rustc-link-lib=static=:{}", lib_name);
+    println!("cargo:rustc-link-lib=static={}", lib_name);
     println!(
       "cargo:warning=[ffi-rs] android: linking compiler-rt builtins from {}",
       builtins.display()
