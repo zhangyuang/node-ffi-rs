@@ -340,6 +340,7 @@ jobs:
           node-version: 18
           check-latest: true
 
+
       - name: Install dependencies
         run: node scripts/preinstall.js && yarn add esno@^4.0.0 shelljs@^0.8.5 @napi-rs/cli@^2.15.2 --registry https://registry.npmjs.org/ --prod
       - name: Download all artifacts
