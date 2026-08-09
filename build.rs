@@ -70,7 +70,14 @@ fn main() {
 /// archive and return its path if found.
 fn locate_ndk_builtins(target_arch: &str) -> Option<PathBuf> {
   let arch_name = arch_subdir_name(target_arch)?;
+  let target_triple = android_target_triple(target_arch);
   let candidates = ndk_root_candidates();
+
+  let filenames = [
+    format!("libclang_rt.builtins-{}-android.a", arch_name),
+    format!("libclang_rt.builtins-{}.a", arch_name),
+    "libclang_rt.builtins.a".to_string(),
+  ];
 
   for ndk_root in candidates {
     let prebuilt = find_prebuilt_dir(&ndk_root);
@@ -78,10 +85,8 @@ fn locate_ndk_builtins(target_arch: &str) -> Option<PathBuf> {
       Some(p) => p,
       None => continue,
     };
-    // libclang_rt.builtins-<arch>.a lives under
-    //   <prebuilt>/lib/clang/<clang-version>/lib/linux/
-    // (and sometimes lib64/... on x86_64 hosts). The clang version folder
-    // varies across NDK releases, so we glob over any version present.
+    // The clang version folder varies across NDK releases, so we glob over
+    // any version present.
     let clang_lib_dirs = [
       prebuilt.join("lib").join("clang"),
       prebuilt.join("lib64").join("clang"),
@@ -90,17 +95,18 @@ fn locate_ndk_builtins(target_arch: &str) -> Option<PathBuf> {
       if let Ok(entries) = std::fs::read_dir(&clang_dir) {
         for entry in entries.flatten() {
           let version_dir = entry.path();
-          // The platform-specific archives live in lib/linux/.
-          let archives_dir = version_dir.join("lib").join("linux");
-          // Prefer the architecture-specific archive; fall back to the
-          // generic one.
-          for name in [
-            format!("libclang_rt.builtins-{}.a", arch_name),
-            "libclang_rt.builtins.a".to_string(),
-          ] {
-            let candidate = archives_dir.join(&name);
-            if candidate.is_file() {
-              return Some(candidate);
+          // NDK r22 and earlier: lib/clang/<ver>/lib/linux/
+          // NDK r23+: may also use lib/clang/<ver>/lib/<target-triple>/
+          let mut search_dirs = vec![version_dir.join("lib").join("linux")];
+          for triple in &target_triple {
+            search_dirs.push(version_dir.join("lib").join(triple));
+          }
+          for archives_dir in &search_dirs {
+            for name in &filenames {
+              let candidate = archives_dir.join(name);
+              if candidate.is_file() {
+                return Some(candidate);
+              }
             }
           }
         }
@@ -109,10 +115,11 @@ fn locate_ndk_builtins(target_arch: &str) -> Option<PathBuf> {
   }
 
   // Last resort: ask the C compiler (if it is the NDK clang) where its
-  // resource directory lives via `clang --print-libgcc-file-name` /
-  // `clang --print-file-name`.
-  if let Some(found) = probe_via_cc(&arch_name) {
-    return Some(found);
+  // resource directory lives.
+  for name in &filenames {
+    if let Some(found) = probe_via_cc(name) {
+      return Some(found);
+    }
   }
 
   None
@@ -127,6 +134,30 @@ fn arch_subdir_name(target_arch: &str) -> Option<String> {
     "x86" => "i386".to_string(),
     other => return Some(other.to_string()),
   })
+}
+
+/// Return possible target-triple directory names used by NDK r23+ for the
+/// per-target compiler-rt layout.
+fn android_target_triple(target_arch: &str) -> Vec<String> {
+  match target_arch {
+    "aarch64" => vec![
+      "aarch64-linux-android".to_string(),
+      "aarch64-unknown-linux-android".to_string(),
+    ],
+    "arm" => vec![
+      "arm-linux-androideabi".to_string(),
+      "arm-unknown-linux-androideabi".to_string(),
+    ],
+    "x86_64" => vec![
+      "x86_64-linux-android".to_string(),
+      "x86_64-unknown-linux-android".to_string(),
+    ],
+    "x86" => vec![
+      "i686-linux-android".to_string(),
+      "i686-unknown-linux-android".to_string(),
+    ],
+    _ => vec![],
+  }
 }
 
 /// Collect candidate NDK root directories from environment variables and the
@@ -188,21 +219,18 @@ fn find_prebuilt_dir(ndk_root: &Path) -> Option<PathBuf> {
   None
 }
 
-/// Ask the configured C compiler to report its builtins archive directly.
-fn probe_via_cc(arch_name: &str) -> Option<PathBuf> {
+/// Ask the configured C compiler to report a builtins archive by filename.
+fn probe_via_cc(filename: &str) -> Option<PathBuf> {
   let cc = env::var("CC").or_else(|_| env::var("TARGET_CC")).ok()?;
   if cc.is_empty() {
     return None;
   }
-  // `clang --print-file-name=libclang_rt.builtins-<arch>.a` returns the resolved
-  // path (or just the bare name if not found, which we then reject).
-  let query = format!("libclang_rt.builtins-{}.a", arch_name);
   let output = Command::new(&cc)
-    .args(["--print-file-name", &query])
+    .args(["--print-file-name", filename])
     .output()
     .ok()?;
   let path_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
-  if path_str.is_empty() || path_str == query {
+  if path_str.is_empty() || path_str == filename {
     return None;
   }
   let p = PathBuf::from(path_str);
