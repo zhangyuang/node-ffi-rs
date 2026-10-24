@@ -17,8 +17,16 @@ function isMusl() {
       return true
     }
   } else {
-    const { glibcVersionRuntime } = process.report.getReport().header
-    return !glibcVersionRuntime
+    // The report's network section resolves every open socket's endpoints with blocking DNS lookups
+    const { report } = process
+    const excludeNetwork = report.excludeNetwork
+    report.excludeNetwork = true
+    try {
+      const { glibcVersionRuntime } = report.getReport().header
+      return !glibcVersionRuntime
+    } finally {
+      report.excludeNetwork = excludeNetwork
+    }
   }
 }
 
